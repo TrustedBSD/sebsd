@@ -1,0 +1,2 @@
+# hald - hardware informationd daemon
+/usr/sbin/hald		--	system_u:object_r:hald_exec_t

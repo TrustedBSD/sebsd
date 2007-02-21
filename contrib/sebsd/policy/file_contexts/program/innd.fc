@@ -1,0 +1,15 @@
+# innd
+/usr/sbin/innd.*	--	system_u:object_r:innd_exec_t
+/var/run/innd(/.*)?		system_u:object_r:innd_var_run_t
+/etc/news(/.*)?			system_u:object_r:innd_etc_t
+/etc/news/boot		--	system_u:object_r:innd_exec_t
+/var/spool/news(/.*)?		system_u:object_r:news_spool_t
+/var/log/news(/.*)?		system_u:object_r:innd_log_t
+/var/lib/news(/.*)?		system_u:object_r:innd_var_lib_t
+/var/run/news(/.*)?	 	system_u:object_r:innd_var_run_t
+/usr/sbin/in.nnrpd	--	system_u:object_r:innd_exec_t
+/usr/lib(64)?/news/bin/.*	--	system_u:object_r:innd_exec_t
+/usr/bin/inews		--	system_u:object_r:innd_exec_t
+/usr/bin/rnews		--	system_u:object_r:innd_exec_t
+/usr/lib/news/bin/innd 	--	system_u:object_r:innd_exec_t
+

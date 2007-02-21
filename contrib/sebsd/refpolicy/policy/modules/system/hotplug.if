@@ -1,0 +1,129 @@
+## <summary>
+## Policy for hotplug system, for supporting the
+## connection and disconnection of devices at runtime.
+## </summary>
+
+#######################################
+#
+# hotplug_domtrans(domain)
+#
+interface(`hotplug_domtrans',`
+	gen_require(`
+		type hotplug_t, hotplug_exec_t;
+	')
+
+	corecmd_search_sbin($1)
+	domain_auto_trans($1,hotplug_exec_t,hotplug_t)
+
+	allow $1 hotplug_t:fd use;
+	allow hotplug_t $1:fd use;
+	allow hotplug_t $1:fifo_file rw_file_perms;
+	allow hotplug_t $1:process sigchld;
+')
+
+#######################################
+#
+# hotplug_exec(domain)
+#
+interface(`hotplug_exec',`
+	gen_require(`
+		type hotplug_t;
+	')
+
+	corecmd_search_sbin($1)
+	can_exec($1,hotplug_exec_t)
+')
+
+#######################################
+#
+# hotplug_use_fds(domain)
+#
+interface(`hotplug_use_fds',`
+	gen_require(`
+		type hotplug_t;
+	')
+
+	allow $1 hotplug_t:fd use;
+')
+
+#######################################
+#
+# hotplug_dontaudit_use_fds(domain)
+#
+interface(`hotplug_dontaudit_use_fds',`
+	gen_require(`
+		type hotplug_t;
+	')
+
+	dontaudit $1 hotplug_t:fd use;
+')
+
+########################################
+#
+# hotplug_dontaudit_search_config(domain)
+#
+interface(`hotplug_dontaudit_search_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	dontaudit $1 hotplug_etc_t:dir search;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the hotplug configuration directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_getattr_config_dirs',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	allow $1 hotplug_etc_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Search the hotplug configuration directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_search_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	allow $1 hotplug_etc_t:dir { getattr search };
+')
+
+########################################
+## <summary>
+##	Read the configuration files for hotplug.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`hotplug_read_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 hotplug_etc_t:file r_file_perms;
+	allow $1 hotplug_etc_t:dir r_dir_perms;
+	allow $1 hotplug_etc_t:lnk_file r_file_perms;
+')
+

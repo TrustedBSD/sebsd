@@ -1,0 +1,102 @@
+## <summary>Hardware abstraction layer</summary>
+
+########################################
+## <summary>
+##	Execute hal in the hal domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_domtrans',`
+	gen_require(`
+		type hald_t, hald_exec_t;
+	')
+
+	domain_auto_trans($1,hald_exec_t,hald_t)
+
+	allow $1 hald_t:fd use;
+	allow hald_t $1:fd use;
+	allow hald_t $1:fifo_file rw_file_perms;
+	allow hald_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send to hal over a unix domain
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dgram_send',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Send to hal over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_stream_connect',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Send a dbus message to hal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dbus_send',`
+	gen_require(`
+		type hald_t;
+		class dbus send_msg;
+	')
+
+	allow $1 hald_t:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	hal over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dbus_chat',`
+	gen_require(`
+		type hald_t;
+		class dbus send_msg;
+	')
+
+	allow $1 hald_t:dbus send_msg;
+	allow hald_t $1:dbus send_msg;
+')

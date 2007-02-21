@@ -1,0 +1,133 @@
+#
+# Macros for mozilla/mozilla (or other browser) domains.
+#
+
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser 
+#
+
+#
+# mozilla_domain(domain_prefix)
+#
+# Define a derived domain for the mozilla/mozilla program when executed by
+# a user domain.  
+#
+# The type declaration for the executable type for this program is
+# provided separately in domains/program/mozilla.te. 
+#
+define(`mozilla_domain',`
+ifdef(`single_userdomain', `
+typealias $1_home_t alias { $1_home_mozilla_rw_t $1_home_mozilla_ro_t };
+typealias $1_t alias $1_mozilla_t;
+', `
+x_client_domain($1, mozilla, `, web_client_domain, privlog')
+
+allow $1_mozilla_t sound_device_t:chr_file rw_file_perms;
+
+# Unrestricted inheritance from the caller.
+allow $1_t $1_mozilla_t:process { noatsecure siginh rlimitinh };
+
+# Set resource limits and scheduling info.
+allow $1_mozilla_t self:process { setrlimit setsched };
+
+allow $1_mozilla_t usr_t:{ lnk_file file } { getattr read };
+allow $1_mozilla_t var_lib_t:file { getattr read };
+allow $1_mozilla_t urandom_device_t:chr_file { getattr ioctl read };
+allow $1_mozilla_t self:socket create_socket_perms;
+allow $1_mozilla_t self:file { getattr read };
+
+# for the orbit files of mozilla
+allow $1_t $1_mozilla_rw_t:sock_file create_file_perms;
+can_unix_connect($1_t, $1_mozilla_t)
+
+ifdef(`nfs_home_dirs', `
+create_dir_file($1_mozilla_t, nfs_t)
+')dnl end if nfs_home_dirs
+ifdef(`automount.te', `
+allow $1_mozilla_t autofs_t:dir { search getattr };
+')dnl end if automount
+
+# for bash
+allow $1_mozilla_t device_t:dir r_dir_perms;
+allow $1_mozilla_t devpts_t:dir r_dir_perms;
+allow $1_mozilla_t proc_t:file { getattr read };
+dontaudit $1_mozilla_t tty_device_t:chr_file getattr;
+
+dontaudit $1_mozilla_t proc_t:dir read;
+
+allow $1_mozilla_t { var_t var_lib_t }:dir search;
+dontaudit $1_mozilla_t var_run_t:dir { getattr search };
+
+# Execute downloaded programs.
+can_exec($1_mozilla_t, $1_mozilla_rw_t)
+
+dontaudit $1_mozilla_t tmpfile:dir { setattr getattr search };
+dontaudit $1_mozilla_t tmpfile:{ file fifo_file sock_file } getattr;
+
+# Use printer
+ifdef(`lpr.te', `
+domain_auto_trans($1_mozilla_t, lpr_exec_t, $1_lpr_t)
+# $1_lpr_t should only need read access to the tmp files
+allow $1_lpr_t $1_mozilla_rw_t:file rw_file_perms;
+')
+
+#
+# This is another place where I sould like to allow system customization.
+# We need to allow the admin to select whether then want to allow mozilla
+# access to the users home directories.
+#
+if (mozilla_readhome || mozilla_writehome) {
+r_dir_file($1_mozilla_t, $1_home_t)
+r_dir_file($1_mozilla_t, $1_home_dir_t)
+
+ifdef(`gpg.te', `
+dontaudit $1_mozilla_t $1_gpg_secret_t:dir { getattr };
+')
+ifdef(`screen.te', `
+dontaudit $1_mozilla_t $1_home_screen_t:file { getattr };
+')
+dontaudit $1_mozilla_t $1_home_ssh_t:dir { getattr };
+
+file_type_auto_trans($1_mozilla_t, tmp_t, $1_tmp_t)
+} else {
+file_type_auto_trans($1_mozilla_t, tmp_t, $1_mozilla_rw_t)
+dontaudit $1_mozilla_t $1_home_t:dir { setattr read search getattr };
+dontaudit $1_mozilla_t $1_home_t:file { setattr getattr };
+}
+
+if (mozilla_writehome) {
+file_type_auto_trans($1_mozilla_t, $1_home_t, $1_mozilla_rw_t)
+allow $1_mozilla_t $1_home_t:dir setattr;
+allow $1_mozilla_t $1_home_t:{ file lnk_file } rw_file_perms;
+}
+
+#
+# Reading /usr/tmp
+#
+allow $1_mozilla_t tmp_t:lnk_file { read };
+#
+# Unlinking .fonts.cache-1
+dontaudit $1_mozilla_t $1_home_t:file { unlink };
+
+allow $1_mozilla_t $1_t:unix_stream_socket { connectto };
+allow $1_mozilla_t sysctl_net_t:dir { search };
+allow $1_mozilla_t sysctl_t:dir { search };
+dontaudit $1_mozilla_t boot_t:dir getattr;
+ifdef(`cups.te', `
+allow $1_mozilla_t cupsd_etc_t:dir { search };
+')
+allow $1_mozilla_t $1_t:tcp_socket { read write };
+
+dontaudit $1_mozilla_t port_type:tcp_socket { name_bind };
+dontaudit $1_mozilla_t device_t:dir r_dir_perms;
+dontaudit $1_mozilla_t dri_device_t:chr_file rw_file_perms;
+
+ifdef(`xdm.te', `
+allow $1_mozilla_t xdm_t:fifo_file { write read };
+allow $1_mozilla_t xdm_tmp_t:dir search;
+allow $1_mozilla_t xdm_tmp_t:file { getattr read };
+allow $1_mozilla_t xdm_tmp_t:sock_file { write };
+')dnl end if xdm.te
+')dnl end ifdef single_userdomain
+')dnl end mozilla macro
+

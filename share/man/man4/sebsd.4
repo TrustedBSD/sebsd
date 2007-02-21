@@ -1,0 +1,90 @@
+.\"-
+.\" Copyright (c) 2005 SPARTA, Inc.
+.\" All rights reserved.
+.\"
+.\" SEBSD was initially developed by McAfee Research under DARPA/SPAWAR
+.\" contract N66001-01-C-8035 ("CBOSS"), as part of the DARPA CHATS
+.\" research program.
+.\"
+.\" This software was developed by SPARTA ISSO under SPAWAR contract 
+.\" N66001-04-C-6019 ("SEFOS").
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"/
+.Dd July 10, 2005
+.Os
+.Dt SEBSD 4
+.Sh NAME
+.Nm sebsd
+.Nd "SEBSD - FLASK/Type Enforcement Security Module"
+.Sh SYNOPSIS
+To compile SEBSD into your kernel, place the following lines in your kernel
+configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Cd "options SEBSD"
+.Ed
+.Pp
+Alternately, to load the Biba module at boot time, place the following line
+in your kernel configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Ed
+.Pp
+and in
+.Xr loader.conf 5 :
+.Bd -literal -offset indent
+sebsd_load="YES"
+.Ed
+.Sh DESCRIPTION
+The
+.Nm
+policy module provides an implementation of NSA's FLASK security
+architecture and the Type Enforcement policy environment as a TrustedBSD MAC
+Framework policy module.
+Type Enforcement allows the broad- or fine-grained control of processes and
+system objects via a policy language, assigning domains to subjects, types
+to objects, and describing the permitted accesses of domains on types.
+.Pp
+.Sh SEE ALSO
+.Xr mac 4 ,
+.Xr maclabel 7 ,
+.Xr mac 9
+.Sh HISTORY
+The
+.Nm
+policy module was developed for the
+.Tn TrustedBSD
+Project, and is derived from NSA's SELinux distribution of FLASK and Type
+Enforcement.
+.Sh AUTHORS
+In addition to the numerous contributors to NSA's SELinux, the port and
+adaptation of FLASK/TE to
+.Fx
+was contributed by McAfee Research under DARPA/SPAWAR contract
+N66001-01-C-8035
+.Pa Dq CBOSS
+as part of the DARPA CHATS research program, and further enhanced and
+developed by SPARTA, Inc under SPAWAR ccontract N66001-04-C-6019
+.Pa Dq SEFOS .

@@ -1,0 +1,213 @@
+
+policy_module(postgresql,1.1.0)
+
+#################################
+#
+# Declarations
+#
+type postgresql_t;
+type postgresql_exec_t;
+init_daemon_domain(postgresql_t,postgresql_exec_t)
+
+type postgresql_db_t;
+files_type(postgresql_db_t)
+
+type postgresql_etc_t;
+files_config_file(postgresql_etc_t)
+
+type postgresql_lock_t;
+files_lock_file(postgresql_lock_t)
+
+type postgresql_log_t;
+logging_log_file(postgresql_log_t)
+
+type postgresql_tmp_t;
+files_tmp_file(postgresql_tmp_t)
+
+type postgresql_var_run_t;
+files_pid_file(postgresql_var_run_t)
+
+########################################
+#
+# postgresql Local policy
+#
+allow postgresql_t self:capability { kill dac_override dac_read_search chown fowner fsetid setuid setgid sys_nice sys_tty_config sys_admin };
+allow postgresql_t self:process signal_perms;
+allow postgresql_t self:fifo_file { getattr read write ioctl };
+allow postgresql_t self:file { getattr read };
+allow postgresql_t self:sem create_sem_perms;
+allow postgresql_t self:shm create_shm_perms;
+allow postgresql_t self:tcp_socket create_stream_socket_perms;
+allow postgresql_t self:udp_socket create_stream_socket_perms;
+allow postgresql_t self:unix_dgram_socket create_socket_perms;
+allow postgresql_t self:unix_stream_socket create_stream_socket_perms;
+dontaudit postgresql_t self:capability { sys_tty_config sys_admin };
+
+allow postgresql_t postgresql_db_t:dir create_dir_perms;
+allow postgresql_t postgresql_db_t:fifo_file create_file_perms;
+allow postgresql_t postgresql_db_t:file create_file_perms;
+allow postgresql_t postgresql_db_t:lnk_file create_lnk_perms;
+allow postgresql_t postgresql_db_t:sock_file create_file_perms;
+files_var_lib_filetrans(postgresql_t, postgresql_db_t, { dir file lnk_file sock_file fifo_file })
+
+allow postgresql_t postgresql_etc_t:dir r_dir_perms;
+allow postgresql_t postgresql_etc_t:file r_file_perms;
+allow postgresql_t postgresql_etc_t:lnk_file { getattr read };
+
+allow postgresql_t postgresql_exec_t:lnk_file { getattr read };
+can_exec(postgresql_t, postgresql_exec_t )
+
+allow postgresql_t postgresql_lock_t:file create_file_perms;
+files_lock_filetrans(postgresql_t,postgresql_lock_t,file)
+
+allow postgresql_t postgresql_log_t:dir rw_dir_perms;
+allow postgresql_t postgresql_log_t:file create_file_perms;
+logging_log_filetrans(postgresql_t,postgresql_log_t,{ file dir })
+
+allow postgresql_t postgresql_tmp_t:dir create_dir_perms;
+allow postgresql_t postgresql_tmp_t:fifo_file create_file_perms;
+allow postgresql_t postgresql_tmp_t:file create_file_perms;
+allow postgresql_t postgresql_tmp_t:lnk_file create_lnk_perms;
+allow postgresql_t postgresql_tmp_t:sock_file create_file_perms;
+files_tmp_filetrans(postgresql_t, postgresql_tmp_t, { dir file sock_file })
+fs_tmpfs_filetrans(postgresql_t, postgresql_tmp_t, { dir file lnk_file sock_file fifo_file })
+
+allow postgresql_t postgresql_var_run_t:dir rw_dir_perms;
+allow postgresql_t postgresql_var_run_t:file create_file_perms;
+allow postgresql_t postgresql_var_run_t:sock_file create_file_perms;
+files_pid_filetrans(postgresql_t,postgresql_var_run_t,file)
+
+kernel_read_kernel_sysctls(postgresql_t)
+kernel_read_system_state(postgresql_t)
+kernel_list_proc(postgresql_t)
+kernel_read_all_sysctls(postgresql_t)
+kernel_read_proc_symlinks(postgresql_t)
+kernel_tcp_recvfrom(postgresql_t)
+
+corenet_tcp_sendrecv_all_if(postgresql_t)
+corenet_udp_sendrecv_all_if(postgresql_t)
+corenet_raw_sendrecv_all_if(postgresql_t)
+corenet_tcp_sendrecv_all_nodes(postgresql_t)
+corenet_udp_sendrecv_all_nodes(postgresql_t)
+corenet_raw_sendrecv_all_nodes(postgresql_t)
+corenet_tcp_sendrecv_all_ports(postgresql_t)
+corenet_udp_sendrecv_all_ports(postgresql_t)
+corenet_non_ipsec_sendrecv(postgresql_t)
+corenet_tcp_bind_all_nodes(postgresql_t)
+corenet_udp_bind_all_nodes(postgresql_t)
+corenet_tcp_bind_postgresql_port(postgresql_t)
+corenet_tcp_connect_auth_port(postgresql_t)
+
+dev_read_sysfs(postgresql_t)
+dev_read_urand(postgresql_t)
+
+fs_getattr_all_fs(postgresql_t)
+fs_search_auto_mountpoints(postgresql_t)
+
+term_use_controlling_term(postgresql_t)
+term_dontaudit_use_console(postgresql_t)
+
+corecmd_exec_bin(postgresql_t)
+corecmd_exec_ls(postgresql_t)
+corecmd_exec_sbin(postgresql_t)
+corecmd_exec_shell(postgresql_t)
+
+domain_dontaudit_list_all_domains_state(postgresql_t)
+domain_use_interactive_fds(postgresql_t)
+
+files_dontaudit_search_home(postgresql_t)
+files_manage_etc_files(postgresql_t)
+files_search_etc(postgresql_t)
+files_read_etc_runtime_files(postgresql_t)
+files_read_usr_files(postgresql_t)
+
+init_read_utmp(postgresql_t)
+init_use_fds(postgresql_t)
+init_use_script_ptys(postgresql_t)
+
+libs_use_ld_so(postgresql_t)
+libs_use_shared_libs(postgresql_t)
+
+logging_send_syslog_msg(postgresql_t)
+
+miscfiles_read_localization(postgresql_t)
+
+seutil_dontaudit_search_config(postgresql_t)
+
+sysnet_read_config(postgresql_t)
+
+userdom_dontaudit_search_sysadm_home_dirs(postgresql_t)
+userdom_dontaudit_use_sysadm_ttys(postgresql_t)
+userdom_dontaudit_use_unpriv_user_fds(postgresql_t)
+
+mta_getattr_spool(postgresql_t)
+
+ifdef(`targeted_policy', `
+	files_dontaudit_read_root_files(postgresql_t)
+	term_dontaudit_use_generic_ptys(postgresql_t)
+	term_dontaudit_use_unallocated_ttys(postgresql_t)
+')
+
+tunable_policy(`allow_execmem',`
+	allow postgresql_t self:process execmem;
+')
+
+optional_policy(`consoletype',`
+	consoletype_exec(postgresql_t)
+')
+
+optional_policy(`cron',`
+	cron_search_spool(postgresql_t)
+	cron_system_entry(postgresql_t,postgresql_exec_t)
+')
+
+optional_policy(`hostname',`
+	hostname_exec(postgresql_t)
+')
+
+optional_policy(`kerberos',`
+	kerberos_use(postgresql_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(postgresql_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(postgresql_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(postgresql_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(postgresql_t)
+')
+
+ifdef(`TODO',`
+ifdef(`targeted_policy', `', `
+bool allow_user_postgresql_connect false;
+
+if (allow_user_postgresql_connect) {
+# allow any user domain to connect to the database server
+can_tcp_connect(userdomain, postgresql_t)
+allow userdomain postgresql_t:unix_stream_socket connectto;
+allow userdomain postgresql_var_run_t:sock_file write;
+allow userdomain postgresql_tmp_t:sock_file write;
+}
+')
+ifdef(`distro_debian', `
+	init_exec_script_files(postgresql_t)
+	# gross hack
+	postgresql_domtrans(dpkg_t)
+	can_exec(postgresql_t, dpkg_exec_t)
+')
+
+ifdef(`distro_gentoo', `
+	allow postgresql_t initrc_su_t:process { sigchld };
+	# "su - postgres ..." is called from initrc_t
+	postgresql_search_db(initrc_su_t)
+	dontaudit initrc_su_t sysadm_devpts_t:chr_file rw_file_perms;
+')
+')

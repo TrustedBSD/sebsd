@@ -1,0 +1,154 @@
+Instructions for installing Security-Enhanced BSD
+
+SEBSD ships as a kernel loadable module that loads into a FreeBSD 6.0
+kernel supporting the TrustedBSD MAC framework
+(http://www.trustedbsd.org/).  The SEBSD installation tarball contains a
+modified FreeBSD 7.0 source tree. 
+
+These instructions assume some familiarity with the FreeBSD operating
+system installation, boot loader, kernel configuration, use of the ports
+collection etc. 
+
+1.  Install a FreeBSD 7.0 snapshot from CD. Our example system used
+    FreeBSD-7.0-SNAP013 from ftp.freebsd.org. For more information on
+    installing FreeBSD, see the FreeBSD Handbook at 
+    http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/
+    Note: it is not required that you install any system source with your
+    FreeBSD 7.0 installation. The SEBSD source tarball contains an entire
+    set of system sources. You may want to install the FreeBSD ports 
+    collection as there are some requirements for extra software not 
+    included in the default FreeBSD installation.
+
+2.  Install ports required for SEBSD. Since SEBSD uses policy ported from
+    SELinux, some additional tools are required for SEBSD to install and
+    function properly. You will need to install the following ports:
+
+        - devel/gmake
+        - lang/gawk
+	- lang/python
+
+   There are 2 methods of installing these ports. First is compilation 
+   from the ports collection. This option is more reliable, but takes more
+   time due to compilation. Here is an example for gmake:
+
+        # cd /usr/ports/devel/gmake
+        # make install
+
+   The second option is installation of a pre-compiled binary package.
+   This option can be faster, but there is no guarantee that a binary 
+   package of the proper version will be available. Here is an example
+   of this installation type for gmake.
+
+        # pkg_add -r gmake  
+
+3. Enable multilabel support on filesystems. In order for the SEBSD file 
+   labeling to function properly, file label support must be enabled. To
+   enable multilabel support on your system, boot into single user mode
+   and use 'tunefs' to enable multilabel support for each filesystem on
+   your system. Here is an example for /.
+
+	# tunefs -l enable /
+
+   Repeat this step, substituting each other filesystem in place of / as 
+   above.
+
+4.  Install SEBSD sources. After downloading the sources from 
+    http://www.trustedbsd.org/sebsd.html, untar them into /usr/src.
+
+	# cd /usr/src
+	# tar -zxf /path/to/sebsd-<version>.tar.gz
+
+5.  Build the SEBSD system. This process is similar to the canonical
+    building of world detailed in the FreeBSD Handbook, with a few
+    additional steps, and some re-arranging of the typical order.
+
+     a. Build the system from sources and bootstrap SEBSD-specific
+	portions of the system.
+
+	# cd /usr/src
+	# make buildworld
+	# make buildkernel KERNCONF=MAC
+	# make installworld
+	# make sebsd_bootstrap
+	# make installkernel KERNCONF=MAC INSTKERNNAME=MAC
+
+    b. Edit /etc/fstab to mark filesystems as 'multilabel'. SEBSD requires
+       that mounted filesystems utilize the MAC Framework file labeling 
+       support. Entries in your fstab should be edited to add the 'multilabel'
+       option. Below is an example fstab file:
+
+# Device                Mountpoint      FStype  Options         Dump    Pass#
+/dev/ad0s1b             none            swap    sw              0       0
+/dev/ad0s1a             /               ufs     rw,multilabel           1       1
+/dev/ad0s1e             /usr            ufs     rw,multilabel           2       2
+/dev/ad0s1d             /var            ufs     rw,multilabel           2       2
+/dev/acd0               /cdrom          cd9660  ro,noauto       0       0  
+
+    c.  Reboot the system.  By default, the system will boot
+       the MAC kernel and load the SEBSD security module (with the
+       default policy).  The file systems have not yet been labeled, so
+       not many warnings will be printed to the system console.  If it is
+       necessary to boot the generic FreeBSD kernel (without the MAC
+       framework), comment out the following lines in /boot/loader.conf:
+   	   kernel="MAC"
+	   sebsd_load="YES"
+       Alternatively, the kernel and modules to load may be selected from
+       the FreeBSD boot loader.  Refer to the FreeBSD handbook for more
+       information on the boot loader.
+
+6. Inspect the SEBSD policy.  The system comes pre-installed with a
+   sample policy, but local changes might be required.  The policy
+   source is located in /etc/security/sebsd/targeted/src/policy and the 
+   compiled (binary) version is installed in 
+   /etc/security/sebsd/targeted/policy/policy.20 by default.  Only the 
+   binary version is loaded by the SEBSD module at boot time.  An alternate 
+   location for the binary policy file may be specified at the boot loader 
+   or in /boot/loader.conf.
+
+   Since SEBSD uses a ported version of the SELinux reference policy 
+   the SELinux Reference Policy site at Sourceforge 
+   (http://refpolicy.sourceforge.net) can provide additional information.  
+   If you make changes to the policy source, you must re-compile and install
+   the modified binary policy:
+
+	# cd /etc/security/sebsd/targeted/src/policy && gmake && gmake install
+
+   If changes were made to the policy, the modified version must be
+   loaded into the kernel.  The /usr/sbin/load_policy program can be
+   used instead of a reboot:
+
+	/usr/sbin/load_policy /etc/security/sebsd/targeted/policy/policy.20
+
+7. Label the file system.  In step 3, extended attribute support was
+   enabled, but the individual filesystems were not labeled. To label all 
+   file systems, login as root and run the following command:
+
+	cd /etc/security/sebsd/targeted/src/policy && gmake relabel
+
+   Note that you will see several errors during the relabel process as
+   well as many permission denials on the system console. This is normal.
+
+8.  Reboot the machine, so that applications can use the file labels
+    and will be started in the correct domains.
+
+At this point, the machine will be running SEBSD with the sample
+policy. The sample policy is only an example and must be customized.
+Furthermore, the sample policy is not complete, so the system will
+print some access control warnings.  By default, the system is
+configured in the development mode; in this mode, access control
+failures are logged but not enforced.  To toggle between enforcing
+mode and development mode, use the security.mac.sebsd.enforcing sysctl
+as follows:
+    To enable:	 sysctl security.mac.sebsd.enforcing=1
+    To disable:	 sysctl security.mac.sebsd.enforcing=0
+
+Note that with the sample policy, only root running in the sysadm_r
+role is permitted to toggle the enforcement state. Also note that 
+the policy currently supplied is a very early port of the SELinux 
+reference policy, and will likely not function properly in enforcing 
+mode.
+
+If you would like the machine to default to enforcing mode at boot
+time, you may specify a default value for this sysctl in
+/etc/sysctl.conf.  Uncomment the following line at the end of the file:
+	security.mac.sebsd.enforcing=1

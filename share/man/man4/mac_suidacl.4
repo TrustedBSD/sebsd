@@ -1,0 +1,171 @@
+.\" Copyright (c) 2005 Samy Al Bahra.
+.\" Copyright (c) 2003 Networks Associates Technology, Inc.
+.\" All rights reserved.
+.\"
+.\" This software was developed for the FreeBSD Project by Chris Costello
+.\" at Safeport Network Services and Network Associates Labs, the
+.\" Security Research Division of Network Associates, Inc. under
+.\" DARPA/SPAWAR contract N66001-01-C-8035 ("CBOSS"), as part of the
+.\" DARPA CHATS research program.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD: src/share/man/man4/mac_portacl.4,v 1.5.2.2 2005/02/28 16:53:01 brueffer Exp $
+.\"
+.Dd December 9, 2004
+.Dt MAC_suidacl 4
+.Os
+.Sh NAME
+.Nm mac_suidacl
+.Nd "SUID/SGID access control policy"
+.Sh SYNOPSIS
+To compile the SUID/SGID access control policy into your kernel,
+place the following lines in your kernel
+configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Cd "options MAC_SUIDACL"
+.Ed
+.Pp
+Alternately, to load the suid access control policy module at boot time,
+place the following line in your kernel configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Ed
+.Pp
+and in
+.Xr loader.conf 5 :
+.Pp
+.Dl "mac_suidacl_load=""YES"""
+.Sh DESCRIPTION
+The
+.Nm
+policy allows administrators to administratively limit access to the setxid()
+family of systems calls and access to suid execution via the
+.Xr sysctl 8
+interface.
+.Pp
+
+.Ss Runtime Configuration
+The following
+.Xr sysctl 8
+MIBs are available for fine-tuning the enforcement of this MAC policy.
+All
+.Xr sysctl 8
+variables, except
+.Va security.mac.suidacl.rules ,
+can also be set as
+.Xr loader 8
+tunables in
+.Xr loader.conf 5 .
+.Bl -tag -width indent
+.It Va security.mac.suidacl.enabled
+Enforce the
+.Nm
+policy.
+(Default: 1).
+.It Va security.mac.portacl.rules
+The suid/sgid access control list is specified in the following format:
+.Pp
+.Sm off
+.Bd -literal -offset indent
+.Ar prison
+.Li :
+.Ar idtype
+.Li :
+.Ar id
+.Li :
+.Ar type
+.Li ,
+.Ar ...
+.Ed
+.Sm on
+.Pp
+.Bl -tag -width ".Ar prison"
+.It Ar idtype
+Describes the type of subject match to be performed.
+Either
+.Li uid
+for user ID matching, or
+.Li gid
+for group ID matching.
+.It Ar id
+The user or group ID (depending on
+.Ar idtype )
+allowed to bind to the specified port.
+.Bf -emphasis
+NOTE: User and group names are not valid; only the actual ID numbers
+may be used.
+.Ef
+.It Ar prison
+Describes which prison this rule will be applicable to. The
+.Li all
+keyword may be used to specify all prisons and the
+.Li none
+keyword may be used to have the rule apply only to non-jailed processes. 
+.It Ar type
+Describes which suid/sgid action this entry applies to. This includes
+.Li setuid
+,
+.Li seteuid
+and the rest of the setxid family of systems calls, as well as
+.Li execve
+in order to control access to suid/sgid executables. The
+.Li all
+keyword may be used to disallow a user or group access to all userspace
+methods of privilege changing.
+.El
+.Sh SEE ALSO
+.Xr mac 3 ,
+.Xr setuid 2 ,
+.Xr seteuid 2 ,
+.Xr setgid 2 ,
+.Xr setegid 2 ,
+.Xr setreuid 2 ,
+.Xr setregid 2 ,
+.Xr setresuid 2 ,
+.Xr setresgid 2 ,
+.Xr mac_biba 4 ,
+.Xr mac_bsdextended 4 ,
+.Xr mac_ifoff 4 ,
+.Xr mac_mls 4 ,
+.Xr mac_none 4 ,
+.Xr mac_partition 4 ,
+.Xr mac_portacl 4 ,
+.Xr mac_seeotheruids 4 ,
+.Xr mac_test 4 ,
+.Xr mac 9
+.Sh HISTORY
+MAC first appeared in
+.Fx 5.0
+and
+.Nm
+first appeared in
+.Fx 6.0 .
+.Sh AUTHORS
+This software was contributed to the
+.Fx
+Project by NAI Labs, the Security Research Division of Network Associates
+Inc.\& under DARPA/SPAWAR contract N66001-01-C-8035
+.Pq Dq CBOSS ,
+as part of the DARPA CHATS research program. It would be modified by Samy
+Al Bahra to reach current functionality.

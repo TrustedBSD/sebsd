@@ -1,0 +1,169 @@
+
+policy_module(fstools,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+type fsadm_t;
+type fsadm_exec_t;
+init_system_domain(fsadm_t,fsadm_exec_t)
+mls_file_read_up(fsadm_t)
+role system_r types fsadm_t;
+
+type fsadm_tmp_t;
+files_tmp_file(fsadm_tmp_t)
+
+type swapfile_t; # customizable
+files_type(swapfile_t)
+
+########################################
+#
+# local policy
+#
+
+# ipc_lock is for losetup
+allow fsadm_t self:capability { ipc_lock sys_rawio sys_admin sys_tty_config dac_override dac_read_search };
+allow fsadm_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execmem execheap };
+allow fsadm_t self:fd use;
+allow fsadm_t self:fifo_file rw_file_perms;
+allow fsadm_t self:sock_file r_file_perms;
+allow fsadm_t self:unix_dgram_socket create_socket_perms;
+allow fsadm_t self:unix_stream_socket create_stream_socket_perms;
+allow fsadm_t self:unix_dgram_socket sendto;
+allow fsadm_t self:unix_stream_socket connectto;
+allow fsadm_t self:shm create_shm_perms;
+allow fsadm_t self:sem create_sem_perms;
+allow fsadm_t self:msgq create_msgq_perms;
+allow fsadm_t self:msg { send receive };
+
+can_exec(fsadm_t, fsadm_exec_t)
+
+allow fsadm_t fsadm_tmp_t:dir create_dir_perms;
+allow fsadm_t fsadm_tmp_t:file create_file_perms;
+files_tmp_filetrans(fsadm_t, fsadm_tmp_t, { file dir })
+
+# Enable swapping to files
+allow fsadm_t swapfile_t:file { read write getattr swapon };
+
+kernel_read_system_state(fsadm_t)
+kernel_read_kernel_sysctls(fsadm_t)
+# Allow console log change (updfstab)
+kernel_change_ring_buffer_level(fsadm_t)
+# mkreiserfs needs this
+kernel_getattr_proc(fsadm_t)
+# Access to /initrd devices
+kernel_rw_unlabeled_dirs(fsadm_t)
+kernel_rw_unlabeled_blk_files(fsadm_t)
+
+files_getattr_boot_dirs(fsadm_t)
+
+dev_getattr_all_chr_files(fsadm_t)
+# mkreiserfs and other programs need this for UUID
+dev_read_rand(fsadm_t)
+dev_read_urand(fsadm_t)
+# Recreate /dev/cdrom.
+dev_manage_generic_symlinks(fsadm_t)
+# Access to /initrd devices
+dev_search_usbfs(fsadm_t)
+# for swapon
+dev_read_sysfs(fsadm_t)
+# Access to /initrd devices
+dev_getattr_usbfs_dirs(fsadm_t)
+# Access to /dev/mapper/control
+dev_rw_lvm_control(fsadm_t)
+
+fs_search_auto_mountpoints(fsadm_t)
+fs_getattr_xattr_fs(fsadm_t)
+fs_rw_ramfs_pipes(fsadm_t)
+fs_rw_tmpfs_files(fsadm_t)
+# remount file system to apply changes
+fs_remount_xattr_fs(fsadm_t)
+# for /dev/shm
+fs_search_tmpfs(fsadm_t)
+fs_getattr_tmpfs_dirs(fsadm_t)
+fs_read_tmpfs_symlinks(fsadm_t)
+
+mls_file_write_down(fsadm_t)
+
+storage_raw_read_fixed_disk(fsadm_t)
+storage_raw_write_fixed_disk(fsadm_t)
+storage_raw_read_removable_device(fsadm_t)
+storage_raw_write_removable_device(fsadm_t)
+storage_read_scsi_generic(fsadm_t)
+storage_swapon_fixed_disk(fsadm_t)
+
+term_use_console(fsadm_t)
+
+corecmd_list_bin(fsadm_t)
+corecmd_list_sbin(fsadm_t)
+corecmd_read_bin_symlinks(fsadm_t)
+corecmd_read_sbin_symlinks(fsadm_t)
+# cjp: these are probably not needed:
+corecmd_read_bin_files(fsadm_t)
+corecmd_read_bin_pipes(fsadm_t)
+corecmd_read_bin_sockets(fsadm_t)
+corecmd_read_sbin_files(fsadm_t)
+corecmd_read_sbin_pipes(fsadm_t)
+corecmd_read_sbin_sockets(fsadm_t)
+
+domain_use_interactive_fds(fsadm_t)
+
+files_list_home(fsadm_t)
+files_read_usr_files(fsadm_t)
+files_read_etc_files(fsadm_t)
+files_manage_lost_found(fsadm_t)
+files_manage_isid_type_dirs(fsadm_t)
+# Write to /etc/mtab.
+files_manage_etc_runtime_files(fsadm_t)
+# Access to /initrd devices
+files_rw_isid_type_dirs(fsadm_t)
+files_rw_isid_type_blk_files(fsadm_t)
+# Recreate /mnt/cdrom.
+files_manage_mnt_dirs(fsadm_t)
+# for tune2fs
+files_search_all(fsadm_t)
+
+init_use_fds(fsadm_t)
+init_use_script_ptys(fsadm_t)
+
+libs_use_ld_so(fsadm_t)
+libs_use_shared_libs(fsadm_t)
+
+logging_send_syslog_msg(fsadm_t)
+
+miscfiles_read_localization(fsadm_t)
+
+modutils_read_module_config(fsadm_t)
+
+seutil_read_config(fsadm_t)
+
+userdom_use_unpriv_users_fds(fsadm_t)
+
+ifdef(`targeted_policy',`
+	term_use_unallocated_ttys(fsadm_t)
+	term_use_generic_ptys(fsadm_t)
+')
+
+tunable_policy(`read_default_t',`
+	files_list_default(fsadm_t)
+	files_read_default_files(fsadm_t)
+	files_read_default_symlinks(fsadm_t)
+	files_read_default_sockets(fsadm_t)
+	files_read_default_pipes(fsadm_t)
+')
+
+optional_policy(`amanda',`
+	amanda_rw_dumpdates_files(fsadm_t)
+	amanda_append_log_files(fsadm_t)
+')
+
+optional_policy(`cron',`
+	# for smartctl cron jobs
+	cron_system_entry(fsadm_t,fsadm_exec_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(fsadm_t)
+')

@@ -1,0 +1,171 @@
+
+policy_module(unconfined,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type unconfined_t;
+')
+type unconfined_exec_t;
+init_system_domain(unconfined_t,unconfined_exec_t)
+role system_r types unconfined_t;
+
+########################################
+#
+# Local policy
+#
+
+unconfined_domain(unconfined_t)
+
+logging_send_syslog_msg(unconfined_t)
+
+ifdef(`targeted_policy',`
+	allow unconfined_t self:system syslog_read;
+	dontaudit unconfined_t self:capability sys_module;
+
+	files_create_boot_flag(unconfined_t)
+
+	init_domtrans_script(unconfined_t)
+
+	libs_domtrans_ldconfig(unconfined_t)
+
+	logging_domtrans_auditctl(unconfined_t)
+
+	seutil_domtrans_restorecon(unconfined_t)
+
+	userdom_unconfined(unconfined_t)
+	userdom_priveleged_home_dir_manager(unconfined_t)
+
+	optional_policy(`amanda',`
+		amanda_domtrans_recover(unconfined_t)
+	')
+
+	optional_policy(`apache',`
+		apache_domtrans_helper(unconfined_t)
+	')
+
+	optional_policy(`bind',`
+		bind_domtrans_ndc(unconfined_t)
+	')
+
+	optional_policy(`bluetooth',`
+		bluetooth_domtrans_helper(unconfined_t)
+	')
+
+	optional_policy(`dbus',`
+		dbus_stub(unconfined_t)
+
+		optional_policy(`avahi',`
+			avahi_dbus_chat(unconfined_t)
+		')
+
+		optional_policy(`bluetooth',`
+			bluetooth_dbus_chat(unconfined_t)
+		')
+
+		optional_policy(`cups',`
+			cups_dbus_chat_config(unconfined_t)
+		')
+
+		optional_policy(`hal',`
+			hal_dbus_chat(unconfined_t)
+		')
+
+		optional_policy(`networkmanager',`
+			networkmanager_dbus_chat(unconfined_t)
+		')
+	')
+
+	optional_policy(`dmidecode',`
+		dmidecode_domtrans(unconfined_t)
+	')
+
+	optional_policy(`firstboot',`
+		firstboot_domtrans(unconfined_t)
+	')
+
+	optional_policy(`fstools',`
+		fstools_domtrans(unconfined_t)
+	')
+
+	optional_policy(`java',`
+		java_domtrans(unconfined_t)
+	')
+
+	optional_policy(`lpd',`
+		lpd_domtrans_checkpc(unconfined_t)
+	')
+
+	optional_policy(`modutils',`
+		modutils_domtrans_update_mods(unconfined_t)
+	')
+
+	optional_policy(`mono',`
+		mono_domtrans(unconfined_t)
+	')
+
+	optional_policy(`mount',`
+		mount_domtrans(unconfined_t)
+	')
+
+	optional_policy(`netutils',`
+		netutils_domtrans_ping(unconfined_t)
+	')
+
+	optional_policy(`portmap',`
+		portmap_domtrans_helper(unconfined_t)
+	')
+
+	optional_policy(`postfix',`
+		postfix_domtrans_map(unconfined_t)
+		# cjp: this should probably be removed:
+		postfix_domtrans_master(unconfined_t)
+	')
+
+	optional_policy(`rpc',`
+		# cjp: this should probably be removed:
+		rpc_domtrans_nfsd(unconfined_t)
+	')
+
+	optional_policy(`rpm',`
+		rpm_domtrans(unconfined_t)
+	')
+
+	optional_policy(`samba',`
+		samba_domtrans_net(unconfined_t)
+		samba_domtrans_winbind_helper(unconfined_t)
+	')
+
+	optional_policy(`sendmail',`
+		sendmail_domtrans(unconfined_t)
+	')
+
+	optional_policy(`sysnetwork',`
+		sysnet_domtrans_dhcpc(unconfined_t)
+	')
+
+	optional_policy(`usermanage',`
+		usermanage_domtrans_admin_passwd(unconfined_t)
+	')
+
+	optional_policy(`vpn',`
+		vpn_domtrans(unconfined_t)
+	')
+
+	optional_policy(`webalizer',`
+		webalizer_domtrans(unconfined_t)
+	')
+
+	optional_policy(`wine',`
+		wine_domtrans(unconfined_t)
+	')
+
+	optional_policy(`xserver',`
+		xserver_domtrans_xdm_xserver(unconfined_t)
+	')
+')

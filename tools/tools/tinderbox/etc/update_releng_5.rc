@@ -1,0 +1,4 @@
+# $FreeBSD: src/tools/tools/tinderbox/etc/update_releng_5.rc,v 1.3 2005/07/20 19:50:29 des Exp $
+branches	= RELENG_5_4, RELENG_5
+platforms	= alpha, amd64, i386/i386, i386/pc98, sparc64
+targets		= update

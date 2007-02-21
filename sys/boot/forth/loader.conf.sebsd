@@ -1,0 +1,13 @@
+# uncomment the next line enable the MAC framework
+kernel="MAC"		# /boot sub-directory containing kernel and modules
+
+# uncomment the next line enable the sebsd module
+sebsd_load="YES"		# Security-Enhanced BSD module
+
+# uncomment the next line to allow the bootloader to load the SEBSD policy
+# This is required for the SEBSD module to boot
+sebsdpolicy_load="YES"
+
+# Default SEBSD policy location:
+# Note: This ONLY supports the default targeted policy.
+sebsdpolicy_name="/etc/security/sebsd/targeted/policy/policy.21"

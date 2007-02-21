@@ -1,0 +1,51 @@
+#DESC NSCD - Name service cache daemon cache lookup of user-name
+#
+# Author:  Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: nscd
+#
+
+#################################
+#
+# Rules for the nscd_t domain.
+#
+daemon_domain(nscd, `, userspace_objmgr')
+
+allow nscd_t etc_t:file r_file_perms;
+allow nscd_t etc_t:lnk_file read;
+can_network(nscd_t)
+can_ypbind(nscd_t)
+
+file_type_auto_trans(nscd_t, var_run_t, nscd_var_run_t, sock_file)
+
+allow nscd_t self:unix_stream_socket create_stream_socket_perms;
+
+ifdef(`nscd_all_connect', `
+can_unix_connect(domain, nscd_t)
+allow domain nscd_var_run_t:sock_file rw_file_perms;
+allow domain { var_run_t var_t }:dir search;
+allow domain nscd_t:nscd { getpwd getgrp gethost };
+', `
+can_unix_connect(userdomain, nscd_t)
+allow userdomain var_run_nscd_t:sock_file rw_file_perms;
+allow userdomain { var_run_t var_t }:dir search;
+allow userdomain nscd_t:nscd { getpwd getgrp gethost };
+allow sshd_t nscd_t:nscd { getpwd getgrp gethost };
+allow local_login_t nscd_t:nscd { getpwd getgrp };
+')dnl nscd_all_connect
+
+# Make sure we can getcon
+allow nscd_t self:process getattr;
+# For now we will allow all administrative commands.
+allow nscd_t self:nscd { admin getstat };
+
+allow nscd_t sysctl_kernel_t:dir search;
+allow nscd_t sysctl_kernel_t:file read;
+allow nscd_t self:process setsched;
+allow nscd_t self:unix_dgram_socket create_socket_perms;
+allow nscd_t self:fifo_file { read write };
+allow nscd_t self:capability { kill setgid setuid };
+
+# for when /etc/passwd has just been updated and has the wrong type
+allow nscd_t shadow_t:file getattr;
+
+dontaudit nscd_t sysadm_home_dir_t:dir search;

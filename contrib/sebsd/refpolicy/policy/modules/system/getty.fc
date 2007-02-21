@@ -1,0 +1,14 @@
+
+/etc/mgetty(/.*)?		gen_context(system_u:object_r:getty_etc_t,s0)
+
+/sbin/.*getty		--	gen_context(system_u:object_r:getty_exec_t,s0)
+
+/var/log/mgetty\.log.*	--	gen_context(system_u:object_r:getty_log_t,s0)
+
+/var/run/mgetty\.pid.*	--	gen_context(system_u:object_r:getty_var_run_t,s0)
+
+ifdef(`distro_sebsd', `
+/usr/libexec/getty	--	gen_context(system_u:object_r:getty_exec_t,s0)
+/etc/gettytab		--	gen_context(system_u:object_r:getty_etc_t,s0)
+')
+

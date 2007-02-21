@@ -1,0 +1,2734 @@
+## <summary>
+## Device nodes and interfaces for many basic system devices.
+## </summary>
+## <desc>
+## <p>
+## This module creates the device node concept and provides
+## the policy for many of the device files. Notable exceptions are
+## the mass storage and terminal devices that are covered by other
+## modules.
+## </p>
+## <p>
+## This module creates the concept of a device node. That is a
+## char or block device file, usually in /dev. All types that
+## are used to label device nodes should use the dev_node macro.
+## </p>
+## <p>
+## Additionally, this module controls access to three things:
+##	<ul>
+##		<li>the device directories containing device nodes</li>
+##		<li>device nodes as a group</li>
+##		<li>individual access to specific device nodes covered by
+##		this module.</li>
+##	</ul>
+## </p>
+## </desc>
+## <required val="true">
+##	Depended on by other required modules.
+## </required>
+
+########################################
+## <summary>
+##	Make the passed in type a type appropriate for
+##	use on device nodes (usually files in /dev).
+## </summary>
+## <param name="object_type">
+##	<summary>
+##	The object type that will be used on device nodes.
+##	</summary>
+## </param>
+#
+interface(`dev_node',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	typeattribute $1 device_node;
+
+	fs_associate($1)
+	fs_associate_tmpfs($1)
+	files_associate_tmp($1)
+')
+
+########################################
+## <summary>
+##	Allow full relabeling (to and from) of all device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to relabel.
+##	</summary>
+## </param>
+#
+interface(`dev_relabel_all_dev_nodes',`
+	gen_require(`
+		attribute device_node;
+		type device_t;
+	')
+
+	allow $1 device_node:dir { getattr relabelfrom };
+	allow $1 device_node:file { getattr relabelfrom };
+	allow $1 device_node:lnk_file { getattr relabelfrom };
+	allow $1 device_node:fifo_file { getattr relabelfrom };
+	allow $1 device_node:sock_file { getattr relabelfrom };
+	allow $1 { device_t device_node }:blk_file { getattr relabelfrom relabelto };
+	allow $1 { device_t device_node }:chr_file { getattr relabelfrom relabelto };
+')
+
+########################################
+## <summary>
+##	List all of the device nodes in a device directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to list device nodes.
+##	</summary>
+## </param>
+#
+interface(`dev_list_all_dev_nodes',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_t:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Set the attributes of /dev directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_generic_dirs',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to list all device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit listing of device nodes.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_list_all_dev_nodes',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:dir r_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create a directory in the device directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to create the directory.
+##	</summary>
+## </param>
+#
+interface(`dev_create_generic_dirs',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir { ra_dir_perms create };
+')
+
+########################################
+## <summary>
+##	Allow full relabeling (to and from) of directories in /dev.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to relabel.
+##	</summary>
+## </param>
+#
+interface(`dev_relabel_generic_dev_dirs',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir { r_dir_perms relabelfrom relabelto };
+')
+
+########################################
+## <summary>
+##	Read and write generic files in /dev.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_generic_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir search;
+	allow $1 device_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete generic files in /dev.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_delete_generic_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir { search write remove_name };
+	allow $1 device_t:file unlink;
+')
+
+########################################
+## <summary>
+##	Create a file in the device directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to create the files.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_generic_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr on generic pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_generic_pipes',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:fifo_file getattr;
+')
+
+########################################
+## <summary>
+##	Allow getattr on generic block devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_generic_blk_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_t:blk_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr on generic block devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_generic_blk_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:blk_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit setattr on generic block devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_generic_blk_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:blk_file setattr;
+')
+
+########################################
+## <summary>
+##	Allow read, write, and create for generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_create_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir ra_dir_perms;
+	allow $1 device_t:chr_file create;
+
+	allow $1 self:capability mknod;
+')
+
+########################################
+## <summary>
+##	Allow getattr for generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr for generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit setattr for generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes
+##	of symbolic links in device directories (/dev).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_generic_symlinks',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:lnk_file setattr;
+')
+
+########################################
+## <summary>
+##	Delete symbolic links in device directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_delete_generic_symlinks',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir { getattr read write remove_name };
+	allow $1 device_t:lnk_file unlink;
+')
+
+########################################
+## <summary>
+##	Create, delete, read, and write symbolic links in device directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_generic_symlinks',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_t:lnk_file create_lnk_perms;
+')
+
+########################################
+## <summary>
+##	Relabel symbolic links in device directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_relabel_generic_symlinks',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_t:lnk_file { relabelfrom relabelto };
+')
+
+########################################
+## <summary>
+##	Create, delete, read, and write device nodes in device directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_all_dev_nodes',`
+	gen_require(`
+		attribute device_node, memory_raw_read, memory_raw_write;
+		type device_t;
+	')
+
+	allow $1 device_t:dir { create read getattr lock setattr ioctl link unlink rename search add_name remove_name reparent write rmdir relabelfrom relabelto };
+	allow $1 device_t:sock_file { create ioctl read getattr lock write setattr append link unlink rename };
+	allow $1 device_t:lnk_file { create read getattr setattr link unlink rename };
+	allow $1 device_t:{ chr_file blk_file } { create ioctl read getattr lock write setattr append link unlink rename relabelfrom relabelto };
+	allow $1 device_node:{ chr_file blk_file } { create ioctl read getattr lock write setattr append link unlink rename relabelfrom relabelto };
+
+	# these next rules are to satisfy assertions broken by the above lines.
+	# the permissions hopefully can be cut back a lot
+	storage_raw_read_fixed_disk($1)
+	storage_raw_write_fixed_disk($1)
+	storage_read_scsi_generic($1)
+	storage_write_scsi_generic($1)
+
+	typeattribute $1 memory_raw_read;
+	typeattribute $1 memory_raw_write;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr for generic device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_rw_generic_dev_nodes',`
+	gen_require(`
+		type device_t;
+	')
+
+	dontaudit $1 device_t:{ chr_file blk_file } { getattr read write ioctl };
+')
+
+########################################
+## <summary>
+##	Create, delete, read, and write block device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_generic_blk_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_t:blk_file create_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, delete, read, and write character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_t:chr_file create_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, and write device nodes. The node
+##	will be transitioned to the type provided.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="file">
+##	<summary>
+##	Type to which the created node will be transitioned.
+##	</summary>
+## </param>
+## <param name="objectclass(es)">
+##	<summary>
+##	Object class(es) (single or set including {}) for which this
+##	the transition will occur.
+##	</summary>
+## </param>
+#
+interface(`dev_filetrans',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	type_transition $1 device_t:$3 $2;
+
+	fs_associate_tmpfs($2)
+	files_associate_tmp($2)
+')
+
+########################################
+## <summary>
+##	Getattr on all block file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_all_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_node:blk_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr on all block file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_all_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	dontaudit $1 device_node:blk_file getattr;
+')
+
+########################################
+## <summary>
+##	Getattr on all character file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_all_chr_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_node:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit getattr on all character file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_all_chr_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	dontaudit $1 device_node:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Setattr on all block file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_all_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_node:blk_file setattr;
+')
+
+########################################
+## <summary>
+##	Setattr on all character file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_all_chr_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 device_node:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit read on all block file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_read_all_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	dontaudit $1 device_node:blk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Dontaudit read on all character file device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_read_all_chr_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	dontaudit $1 device_node:chr_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Read, write, create, and delete all block device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_all_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_node:blk_file create_file_perms;
+
+	# these next rules are to satisfy assertions broken by the above lines.
+	storage_raw_read_fixed_disk($1)
+	storage_raw_write_fixed_disk($1)
+	storage_read_scsi_generic($1)
+	storage_write_scsi_generic($1)
+')
+
+########################################
+## <summary>
+##	Read, write, create, and delete all character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_all_chr_files',`
+	gen_require(`
+		attribute device_node, memory_raw_read, memory_raw_write;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 device_node:chr_file create_file_perms;
+
+	typeattribute $1 memory_raw_read, memory_raw_write;
+')
+
+########################################
+## <summary>
+##	Getattr the agp devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_agp_dev',`
+	gen_require(`
+		type device_t, agp_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 agp_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Read and write the agp devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_agp',`
+	gen_require(`
+		type device_t, agp_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 agp_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the apm bios device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_apm_bios_dev',`
+	gen_require(`
+		type device_t, apm_bios_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 apm_bios_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes of
+##	the apm bios device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_apm_bios_dev',`
+	gen_require(`
+		type apm_bios_t;
+	')
+
+	dontaudit $1 apm_bios_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the apm bios device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_apm_bios_dev',`
+	gen_require(`
+		type device_t, apm_bios_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 apm_bios_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes of
+##	the apm bios device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_apm_bios_dev',`
+	gen_require(`
+		type apm_bios_t;
+	')
+
+	dontaudit $1 apm_bios_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read and write the apm bios.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_apm_bios',`
+	gen_require(`
+		type device_t, apm_bios_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 apm_bios_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the PCMCIA card manager device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_cardmgr',`
+	gen_require(`
+		type cardmgr_dev_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 cardmgr_dev_t:chr_file { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and
+##	write the PCMCIA card manager device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_rw_cardmgr',`
+	gen_require(`
+		type cardmgr_dev_t;
+	')
+
+	dontaudit $1 cardmgr_dev_t:chr_file { read write };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	the PCMCIA card manager device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_cardmgr_dev',`
+	gen_require(`
+		type device_t, cardmgr_dev_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 cardmgr_dev_t:{ chr_file blk_file } manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	the PCMCIA card manager device
+##	with the correct type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_create_cardmgr_dev',`
+	gen_require(`
+		type device_t, cardmgr_dev_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 cardmgr_dev_t:{ chr_file blk_file } manage_file_perms;
+	type_transition $1 device_t:{ chr_file blk_file } cardmgr_dev_t;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the CPU
+##	microcode and id interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_cpu_dev',`
+	gen_require(`
+		type device_t, cpu_device_t;
+	')
+
+	allow $1 device_t:dir search;
+	allow $1 cpu_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Read the CPU identity.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_cpuid',`
+	gen_require(`
+		type device_t, cpu_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 cpu_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the the CPU microcode device. This
+##	is required to load CPU microcode.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_cpu_microcode',`
+	gen_require(`
+		type device_t, cpu_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 cpu_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the the hardware SSL accelerator.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_crypto',`
+	gen_require(`
+		type device_t, crypt_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 crypt_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	getattr the dri devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_dri_dev',`
+	gen_require(`
+		type device_t, dri_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 dri_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Setattr the dri devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_dri_dev',`
+	gen_require(`
+		type device_t, dri_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 dri_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read and write the dri devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_dri',`
+	gen_require(`
+		type device_t, dri_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 dri_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit read and write on the dri devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_rw_dri',`
+	gen_require(`
+		type dri_device_t;
+	')
+
+	dontaudit $1 dri_device_t:chr_file { getattr read write ioctl };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the dri devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_manage_dri_dev',`
+	gen_require(`
+		type device_t, dri_device_t;
+	')
+
+	allow $1 device_t:dir rw_dir_perms;
+	allow $1 dri_device_t:chr_file manage_file_perms;
+	type_transition $1 device_t:chr_file dri_device_t;
+')
+
+########################################
+## <summary>
+##	Read input event devices (/dev/input).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_input',`
+	gen_require(`
+		type device_t, event_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 event_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Read input event devices (/dev/input).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_input_dev',`
+	gen_require(`
+		type device_t, event_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 event_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the framebuffer device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_framebuffer_dev',`
+	gen_require(`
+		type device_t, framebuf_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 framebuf_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the framebuffer device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_framebuffer_dev',`
+	gen_require(`
+		type device_t, framebuf_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 framebuf_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Dot not audit attempts to set the attributes
+##	of the framebuffer device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_framebuffer_dev',`
+	gen_require(`
+		type framebuf_device_t;
+	')
+
+	dontaudit $1 framebuf_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read the framebuffer.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_framebuffer',`
+	gen_require(`
+		type framebuf_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 framebuf_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the framebuffer.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_read_framebuffer',`
+	gen_require(`
+		type framebuf_device_t;
+	')
+
+	dontaudit $1 framebuf_device_t:chr_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Write the framebuffer.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_framebuffer',`
+	gen_require(`
+		type device_t, framebuf_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 framebuf_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Read and write the framebuffer.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_framebuffer',`
+	gen_require(`
+		type device_t, framebuf_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 framebuf_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the lvm comtrol device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_lvm_control',`
+	gen_require(`
+		type device_t, lvm_control_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 lvm_control_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the lvm control device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_lvm_control',`
+	gen_require(`
+		type device_t, lvm_control_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 lvm_control_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete the lvm control device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_delete_lvm_control_dev',`
+	gen_require(`
+		type device_t, lvm_control_t;
+	')
+
+	allow $1 device_t:dir { getattr search read write remove_name };
+	allow $1 lvm_control_t:chr_file unlink;
+')
+
+########################################
+## <summary>
+##	dontaudit getattr raw memory devices (e.g. /dev/mem).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_memory_dev',`
+	gen_require(`
+		type memory_device_t;
+	')
+
+	dontaudit $1 memory_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Read raw memory devices (e.g. /dev/mem).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_raw_memory',`
+	gen_require(`
+		type device_t, memory_device_t;
+		attribute memory_raw_read;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 memory_device_t:chr_file r_file_perms;
+
+	allow $1 self:capability sys_rawio;
+	typeattribute $1 memory_raw_read;
+')
+
+########################################
+## <summary>
+##	Write raw memory devices (e.g. /dev/mem).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_raw_memory',`
+	gen_require(`
+		type device_t, memory_device_t;
+		attribute memory_raw_write;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 memory_device_t:chr_file write;
+
+	allow $1 self:capability sys_rawio;
+	typeattribute $1 memory_raw_write;
+')
+
+########################################
+## <summary>
+##	Read and execute raw memory devices (e.g. /dev/mem).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rx_raw_memory',`
+	gen_require(`
+		type device_t, memory_device_t;
+	')
+
+	dev_read_raw_memory($1)
+	allow $1 memory_device_t:chr_file execute;
+')
+
+########################################
+## <summary>
+##	Write and execute raw memory devices (e.g. /dev/mem).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_wx_raw_memory',`
+	gen_require(`
+		type device_t, memory_device_t;
+	')
+
+	dev_write_raw_memory($1)
+	allow $1 memory_device_t:chr_file execute;
+')
+
+########################################
+## <summary>
+##	Get the attributes of miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_misc_dev',`
+	gen_require(`
+		type device_t, misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 misc_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_misc_dev',`
+	gen_require(`
+		type misc_device_t;
+	')
+
+	dontaudit $1 misc_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_misc_dev',`
+	gen_require(`
+		type device_t, misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 misc_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes
+##	of miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_misc_dev',`
+	gen_require(`
+		type misc_device_t;
+	')
+
+	dontaudit $1 misc_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_misc',`
+	gen_require(`
+		type device_t, misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 misc_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Write miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_misc',`
+	gen_require(`
+		type device_t, misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 misc_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_rw_misc',`
+	gen_require(`
+		type misc_device_t;
+	')
+
+	dontaudit $1 misc_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the mouse devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_mouse_dev',`
+	gen_require(`
+		type device_t, mouse_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mouse_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the mouse devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_mouse_dev',`
+	gen_require(`
+		type device_t, mouse_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mouse_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read the mouse devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_mouse',`
+	gen_require(`
+		type device_t, mouse_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mouse_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##      Read and write to mouse devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_mouse',`
+	gen_require(`
+		type device_t, mouse_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mouse_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the mtrr device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_mtrr_dev',`
+	gen_require(`
+		type device_t, mtrr_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+
+	# proc entry is a file.  added for nmbd_t
+	allow $1 mtrr_device_t:{ file chr_file } getattr;
+')
+
+########################################
+## <summary>
+##	Read the mtrr device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_mtrr',`
+	gen_require(`
+		type device_t, mtrr_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mtrr_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Write the mtrr device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_mtrr',`
+	gen_require(`
+		type device_t, mtrr_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 mtrr_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Read and write the mtrr device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_mtrr',`
+	dev_read_mtrr($1)
+	dev_write_mtrr($1)
+')
+
+########################################
+## <summary>
+##	Read and write to the null device (/dev/null).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_null',`
+	gen_require(`
+		type device_t, null_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 null_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the printer device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_printer_dev',`
+	gen_require(`
+		type device_t, printer_device_t;
+	')
+
+	allow $1 device_t:dir search;
+	allow $1 printer_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Append the printer device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for lpd/checkpc_t
+interface(`dev_append_printer',`
+	gen_require(`
+		type device_t, printer_device_t;
+	')
+
+	allow $1 device_t:dir search;
+	allow $1 printer_device_t:chr_file { getattr append };
+')
+
+########################################
+## <summary>
+##	Read and write the printer device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_printer',`
+	gen_require(`
+		type device_t, printer_device_t;
+	')
+
+	allow $1 device_t:dir search;
+	allow $1 printer_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read from random number generator
+##	devices (e.g., /dev/random)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_rand',`
+	gen_require(`
+		type device_t, random_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 random_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read from random
+##	number generator devices (e.g., /dev/random)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_read_rand',`
+	gen_require(`
+		type random_device_t;
+	')
+
+	dontaudit $1 random_device_t:chr_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Write to the random device (e.g., /dev/random). This adds
+##	entropy used to generate the random data read from the
+##	random device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_rand',`
+	gen_require(`
+		type device_t, random_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 random_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Read the realtime clock (/dev/rtc).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_realtime_clock',`
+	gen_require(`
+		type device_t, clock_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 clock_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Set the realtime clock (/dev/rtc).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_realtime_clock',`
+	gen_require(`
+		type device_t, clock_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 clock_device_t:chr_file { setattr lock write append ioctl };
+')
+
+########################################
+## <summary>
+##	Read and set the realtime clock (/dev/rtc).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_realtime_clock',`
+	dev_read_realtime_clock($1)
+	dev_write_realtime_clock($1)
+')
+
+########################################
+## <summary>
+##	Get the attributes of the scanner device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_scanner_dev',`
+	gen_require(`
+		type device_t, scanner_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 scanner_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes of
+##	the scanner device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_scanner_dev',`
+	gen_require(`
+		type scanner_device_t;
+	')
+
+	dontaudit $1 scanner_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the scanner device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_scanner_dev',`
+	gen_require(`
+		type device_t, scanner_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 scanner_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes of
+##	the scanner device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_scanner_dev',`
+	gen_require(`
+		type scanner_device_t;
+	')
+
+	dontaudit $1 scanner_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read and write the scanner device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_scanner',`
+	gen_require(`
+		type device_t, scanner_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 scanner_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the sound devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_sound_dev',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the sound devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_sound_dev',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read the sound devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_sound',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Write the sound devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_sound',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Read the sound mixer devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_sound_mixer',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file { getattr read ioctl };
+')
+
+########################################
+## <summary>
+##	Write the sound mixer devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_sound_mixer',`
+	gen_require(`
+		type device_t, sound_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 sound_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Get the attributes of the the power management device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_power_mgmt_dev',`
+	gen_require(`
+		type device_t, power_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 power_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the the power management device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_power_mgmt_dev',`
+	gen_require(`
+		type device_t, power_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 power_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read and write the the power management device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_power_management',`
+	gen_require(`
+		type device_t, power_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 power_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of sysfs directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_sysfs_dirs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Search the sysfs directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_search_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:dir search;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search sysfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_search_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	dontaudit $1 sysfs_t:dir search;
+')
+
+########################################
+## <summary>
+##	List the contents of the sysfs directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_list_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:dir r_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow caller to read hardware state information.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type reading hardware state information.
+##	</summary>
+## </param>
+#
+interface(`dev_read_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:dir r_dir_perms;
+	allow $1 sysfs_t:{ file lnk_file } r_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow caller to modify hardware state information.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type modifying hardware state information.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:dir r_dir_perms;
+	allow $1 sysfs_t:lnk_file r_file_perms;
+	allow $1 sysfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read from pseudo random devices (e.g., /dev/urandom)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_urand',`
+	gen_require(`
+		type device_t, urandom_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 urandom_device_t:chr_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Write to the pseudo random device (e.g., /dev/urandom). This
+##	sets the random number generator seed.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_urand',`
+	gen_require(`
+		type device_t, urandom_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 urandom_device_t:chr_file { getattr write ioctl };
+')
+
+########################################
+## <summary>
+##	Read and write generic the USB devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_generic_usb_dev',`
+	gen_require(`
+		type usb_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 usb_device_t:chr_file { read write };
+')
+
+########################################
+## <summary>
+##	Mount a usbfs filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_mount_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:filesystem mount;
+')
+
+########################################
+## <summary>
+##	Associate a file to a usbfs filesystem.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	The type of the file to be associated to usbfs.
+##	</summary>
+## </param>
+#
+interface(`dev_associate_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:filesystem associate;
+')
+
+########################################
+## <summary>
+##	Get the attributes of a directory in the usb filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_usbfs_dirs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of a directory in the usb filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_usbfs_dirs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	dontaudit $1 usbfs_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Search the directory containing USB hardware information.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_search_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:dir search;
+')
+
+########################################
+## <summary>
+##	Allow caller to get a list of usb hardware.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type getting the list.
+##	</summary>
+## </param>
+#
+interface(`dev_list_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:dir r_dir_perms;
+	allow $1 usbfs_t:lnk_file r_file_perms;
+	allow $1 usbfs_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Read USB hardware information using
+##	the usbfs filesystem interface.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dev_read_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:dir r_dir_perms;
+	allow $1 usbfs_t:{ file lnk_file } r_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow caller to modify usb hardware configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type modifying the options.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_usbfs',`
+	gen_require(`
+		type usbfs_t;
+	')
+
+	allow $1 usbfs_t:dir r_dir_perms;
+	allow $1 usbfs_t:lnk_file r_file_perms;
+	allow $1 usbfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of video4linux devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_video_dev',`
+	gen_require(`
+		type device_t, v4l_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 v4l_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of video4linux device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_getattr_video_dev',`
+	gen_require(`
+		type v4l_device_t;
+	')
+
+	dontaudit $1 v4l_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of video4linux device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_video_dev',`
+	gen_require(`
+		type device_t, v4l_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 v4l_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes
+##	of video4linux device nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dev_dontaudit_setattr_video_dev',`
+	gen_require(`
+		type v4l_device_t;
+	')
+
+	dontaudit $1 v4l_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Get the attributes of X server miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_getattr_xserver_misc_dev',`
+	gen_require(`
+		type device_t, xserver_misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 xserver_misc_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of X server miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_setattr_xserver_misc_dev',`
+	gen_require(`
+		type device_t, xserver_misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 xserver_misc_device_t:chr_file setattr;
+')
+
+########################################
+## <summary>
+##	Read and write X server miscellaneous devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_xserver_misc',`
+	gen_require(`
+		type device_t, xserver_misc_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 xserver_misc_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write to the zero device (/dev/zero).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_zero',`
+	gen_require(`
+		type device_t, zero_device_t;
+	')
+
+	allow $1 device_t:dir r_dir_perms;
+	allow $1 zero_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read, write, and execute the zero device (/dev/zero).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rwx_zero',`
+	gen_require(`
+		type zero_device_t;
+	')
+
+	dev_rw_zero($1)
+	allow $1 zero_device_t:chr_file execute;
+')
+
+########################################
+## <summary>
+##	Unconfined access to devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_unconfined',`
+	gen_require(`
+		attribute device_node, memory_raw_write, memory_raw_read;
+		type mtrr_device_t;
+	')
+
+	allow $1 device_node:devfile_class_set *;
+	allow $1 mtrr_device_t:{ dir file } *;
+
+	allow $1 self:capability sys_rawio;
+	typeattribute $1 memory_raw_write, memory_raw_read;
+')
+

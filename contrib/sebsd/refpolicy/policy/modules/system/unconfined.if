@@ -1,0 +1,383 @@
+## <summary>The unconfined domain.</summary>
+
+########################################
+## <summary>
+##	Make the specified domain unconfined.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain_noaudit',`
+	gen_require(`
+		class dbus all_dbus_perms;
+		class nscd all_nscd_perms;
+		class passwd all_passwd_perms;
+	')
+
+	# Use any Linux capability.
+	allow $1 self:capability *;
+	allow $1 self:fifo_file create_file_perms;
+
+	# Transition to myself, to make get_ordered_context_list happy.
+	allow $1 self:process transition;
+
+	# Write access is for setting attributes under /proc/self/attr.
+	allow $1 self:file rw_file_perms;
+
+	# Userland object managers
+	allow $1 self:nscd *;
+	allow $1 self:dbus *;
+	allow $1 self:passwd *;
+
+	kernel_unconfined($1)
+	corenet_unconfined($1)
+	dev_unconfined($1)
+	domain_unconfined($1)
+	domain_dontaudit_read_all_domains_state($1)
+	files_unconfined($1)
+	fs_unconfined($1)
+	selinux_unconfined($1)
+
+	tunable_policy(`allow_execheap',`
+		# Allow making the stack executable via mprotect.
+		allow $1 self:process execheap;
+	')
+
+	tunable_policy(`allow_execmem',`
+		# Allow making anonymous memory executable, e.g. 
+		# for runtime-code generation or executable stack.
+		allow $1 self:process execmem;
+	')
+
+	tunable_policy(`allow_execmem && allow_execstack',`
+		# Allow making the stack executable via mprotect.
+		allow $1 self:process execstack;
+		auditallow $1 self:process execstack;
+	', `
+		# These are fairly common but seem to be harmless
+		# caused by using shared libraries built with old tool chains
+		#dontaudit $1 self:process execstack;
+	')
+
+
+	optional_policy(`authlogin',`
+		auth_unconfined($1)
+	')
+
+	optional_policy(`dbus',`
+		# Communicate via dbusd.
+		dbus_system_bus_unconfined($1)
+	')
+
+	optional_policy(`libraries',`
+		libs_use_shared_libs($1)
+	')
+
+	optional_policy(`nscd',`
+		nscd_unconfined($1)
+	')
+
+	optional_policy(`selinuxutil',`
+		seutil_create_bin_policy($1)
+		seutil_relabelto_bin_policy($1)
+	')
+
+	optional_policy(`storage',`
+		storage_unconfined($1)
+	')
+
+	ifdef(`TODO',`
+	if (allow_execmod) {
+		ifdef(`targeted_policy', `', `
+			# Allow text relocations on system shared libraries, e.g. libGL.
+			allow $1 home_type:file execmod;
+		')
+	}
+	') dnl end TODO
+')
+
+########################################
+## <summary>
+##	Make the specified domain unconfined and
+##	audit executable memory and executable heap
+##	usage.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain',`
+	unconfined_domain_noaudit($1)
+
+	tunable_policy(`allow_execheap',`
+		auditallow $1 self:process execheap;
+	')
+
+	tunable_policy(`allow_execmem',`
+		auditallow $1 self:process execmem;
+	')
+')
+
+########################################
+## <summary>
+##	Transition to the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domtrans',`
+	gen_require(`
+		type unconfined_t, unconfined_exec_t;
+	')
+
+	domain_auto_trans($1,unconfined_exec_t,unconfined_t)
+
+	allow $1 unconfined_t:fd use;
+	allow unconfined_t $1:fd use;
+	allow unconfined_t $1:fifo_file rw_file_perms;
+	allow unconfined_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute specified programs in the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the unconfined domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the unconfined domain to use.
+##	</summary>
+## </param>
+#
+interface(`unconfined_run',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	unconfined_domtrans($1)
+	role $2 types unconfined_t;
+	allow unconfined_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Transition to the unconfined domain by executing a shell.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_shell_domtrans',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	corecmd_shell_domtrans($1,unconfined_t)
+')
+
+########################################
+## <summary>
+##	Inherit file descriptors from the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_use_fds',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	allow $1 unconfined_t:fd use;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_sigchld',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	allow $1 unconfined_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send generic signals to the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_signal',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	allow $1 unconfined_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read unconfined domain unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_read_pipes',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	allow $1 unconfined_t:fifo_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read unconfined domain unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_dontaudit_read_pipes',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	dontaudit $1 unconfined_t:fifo_file read;
+')
+
+########################################
+## <summary>
+##	Read and write unconfined domain unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_rw_pipes',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	allow $1 unconfined_t:fifo_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	unconfined domain tcp sockets.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to read or write
+##	unconfined domain tcp sockets.
+##	</p>
+##	<p>
+##	This interface was added due to a broken
+##	symptom in ldconfig.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`unconfined_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type unconfined_t;
+	')
+
+	dontaudit $1 unconfined_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Send messages to the unconfined domain over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_dbus_send',`
+	gen_require(`
+		type unconfined_t;
+		class dbus send_msg;
+	')
+
+	allow $1 unconfined_t:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Add an alias type to the unconfined domain.
+## </summary>
+## <desc>
+##	<p>
+##	Add an alias type to the unconfined domain.
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	New alias of the unconfined domain.
+##	</summary>
+## </param>
+#
+interface(`unconfined_alias_domain',`
+	ifdef(`targeted_policy',`
+		gen_require(`
+			type unconfined_t;
+		')
+
+		typealias unconfined_t alias $1;
+	',`
+		errprint(`Warning: $0($1) has no effect in strict policy.'__endline__)
+	')
+')

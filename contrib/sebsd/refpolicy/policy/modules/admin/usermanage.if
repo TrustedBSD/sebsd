@@ -1,0 +1,301 @@
+## <summary>Policy for managing user accounts.</summary>
+
+########################################
+## <summary>
+##	Execute chfn in the chfn domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_chfn',`
+	gen_require(`
+		type chfn_t, chfn_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domain_auto_trans($1,chfn_exec_t,chfn_t)
+
+	allow $1 chfn_t:fd use;
+	allow chfn_t $1:fd use;
+	allow chfn_t $1:fifo_file rw_file_perms;
+	allow chfn_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute chfn in the chfn domain, and
+##	allow the specified role the chfn domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the chfn domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the chfn domain to use.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_chfn',`
+	gen_require(`
+		type chfn_t;
+	')
+
+	usermanage_domtrans_chfn($1)
+	role $2 types chfn_t;
+	allow chfn_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute groupadd in the groupadd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_groupadd',`
+	gen_require(`
+		type groupadd_t, groupadd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_sbin($1)
+	domain_auto_trans($1,groupadd_exec_t,groupadd_t)
+
+	allow $1 groupadd_t:fd use;
+	allow groupadd_t $1:fd use;
+	allow groupadd_t $1:fifo_file rw_file_perms;
+	allow groupadd_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute groupadd in the groupadd domain, and
+##	allow the specified role the groupadd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the groupadd domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the groupadd domain to use.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_groupadd',`
+	gen_require(`
+		type groupadd_t;
+	')
+
+	usermanage_domtrans_groupadd($1)
+	role $2 types groupadd_t;
+	allow groupadd_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute passwd in the passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_passwd',`
+	gen_require(`
+		type passwd_t, passwd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domain_auto_trans($1,passwd_exec_t,passwd_t)
+
+	allow $1 passwd_t:fd use;
+	allow passwd_t $1:fd use;
+	allow passwd_t $1:fifo_file rw_file_perms;
+	allow passwd_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute passwd in the passwd domain, and
+##	allow the specified role the passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the passwd domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the passwd domain to use.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_passwd',`
+	gen_require(`
+		type passwd_t;
+	')
+
+	usermanage_domtrans_passwd($1)
+	role $2 types passwd_t;
+	allow passwd_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute password admin functions in
+##	the admin passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_admin_passwd',`
+	gen_require(`
+		type sysadm_passwd_t, admin_passwd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domain_auto_trans($1,admin_passwd_exec_t,sysadm_passwd_t)
+
+	allow $1 sysadm_passwd_t:fd use;
+	allow sysadm_passwd_t $1:fd use;
+	allow sysadm_passwd_t $1:fifo_file rw_file_perms;
+	allow sysadm_passwd_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute passwd admin functions in the admin
+##	passwd domain, and allow the specified role
+##	the admin passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the admin passwd domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the admin passwd domain to use.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_admin_passwd',`
+	gen_require(`
+		type sysadm_passwd_t;
+	')
+
+	usermanage_domtrans_admin_passwd($1)
+	role $2 types sysadm_passwd_t;
+	allow sysadm_passwd_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute useradd in the useradd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_useradd',`
+	gen_require(`
+		type useradd_t, useradd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_sbin($1)
+	domain_auto_trans($1,useradd_exec_t,useradd_t)
+
+	allow $1 useradd_t:fd use;
+	allow useradd_t $1:fd use;
+	allow useradd_t $1:fifo_file rw_file_perms;
+	allow useradd_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute useradd in the useradd domain, and
+##	allow the specified role the useradd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the useradd domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the useradd domain to use.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_useradd',`
+	gen_require(`
+		type useradd_t;
+	')
+
+	usermanage_domtrans_useradd($1)
+	role $2 types useradd_t;
+	allow useradd_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Read the crack database.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_read_crack_db',`
+	gen_require(`
+		type crack_db_t;
+	')
+
+	allow $1 crack_db_t:file r_file_perms;
+')

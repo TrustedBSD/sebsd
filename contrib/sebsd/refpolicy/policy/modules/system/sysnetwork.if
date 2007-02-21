@@ -1,0 +1,569 @@
+## <summary>Policy for network configuration: ifconfig and dhcp client.</summary>
+
+#######################################
+## <summary>
+##	Execute dhcp client in dhcpc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##     The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_domtrans_dhcpc',`
+	gen_require(`
+		type dhcpc_t, dhcpc_exec_t;
+	')
+
+	corecmd_search_sbin($1)
+	domain_auto_trans($1, dhcpc_exec_t, dhcpc_t)
+
+	allow $1 dhcpc_t:fd use;
+	allow dhcpc_t $1:fd use;
+	allow dhcpc_t $1:fifo_file rw_file_perms;
+	allow dhcpc_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute DHCP clients in the dhcpc domain, and
+##	allow the specified role the dhcpc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the clock domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the clock domain to use.
+##	</summary>
+## </param>
+#
+interface(`sysnet_run_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	sysnet_domtrans_dhcpc($1)
+	role $2 types dhcpc_t;
+	allow dhcpc_t $3:chr_file { getattr read write ioctl };
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the dhcp client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the SIGCHLD.
+##	</summary>
+## </param>
+#
+interface(`sysnet_sigchld_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	allow $1 dhcpc_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send a kill signal to the dhcp client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the SIGKILL.
+##	</summary>
+## </param>
+#
+interface(`sysnet_kill_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	allow $1 dhcpc_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send a SIGSTOP signal to the dhcp client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the SIGSTOP.
+##	</summary>
+## </param>
+#
+interface(`sysnet_sigstop_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	allow $1 dhcpc_t:process sigstop;
+')
+
+########################################
+## <summary>
+##	Send a null signal to the dhcp client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the null signal.
+##	</summary>
+## </param>
+#
+interface(`sysnet_signull_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	allow $1 dhcpc_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send a generic signal to the dhcp client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the signal.
+##	</summary>
+## </param>
+#
+interface(`sysnet_signal_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	allow $1 dhcpc_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	dhcpc over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dbus_chat_dhcpc',`
+	gen_require(`
+		type dhcpc_t;
+		class dbus send_msg;
+	')
+
+	allow $1 dhcpc_t:dbus send_msg;
+	allow dhcpc_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read and write dhcp configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_rw_dhcp_config',`
+	gen_require(`
+		type dhcp_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dhcp_etc_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read dhcp client state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_read_dhcpc_state',`
+	gen_require(`
+		type dhcpc_state_t;
+	')
+
+	allow $1 dhcpc_state_t:file { getattr read };
+')
+
+#######################################
+## <summary>
+##	Allow network init to read network config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_read_config',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 net_conf_t:file r_file_perms;
+')
+
+#######################################
+## <summary>
+##	Do not audit attempts to read network config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_read_config',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	dontaudit $1 net_conf_t:file r_file_perms;
+')
+
+#######################################
+## <summary>
+##	Create files in /etc with the type used for
+##	the network config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_etc_filetrans_config',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	files_etc_filetrans($1,net_conf_t,file)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete network config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_manage_config',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	allow $1 net_conf_t:file create_file_perms;
+')
+
+#######################################
+## <summary>
+##	Read the dhcp client pid file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_read_dhcpc_pid',`
+	gen_require(`
+		type dhcpc_var_run_t;
+	')
+
+	files_list_pids($1)
+	allow $1 dhcpc_var_run_t:file { getattr read };
+')
+
+#######################################
+## <summary>
+##	Delete the dhcp client pid file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_delete_dhcpc_pid',`
+	gen_require(`
+		type dhcpc_var_run_t;
+	')
+
+	allow $1 dhcpc_var_run_t:file unlink;
+')
+
+#######################################
+## <summary>
+##	Execute ifconfig in the ifconfig domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sysnet_domtrans_ifconfig',`
+	gen_require(`
+		type ifconfig_t, ifconfig_exec_t;
+	')
+
+	corecmd_search_sbin($1)
+	domain_auto_trans($1, ifconfig_exec_t, ifconfig_t)
+
+	allow $1 ifconfig_t:fd use;
+	allow ifconfig_t $1:fd use;
+	allow ifconfig_t $1:fifo_file rw_file_perms;
+	allow ifconfig_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute ifconfig in the ifconfig domain, and
+##	allow the specified role the ifconfig domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ifconfig domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the ifconfig domain to use.
+##	</summary>
+## </param>
+#
+interface(`sysnet_run_ifconfig',`
+	gen_require(`
+		type ifconfig_t;
+	')
+
+	corecmd_search_sbin($1)
+	sysnet_domtrans_ifconfig($1)
+	role $2 types ifconfig_t;
+	allow ifconfig_t $3:chr_file rw_term_perms;
+')
+
+#######################################
+## <summary>
+##	Execute ifconfig in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_exec_ifconfig',`
+	gen_require(`
+		type ifconfig_exec_t;
+	')
+
+	corecmd_search_sbin($1)
+	can_exec($1,ifconfig_exec_t)
+')
+
+########################################
+## <summary>
+##	Read the DHCP configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_read_dhcp_config',`
+	gen_require(`
+		type dhcp_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dhcp_etc_t:dir search;
+	allow $1 dhcp_etc_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Search the DHCP state data directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_search_dhcp_state',`
+	gen_require(`
+		type dhcp_state_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 dhcp_state_t:dir search;
+')
+
+########################################
+## <summary>
+##	Create DHCP state data.
+## </summary>
+## <desc>
+##	<p>
+##	Create DHCP state data.
+##	</p>
+##	<p>
+##	This is added for DHCP server, as
+##	the server and client put their state
+##	files in the same directory.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="file_type">
+##	<summary>
+##	The type of the object to be created
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	The object class.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dhcp_state_filetrans',`
+	gen_require(`
+		type dhcp_state_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 dhcp_state_t:dir rw_dir_perms;
+	type_transition $1 dhcp_state_t:$3 $2;
+')
+
+########################################
+## <summary>
+##	Perform a DNS name resolution.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dns_name_resolve',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	allow $1 self:tcp_socket create_socket_perms;
+	allow $1 self:udp_socket create_socket_perms;
+	corenet_tcp_sendrecv_all_if($1)
+	corenet_udp_sendrecv_all_if($1)
+	corenet_raw_sendrecv_all_if($1)
+	corenet_tcp_sendrecv_all_nodes($1)
+	corenet_udp_sendrecv_all_nodes($1)
+	corenet_raw_sendrecv_all_nodes($1)
+	corenet_tcp_sendrecv_dns_port($1)
+	corenet_udp_sendrecv_dns_port($1)
+	corenet_non_ipsec_sendrecv($1)
+	corenet_tcp_bind_all_nodes($1)
+	corenet_udp_bind_all_nodes($1)
+	corenet_tcp_connect_dns_port($1)
+
+	files_search_etc($1)
+	allow $1 net_conf_t:file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect and use a LDAP server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_use_ldap',`
+	gen_require(`
+		type net_conf_t;
+	')		
+
+	allow $1 self:tcp_socket create_socket_perms;
+
+	corenet_tcp_sendrecv_all_if($1)
+	corenet_raw_sendrecv_all_if($1)
+	corenet_tcp_sendrecv_all_nodes($1)
+	corenet_raw_sendrecv_all_nodes($1)
+	corenet_tcp_sendrecv_ldap_port($1)
+	corenet_non_ipsec_sendrecv($1)
+	corenet_tcp_bind_all_nodes($1)
+	corenet_tcp_connect_ldap_port($1)
+
+	files_search_etc($1)
+	allow $1 net_conf_t:file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect and use remote port mappers.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_use_portmap',`
+	gen_require(`
+		type net_conf_t;
+	')		
+
+	allow $1 self:tcp_socket create_socket_perms;
+	allow $1 self:udp_socket create_socket_perms;
+
+	corenet_tcp_sendrecv_all_if($1)
+	corenet_udp_sendrecv_all_if($1)
+	corenet_raw_sendrecv_all_if($1)
+	corenet_tcp_sendrecv_all_nodes($1)
+	corenet_udp_sendrecv_all_nodes($1)
+	corenet_raw_sendrecv_all_nodes($1)
+	corenet_tcp_sendrecv_portmap_port($1)
+	corenet_udp_sendrecv_portmap_port($1)
+	corenet_non_ipsec_sendrecv($1)
+	corenet_tcp_bind_all_nodes($1)
+	corenet_udp_bind_all_nodes($1)
+	corenet_tcp_connect_portmap_port($1)
+
+	files_search_etc($1)
+	allow $1 net_conf_t:file r_file_perms;
+')

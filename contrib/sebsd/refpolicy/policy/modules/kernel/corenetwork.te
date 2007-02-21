@@ -1,0 +1,768 @@
+#
+# This is a generated file!  Instead of modifying this file, the
+# corenetwork.te.in or corenetwork.te.m4 file should be modified.
+#
+#
+# shiftn(num,list...)
+#
+# shift the list num times
+#
+
+
+
+
+#
+# network_interface(if_name,linux_interface,mls_sensitivity)
+#
+
+
+
+
+#
+# network_node(node_name,mls_sensitivity,address,netmask[, mls_sensitivity,address,netmask, [...]])
+#
+
+
+# These next three macros have formatting, and should not me indented
+ 
+ 
+
+
+#
+# network_port(port_name,protocol portnum mls_sensitivity [,protocol portnum mls_sensitivity[,...]])
+#
+
+
+policy_module(corenetwork,1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute netif_type;
+attribute node_type;
+attribute port_type;
+attribute reserved_port_type;
+
+type ppp_device_t;
+dev_node(ppp_device_t)
+
+#
+# tun_tap_device_t is the type of /dev/net/tun/* and /dev/net/tap/*
+#
+type tun_tap_device_t;
+dev_node(tun_tap_device_t)
+
+########################################
+#
+# Ports
+#
+
+#
+# port_t is the default type of INET port numbers.
+#
+type port_t, port_type;
+sid port gen_context(system_u:object_r:port_t,s0)
+
+#
+# reserved_port_t is the type of INET port numbers below 1024.
+#
+type reserved_port_t, port_type, reserved_port_type;
+
+
+type afs_bos_port_t, port_type;
+portcon udp 7007 gen_context(system_u:object_r:afs_bos_port_t,s0)
+
+
+
+type afs_fs_port_t, port_type;
+portcon tcp 2040 gen_context(system_u:object_r:afs_fs_port_t,s0)
+portcon udp 7000 gen_context(system_u:object_r:afs_fs_port_t,s0)
+portcon udp 7005 gen_context(system_u:object_r:afs_fs_port_t,s0)
+
+
+
+type afs_ka_port_t, port_type;
+portcon udp 7004 gen_context(system_u:object_r:afs_ka_port_t,s0)
+
+
+
+type afs_pt_port_t, port_type;
+portcon udp 7002 gen_context(system_u:object_r:afs_pt_port_t,s0)
+
+
+
+type afs_vl_port_t, port_type;
+portcon udp 7003 gen_context(system_u:object_r:afs_vl_port_t,s0)
+
+
+
+type amanda_port_t, port_type;
+portcon udp 10080 gen_context(system_u:object_r:amanda_port_t,s0)
+portcon tcp 10080 gen_context(system_u:object_r:amanda_port_t,s0)
+portcon udp 10081 gen_context(system_u:object_r:amanda_port_t,s0)
+portcon tcp 10081 gen_context(system_u:object_r:amanda_port_t,s0)
+portcon tcp 10082 gen_context(system_u:object_r:amanda_port_t,s0)
+portcon tcp 10083 gen_context(system_u:object_r:amanda_port_t,s0)
+
+
+
+type amavisd_recv_port_t, port_type;
+portcon tcp 10024 gen_context(system_u:object_r:amavisd_recv_port_t,s0)
+
+
+
+type amavisd_send_port_t, port_type;
+portcon tcp 10025 gen_context(system_u:object_r:amavisd_send_port_t,s0)
+
+
+
+type asterisk_port_t, port_type;
+portcon tcp 1720 gen_context(system_u:object_r:asterisk_port_t,s0)
+portcon udp 2427 gen_context(system_u:object_r:asterisk_port_t,s0)
+portcon udp 2727 gen_context(system_u:object_r:asterisk_port_t,s0)
+portcon udp 4569 gen_context(system_u:object_r:asterisk_port_t,s0)
+portcon udp 5060 gen_context(system_u:object_r:asterisk_port_t,s0)
+
+
+
+type auth_port_t, port_type;
+typeattribute auth_port_t reserved_port_type;
+portcon tcp 113 gen_context(system_u:object_r:auth_port_t,s0)
+
+
+
+type bgp_port_t, port_type;
+typeattribute bgp_port_t reserved_port_type;
+portcon tcp 179 gen_context(system_u:object_r:bgp_port_t,s0)
+typeattribute bgp_port_t reserved_port_type;
+portcon udp 179 gen_context(system_u:object_r:bgp_port_t,s0)
+
+
+type biff_port_t, port_type, reserved_port_type; 
+type clamd_port_t, port_type;
+portcon tcp 3310 gen_context(system_u:object_r:clamd_port_t,s0)
+
+
+
+type clockspeed_port_t, port_type;
+portcon udp 4041 gen_context(system_u:object_r:clockspeed_port_t,s0)
+
+
+
+type comsat_port_t, port_type;
+typeattribute comsat_port_t reserved_port_type;
+portcon udp 512 gen_context(system_u:object_r:comsat_port_t,s0)
+
+
+
+type cvs_port_t, port_type;
+portcon tcp 2401 gen_context(system_u:object_r:cvs_port_t,s0)
+portcon udp 2401 gen_context(system_u:object_r:cvs_port_t,s0)
+
+
+
+type dcc_port_t, port_type;
+portcon udp 6276 gen_context(system_u:object_r:dcc_port_t,s0)
+portcon udp 6277 gen_context(system_u:object_r:dcc_port_t,s0)
+
+
+
+type dbskkd_port_t, port_type;
+portcon tcp 1178 gen_context(system_u:object_r:dbskkd_port_t,s0)
+
+
+
+type dhcpc_port_t, port_type;
+typeattribute dhcpc_port_t reserved_port_type;
+portcon udp 68 gen_context(system_u:object_r:dhcpc_port_t,s0)
+
+
+
+type dhcpd_port_t, port_type;
+typeattribute dhcpd_port_t reserved_port_type;
+portcon udp 67 gen_context(system_u:object_r:dhcpd_port_t,s0)
+typeattribute dhcpd_port_t reserved_port_type;
+portcon tcp 647 gen_context(system_u:object_r:dhcpd_port_t,s0)
+typeattribute dhcpd_port_t reserved_port_type;
+portcon udp 647 gen_context(system_u:object_r:dhcpd_port_t,s0)
+typeattribute dhcpd_port_t reserved_port_type;
+portcon tcp 847 gen_context(system_u:object_r:dhcpd_port_t,s0)
+typeattribute dhcpd_port_t reserved_port_type;
+portcon udp 847 gen_context(system_u:object_r:dhcpd_port_t,s0)
+
+
+
+type dict_port_t, port_type;
+portcon tcp 2628 gen_context(system_u:object_r:dict_port_t,s0)
+
+
+
+type distccd_port_t, port_type;
+portcon tcp 3632 gen_context(system_u:object_r:distccd_port_t,s0)
+
+
+
+type dns_port_t, port_type;
+typeattribute dns_port_t reserved_port_type;
+portcon udp 53 gen_context(system_u:object_r:dns_port_t,s0)
+typeattribute dns_port_t reserved_port_type;
+portcon tcp 53 gen_context(system_u:object_r:dns_port_t,s0)
+
+
+
+type fingerd_port_t, port_type;
+typeattribute fingerd_port_t reserved_port_type;
+portcon tcp 79 gen_context(system_u:object_r:fingerd_port_t,s0)
+
+
+
+type ftp_data_port_t, port_type;
+typeattribute ftp_data_port_t reserved_port_type;
+portcon tcp 20 gen_context(system_u:object_r:ftp_data_port_t,s0)
+
+
+
+type ftp_port_t, port_type;
+typeattribute ftp_port_t reserved_port_type;
+portcon tcp 21 gen_context(system_u:object_r:ftp_port_t,s0)
+
+
+
+type gatekeeper_port_t, port_type;
+portcon udp 1718 gen_context(system_u:object_r:gatekeeper_port_t,s0)
+portcon udp 1719 gen_context(system_u:object_r:gatekeeper_port_t,s0)
+portcon tcp 1721 gen_context(system_u:object_r:gatekeeper_port_t,s0)
+portcon tcp 7000 gen_context(system_u:object_r:gatekeeper_port_t,s0)
+
+
+
+type giftd_port_t, port_type;
+portcon tcp 1213 gen_context(system_u:object_r:giftd_port_t,s0)
+
+
+
+type gopher_port_t, port_type;
+typeattribute gopher_port_t reserved_port_type;
+portcon tcp 70 gen_context(system_u:object_r:gopher_port_t,s0)
+typeattribute gopher_port_t reserved_port_type;
+portcon udp 70 gen_context(system_u:object_r:gopher_port_t,s0)
+
+
+
+type http_cache_port_t, port_type;
+portcon tcp 3128 gen_context(system_u:object_r:http_cache_port_t,s0)
+portcon udp 3130 gen_context(system_u:object_r:http_cache_port_t,s0)
+portcon tcp 8080 gen_context(system_u:object_r:http_cache_port_t,s0)
+portcon tcp 8118 gen_context(system_u:object_r:http_cache_port_t,s0)
+
+ # 8118 is for privoxy
+
+type http_port_t, port_type;
+typeattribute http_port_t reserved_port_type;
+portcon tcp 80 gen_context(system_u:object_r:http_port_t,s0)
+typeattribute http_port_t reserved_port_type;
+portcon tcp 443 gen_context(system_u:object_r:http_port_t,s0)
+typeattribute http_port_t reserved_port_type;
+portcon tcp 488 gen_context(system_u:object_r:http_port_t,s0)
+portcon tcp 8008 gen_context(system_u:object_r:http_port_t,s0)
+
+
+
+type howl_port_t, port_type;
+portcon tcp 5335 gen_context(system_u:object_r:howl_port_t,s0)
+portcon udp 5353 gen_context(system_u:object_r:howl_port_t,s0)
+
+
+
+type hplip_port_t, port_type;
+portcon tcp 50000 gen_context(system_u:object_r:hplip_port_t,s0)
+portcon tcp 50002 gen_context(system_u:object_r:hplip_port_t,s0)
+
+
+
+type i18n_input_port_t, port_type;
+portcon tcp 9010 gen_context(system_u:object_r:i18n_input_port_t,s0)
+
+
+
+type imaze_port_t, port_type;
+portcon tcp 5323 gen_context(system_u:object_r:imaze_port_t,s0)
+portcon udp 5323 gen_context(system_u:object_r:imaze_port_t,s0)
+
+
+
+type inetd_child_port_t, port_type;
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 7 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 7 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 9 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 9 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 13 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 13 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 19 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 19 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 37 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 37 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 512 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 543 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 544 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 891 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 891 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon tcp 892 gen_context(system_u:object_r:inetd_child_port_t,s0)
+typeattribute inetd_child_port_t reserved_port_type;
+portcon udp 892 gen_context(system_u:object_r:inetd_child_port_t,s0)
+portcon tcp 2105 gen_context(system_u:object_r:inetd_child_port_t,s0)
+portcon tcp 5666 gen_context(system_u:object_r:inetd_child_port_t,s0)
+
+
+
+type innd_port_t, port_type;
+typeattribute innd_port_t reserved_port_type;
+portcon tcp 119 gen_context(system_u:object_r:innd_port_t,s0)
+
+
+
+type ipp_port_t, port_type;
+typeattribute ipp_port_t reserved_port_type;
+portcon tcp 631 gen_context(system_u:object_r:ipp_port_t,s0)
+typeattribute ipp_port_t reserved_port_type;
+portcon udp 631 gen_context(system_u:object_r:ipp_port_t,s0)
+
+
+
+type ircd_port_t, port_type;
+portcon tcp 6667 gen_context(system_u:object_r:ircd_port_t,s0)
+
+
+
+type isakmp_port_t, port_type;
+typeattribute isakmp_port_t reserved_port_type;
+portcon udp 500 gen_context(system_u:object_r:isakmp_port_t,s0)
+
+
+
+type jabber_client_port_t, port_type;
+portcon tcp 5222 gen_context(system_u:object_r:jabber_client_port_t,s0)
+portcon tcp 5223 gen_context(system_u:object_r:jabber_client_port_t,s0)
+
+
+
+type jabber_interserver_port_t, port_type;
+portcon tcp 5269 gen_context(system_u:object_r:jabber_interserver_port_t,s0)
+
+
+
+type kerberos_admin_port_t, port_type;
+typeattribute kerberos_admin_port_t reserved_port_type;
+portcon tcp 464 gen_context(system_u:object_r:kerberos_admin_port_t,s0)
+typeattribute kerberos_admin_port_t reserved_port_type;
+portcon udp 464 gen_context(system_u:object_r:kerberos_admin_port_t,s0)
+typeattribute kerberos_admin_port_t reserved_port_type;
+portcon tcp 749 gen_context(system_u:object_r:kerberos_admin_port_t,s0)
+
+
+
+type kerberos_master_port_t, port_type;
+portcon tcp 4444 gen_context(system_u:object_r:kerberos_master_port_t,s0)
+portcon udp 4444 gen_context(system_u:object_r:kerberos_master_port_t,s0)
+
+
+
+type kerberos_port_t, port_type;
+typeattribute kerberos_port_t reserved_port_type;
+portcon tcp 88 gen_context(system_u:object_r:kerberos_port_t,s0)
+typeattribute kerberos_port_t reserved_port_type;
+portcon udp 88 gen_context(system_u:object_r:kerberos_port_t,s0)
+typeattribute kerberos_port_t reserved_port_type;
+portcon tcp 750 gen_context(system_u:object_r:kerberos_port_t,s0)
+typeattribute kerberos_port_t reserved_port_type;
+portcon udp 750 gen_context(system_u:object_r:kerberos_port_t,s0)
+
+
+
+type ktalkd_port_t, port_type;
+typeattribute ktalkd_port_t reserved_port_type;
+portcon udp 517 gen_context(system_u:object_r:ktalkd_port_t,s0)
+typeattribute ktalkd_port_t reserved_port_type;
+portcon udp 518 gen_context(system_u:object_r:ktalkd_port_t,s0)
+
+
+
+type ldap_port_t, port_type;
+typeattribute ldap_port_t reserved_port_type;
+portcon tcp 389 gen_context(system_u:object_r:ldap_port_t,s0)
+typeattribute ldap_port_t reserved_port_type;
+portcon udp 389 gen_context(system_u:object_r:ldap_port_t,s0)
+typeattribute ldap_port_t reserved_port_type;
+portcon tcp 636 gen_context(system_u:object_r:ldap_port_t,s0)
+typeattribute ldap_port_t reserved_port_type;
+portcon udp 636 gen_context(system_u:object_r:ldap_port_t,s0)
+
+
+type lrrd_port_t, port_type; 
+type mail_port_t, port_type;
+portcon tcp 2000 gen_context(system_u:object_r:mail_port_t,s0)
+
+
+
+type monopd_port_t, port_type;
+portcon tcp 1234 gen_context(system_u:object_r:monopd_port_t,s0)
+
+
+
+type mysqld_port_t, port_type;
+portcon tcp 3306 gen_context(system_u:object_r:mysqld_port_t,s0)
+
+
+
+type nessus_port_t, port_type;
+portcon tcp 1241 gen_context(system_u:object_r:nessus_port_t,s0)
+
+
+
+type nmbd_port_t, port_type;
+typeattribute nmbd_port_t reserved_port_type;
+portcon udp 137 gen_context(system_u:object_r:nmbd_port_t,s0)
+typeattribute nmbd_port_t reserved_port_type;
+portcon udp 138 gen_context(system_u:object_r:nmbd_port_t,s0)
+typeattribute nmbd_port_t reserved_port_type;
+portcon udp 139 gen_context(system_u:object_r:nmbd_port_t,s0)
+
+
+
+type ntp_port_t, port_type;
+typeattribute ntp_port_t reserved_port_type;
+portcon udp 123 gen_context(system_u:object_r:ntp_port_t,s0)
+
+
+
+type openvpn_port_t, port_type;
+portcon udp 5000 gen_context(system_u:object_r:openvpn_port_t,s0)
+
+
+
+type pegasus_http_port_t, port_type;
+portcon tcp 5988 gen_context(system_u:object_r:pegasus_http_port_t,s0)
+
+
+
+type pegasus_https_port_t, port_type;
+portcon tcp 5989 gen_context(system_u:object_r:pegasus_https_port_t,s0)
+
+
+
+type pop_port_t, port_type;
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 106 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 109 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 110 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 143 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 220 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 993 gen_context(system_u:object_r:pop_port_t,s0)
+typeattribute pop_port_t reserved_port_type;
+portcon tcp 995 gen_context(system_u:object_r:pop_port_t,s0)
+portcon tcp 1109 gen_context(system_u:object_r:pop_port_t,s0)
+
+
+
+type portmap_port_t, port_type;
+typeattribute portmap_port_t reserved_port_type;
+portcon udp 111 gen_context(system_u:object_r:portmap_port_t,s0)
+typeattribute portmap_port_t reserved_port_type;
+portcon tcp 111 gen_context(system_u:object_r:portmap_port_t,s0)
+
+
+
+type postgresql_port_t, port_type;
+portcon tcp 5432 gen_context(system_u:object_r:postgresql_port_t,s0)
+
+
+
+type postgrey_port_t, port_type;
+portcon tcp 60000 gen_context(system_u:object_r:postgrey_port_t,s0)
+
+
+
+type printer_port_t, port_type;
+typeattribute printer_port_t reserved_port_type;
+portcon tcp 515 gen_context(system_u:object_r:printer_port_t,s0)
+
+
+
+type ptal_port_t, port_type;
+portcon tcp 5703 gen_context(system_u:object_r:ptal_port_t,s0)
+
+
+
+type pxe_port_t, port_type;
+portcon udp 4011 gen_context(system_u:object_r:pxe_port_t,s0)
+
+
+
+type pyzor_port_t, port_type;
+portcon udp 24441 gen_context(system_u:object_r:pyzor_port_t,s0)
+
+
+
+type radacct_port_t, port_type;
+portcon udp 1646 gen_context(system_u:object_r:radacct_port_t,s0)
+portcon udp 1813 gen_context(system_u:object_r:radacct_port_t,s0)
+
+
+
+type radius_port_t, port_type;
+portcon udp 1645 gen_context(system_u:object_r:radius_port_t,s0)
+portcon udp 1812 gen_context(system_u:object_r:radius_port_t,s0)
+
+
+
+type razor_port_t, port_type;
+portcon tcp 2703 gen_context(system_u:object_r:razor_port_t,s0)
+
+
+
+type rlogind_port_t, port_type;
+typeattribute rlogind_port_t reserved_port_type;
+portcon tcp 513 gen_context(system_u:object_r:rlogind_port_t,s0)
+
+
+
+type rndc_port_t, port_type;
+typeattribute rndc_port_t reserved_port_type;
+portcon tcp 953 gen_context(system_u:object_r:rndc_port_t,s0)
+
+
+
+type router_port_t, port_type;
+typeattribute router_port_t reserved_port_type;
+portcon udp 520 gen_context(system_u:object_r:router_port_t,s0)
+
+
+
+type rsh_port_t, port_type;
+typeattribute rsh_port_t reserved_port_type;
+portcon tcp 514 gen_context(system_u:object_r:rsh_port_t,s0)
+
+
+
+type rsync_port_t, port_type;
+typeattribute rsync_port_t reserved_port_type;
+portcon tcp 873 gen_context(system_u:object_r:rsync_port_t,s0)
+typeattribute rsync_port_t reserved_port_type;
+portcon udp 873 gen_context(system_u:object_r:rsync_port_t,s0)
+
+
+
+type smbd_port_t, port_type;
+typeattribute smbd_port_t reserved_port_type;
+portcon tcp 137-139 gen_context(system_u:object_r:smbd_port_t,s0)
+typeattribute smbd_port_t reserved_port_type;
+portcon tcp 445 gen_context(system_u:object_r:smbd_port_t,s0)
+
+
+
+type smtp_port_t, port_type;
+typeattribute smtp_port_t reserved_port_type;
+portcon tcp 25 gen_context(system_u:object_r:smtp_port_t,s0)
+typeattribute smtp_port_t reserved_port_type;
+portcon tcp 465 gen_context(system_u:object_r:smtp_port_t,s0)
+typeattribute smtp_port_t reserved_port_type;
+portcon tcp 587 gen_context(system_u:object_r:smtp_port_t,s0)
+
+
+
+type snmp_port_t, port_type;
+typeattribute snmp_port_t reserved_port_type;
+portcon udp 161 gen_context(system_u:object_r:snmp_port_t,s0)
+typeattribute snmp_port_t reserved_port_type;
+portcon udp 162 gen_context(system_u:object_r:snmp_port_t,s0)
+typeattribute snmp_port_t reserved_port_type;
+portcon tcp 199 gen_context(system_u:object_r:snmp_port_t,s0)
+
+
+
+type spamd_port_t, port_type;
+typeattribute spamd_port_t reserved_port_type;
+portcon tcp 783 gen_context(system_u:object_r:spamd_port_t,s0)
+
+
+
+type ssh_port_t, port_type;
+typeattribute ssh_port_t reserved_port_type;
+portcon tcp 22 gen_context(system_u:object_r:ssh_port_t,s0)
+
+
+
+type soundd_port_t, port_type;
+portcon tcp 8000 gen_context(system_u:object_r:soundd_port_t,s0)
+portcon tcp 9433 gen_context(system_u:object_r:soundd_port_t,s0)
+
+
+type socks_port_t, port_type; type stunnel_port_t, port_type; 
+type swat_port_t, port_type;
+typeattribute swat_port_t reserved_port_type;
+portcon tcp 901 gen_context(system_u:object_r:swat_port_t,s0)
+
+
+
+type syslogd_port_t, port_type;
+typeattribute syslogd_port_t reserved_port_type;
+portcon udp 514 gen_context(system_u:object_r:syslogd_port_t,s0)
+
+
+
+type telnetd_port_t, port_type;
+typeattribute telnetd_port_t reserved_port_type;
+portcon tcp 23 gen_context(system_u:object_r:telnetd_port_t,s0)
+
+
+
+type tftp_port_t, port_type;
+typeattribute tftp_port_t reserved_port_type;
+portcon udp 69 gen_context(system_u:object_r:tftp_port_t,s0)
+
+
+
+type transproxy_port_t, port_type;
+portcon tcp 8081 gen_context(system_u:object_r:transproxy_port_t,s0)
+
+
+type utcpserver_port_t, port_type; 
+type uucpd_port_t, port_type;
+typeattribute uucpd_port_t reserved_port_type;
+portcon tcp 540 gen_context(system_u:object_r:uucpd_port_t,s0)
+
+
+
+type vnc_port_t, port_type;
+portcon tcp 5900 gen_context(system_u:object_r:vnc_port_t,s0)
+
+
+
+type xserver_port_t, port_type;
+portcon tcp 6001 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6002 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6003 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6004 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6005 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6006 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6007 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6008 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6009 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6010 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6011 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6012 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6013 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6014 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6015 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6016 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6017 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6018 gen_context(system_u:object_r:xserver_port_t,s0)
+portcon tcp 6019 gen_context(system_u:object_r:xserver_port_t,s0)
+
+
+
+type zebra_port_t, port_type;
+portcon tcp 2601 gen_context(system_u:object_r:zebra_port_t,s0)
+
+
+
+type zope_port_t, port_type;
+portcon tcp 8021 gen_context(system_u:object_r:zope_port_t,s0)
+
+
+
+# Defaults for reserved ports.  Earlier portcon entries take precedence;
+# these entries just cover any remaining reserved ports not otherwise declared.
+portcon tcp 1-1023 gen_context(system_u:object_r:reserved_port_t, s0)
+portcon udp 1-1023 gen_context(system_u:object_r:reserved_port_t, s0)
+
+########################################
+#
+# Network nodes
+#
+
+#
+# node_t is the default type of network nodes.
+# The node_*_t types are used for specific network
+# nodes in net_contexts or net_contexts.mls.
+#
+type node_t, node_type;
+sid node gen_context(system_u:object_r:node_t,s0 - s15:c0.c255)
+
+
+type compat_ipv4_node_t alias node_compat_ipv4_t, node_type;
+nodecon :: ffff:ffff:ffff:ffff:ffff:ffff:: gen_context(system_u:object_r:compat_ipv4_node_t,s0)
+
+
+
+type inaddr_any_node_t alias node_inaddr_any_t, node_type;
+nodecon 0.0.0.0 255.255.255.255 gen_context(system_u:object_r:inaddr_any_node_t,s0)
+
+
+type node_internal_t, node_type; 
+type link_local_node_t alias node_link_local_t, node_type;
+nodecon fe80:: ffff:ffff:ffff:ffff:: gen_context(system_u:object_r:link_local_node_t,s0)
+
+
+
+type lo_node_t alias node_lo_t, node_type;
+nodecon 127.0.0.1 255.255.255.255 gen_context(system_u:object_r:lo_node_t,s0 - s15:c0.c255)
+
+
+
+type mapped_ipv4_node_t alias node_mapped_ipv4_t, node_type;
+nodecon ::ffff:0000:0000 ffff:ffff:ffff:ffff:ffff:ffff:: gen_context(system_u:object_r:mapped_ipv4_node_t,s0)
+
+
+
+type multicast_node_t alias node_multicast_t, node_type;
+nodecon ff00:: ff00:: gen_context(system_u:object_r:multicast_node_t,s0 - s15:c0.c255)
+
+
+
+type site_local_node_t alias node_site_local_t, node_type;
+nodecon fec0:: ffc0:: gen_context(system_u:object_r:site_local_node_t,s0)
+
+
+
+type unspec_node_t alias node_unspec_t, node_type;
+nodecon :: ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff gen_context(system_u:object_r:unspec_node_t,s0)
+
+
+
+########################################
+#
+# Network Interfaces:
+#
+
+#
+# netif_t is the default type of network interfaces.
+#
+type netif_t, netif_type;
+sid netif gen_context(system_u:object_r:netif_t,s0 - s15:c0.c255)
+
+
+#network_interface(eth0, eth0,s0)

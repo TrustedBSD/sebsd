@@ -1,0 +1,192 @@
+#DESC VMWare - Virtual machine
+#
+# Domains,types and permissions for running VMWare (the program) and for
+# running a SELinux system in a VMWare session (the VMWare-tools).
+#
+# Based on work contributed by Mark Westerman (mark.westerman@westcam.com), 
+# modifications by NAI Labs.
+#
+# Domain is for the VMWare admin programs and daemons.
+# X-Debian-Packages:
+# 
+# Next two domains are create by the daemon_domain() macro.
+# The vmware_t domain is for running VMWare daemons
+# The vmware_exec_t type is for the VMWare daemon and admin programs.
+#
+# quick hack making it privhome, should have a domain for each user in a macro
+daemon_domain(vmware, `, privhome')
+
+# Domain for the user applications to run in.
+type vmware_user_t, domain, privmem;
+in_user_role(vmware_user_t)
+role sysadm_r types vmware_user_t;
+
+#
+# The vmware_user_exec_t type is for the user programs.
+#
+type vmware_user_exec_t, file_type, exec_type;
+
+# Type for vmware devices.
+type vmware_device_t, file_type, device_type;
+
+# Type for files in /var/run when a user starts VMWare
+type vmware_user_var_run_t, file_type, pidfile;
+
+# The sys configuration used for the /etc/vmware configuration files
+type vmware_sys_conf_t, file_type, sysadmfile;
+
+# The user file type is for files created when the user is running VMWare
+type vmware_user_file_t, homedirfile, file_type;
+
+# The user file type for the VMWare configuration files
+type vmware_user_conf_t, homedirfile, file_type;
+
+#########################################################################
+# Additional rules to start/stop VMWare
+#
+
+# VMWare uses rawip_sockets for virtual networking
+allow vmware_t self:rawip_socket create_socket_perms;
+allow vmware_t netif_eth0_t:netif rawip_send;
+allow vmware_t node_t:node rawip_send;
+
+# VMWare uses a Unix stream socket and datagram socket
+allow vmware_t self:unix_stream_socket create_stream_socket_perms;
+allow vmware_t self:unix_dgram_socket create_socket_perms;
+
+# Give init access to VMWare configuration files
+allow initrc_t vmware_sys_conf_t:file { ioctl read append };
+
+# Allow access to VMWare devices
+allow vmware_t vmware_device_t:chr_file { ioctl read write };
+
+# Allow read access to several paths
+r_dir_file(vmware_t,etc_t)
+allow vmware_t device_t:dir r_dir_perms;
+allow vmware_t var_t:dir r_dir_perms;
+
+# Allow r/w access to /etc/vmware and /usr/lib/vmware configuration files
+allow vmware_t vmware_sys_conf_t:dir rw_dir_perms;
+allow vmware_t vmware_sys_conf_t:file create_file_perms;
+
+# Needed capabilities
+allow vmware_t self:capability { net_raw setuid };
+
+# Access to ttys
+allow vmware_t user_tty_device_t:chr_file rw_file_perms;
+allow vmware_t console_device_t:chr_file rw_file_perms;
+allow vmware_t sysadm_devpts_t:chr_file rw_file_perms;
+
+#
+# Rules added to kernel_t domain for VMWare to start up
+#
+# VMWare need access to pcmcia devices for network
+ifdef(`cardmgr.te', `
+allow kernel_t cardmgr_var_lib_t:dir { getattr search };
+allow kernel_t cardmgr_var_lib_t:file { getattr ioctl read };
+')
+
+# Vmware create network devices
+allow kernel_t self:capability { net_admin };
+allow kernel_t self:netlink_route_socket { bind create getattr nlmsg_read nlmsg_write read write };
+allow kernel_t self:socket { create };
+
+# Rules needed to shutdown VMWare
+allow vmware_t self:process { signal };
+
+#############################################################
+# User rules for running VMWare
+#
+# Transition to VMWare user domain
+domain_auto_trans(user_t, vmware_user_exec_t, vmware_user_t)
+can_exec(vmware_user_t, vmware_user_exec_t)
+uses_shlib(vmware_user_t)
+file_type_auto_trans(vmware_user_t, var_run_t, vmware_user_var_run_t, file)
+
+general_domain_access(vmware_user_t);
+
+# Capabilities needed by VMWare for the user execution. This seems a 
+# bit too much, so be careful.
+allow vmware_user_t self:capability { dac_override setgid sys_nice sys_resource setuid sys_admin sys_rawio };
+
+# Access to ttys
+allow vmware_user_t vmware_device_t:chr_file rw_file_perms;
+allow vmware_user_t tty_device_t:chr_file rw_file_perms;
+allow vmware_user_t user_tty_device_t:chr_file rw_file_perms;
+allow vmware_user_t local_login_t:fd use;
+
+# Access /proc
+r_dir_file(vmware_user_t, proc_t)
+
+# Access to some files in the user home directory
+r_dir_file(vmware_user_t, user_home_t)
+
+# Access to runtime files for user
+allow vmware_user_t vmware_user_file_t:dir rw_dir_perms;
+allow vmware_user_t vmware_user_file_t:file create_file_perms;
+allow vmware_user_t vmware_user_conf_t:file create_file_perms;
+
+# Allow read access to /etc/vmware and /usr/lib/vmware configuration files
+r_dir_file(vmware_user_t, vmware_sys_conf_t)
+
+# Allow vmware_user_t to read/write files in the tmp dir
+allow vmware_user_t tmp_t:dir create_dir_perms;
+allow vmware_user_t tmp_t:file create_file_perms;
+allow vmware_user_t tmp_t:file { execute };
+
+# Allow read access to several paths
+r_dir_file(vmware_user_t, etc_t)
+allow vmware_user_t etc_runtime_t:file r_file_perms;
+allow vmware_user_t device_t:dir r_dir_perms;
+allow vmware_user_t var_t:dir r_dir_perms;
+allow vmware_user_t tmpfs_t:file rw_file_perms;
+
+# Allow vmware to write to ~/.vmware
+allow vmware_user_t vmware_user_file_t:dir rw_dir_perms;
+allow vmware_user_t vmware_user_file_t:file create_file_perms;
+
+#
+# This is bad; VMWare needs execute permission to the .cfg file for the
+# configuration to run.
+#
+allow vmware_user_t vmware_user_conf_t:file execute;
+
+# Access X11 config files
+allow vmware_user_t lib_t:file r_file_perms;
+
+# Access components of VMWare in /usr/lib/vmware/bin by default
+allow vmware_user_t bin_t:dir r_dir_perms;
+
+# Allow access to lp port (Need to create an lp device domain )
+allow vmware_user_t device_t:chr_file r_file_perms;
+
+# Allow access to /dev/mem
+allow vmware_user_t memory_device_t:chr_file { read write };
+
+# Allow access to mouse
+allow vmware_user_t mouse_device_t:chr_file r_file_perms;
+
+# Allow access the sound device 
+allow vmware_user_t sound_device_t:chr_file { ioctl write };
+
+# Allow removable media and devices
+allow vmware_user_t removable_device_t:blk_file r_file_perms;
+allow vmware_user_t removable_device_t:lnk_file { read };
+
+# Allow access to the real time clock device
+allow vmware_user_t clock_device_t:chr_file { read };
+
+# Allow to attach to Xserver, and Xserver to attach back
+ifdef(`gnome-pty-helper.te', `
+allow vmware_user_t user_gph_t:fd use;
+')
+ifdef(`startx.te', `
+allow vmware_user_t user_xserver_tmp_t:sock_file { unlink write };
+allow vmware_user_t user_xserver_tmp_t:dir { search };
+allow vmware_user_t user_xserver_t:unix_stream_socket { connectto };
+allow user_xserver_t vmware_user_t:shm r_shm_perms;
+allow user_xserver_t vmware_user_t:fd use;
+')
+
+# Allow filesystem read access
+allow vmware_user_t fs_t:filesystem { getattr };

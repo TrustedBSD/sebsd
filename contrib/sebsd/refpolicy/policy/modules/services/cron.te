@@ -1,0 +1,440 @@
+
+policy_module(cron,1.3.0)
+
+gen_require(`
+	class passwd rootok;
+')
+
+########################################
+#
+# Declarations
+#
+attribute cron_spool_type;
+
+type anacron_exec_t;
+files_type(anacron_exec_t)
+
+type cron_spool_t;
+files_type(cron_spool_t)
+
+type crond_t;
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type crond_exec_t;
+')
+init_daemon_domain(crond_t,crond_exec_t)
+domain_interactive_fd(crond_t)
+domain_cron_exemption_source(crond_t)
+
+type crond_tmp_t;
+files_tmp_file(crond_tmp_t)
+
+type crond_var_run_t;
+files_pid_file(crond_var_run_t)
+
+type crontab_exec_t;
+files_type(crontab_exec_t)
+
+type system_cron_spool_t, cron_spool_type;
+files_type(system_cron_spool_t)
+
+ifdef(`targeted_policy',`
+	typealias crond_t alias system_crond_t;
+',`
+	type system_crond_t;
+')
+init_daemon_domain(system_crond_t,anacron_exec_t)
+corecmd_shell_entry_type(system_crond_t)
+role system_r types system_crond_t;
+
+type system_crond_lock_t;
+files_lock_file(system_crond_lock_t)
+
+type system_crond_tmp_t;
+files_tmp_file(system_crond_tmp_t)
+
+ifdef(`targeted_policy',`
+	type sysadm_cron_spool_t;
+	files_type(sysadm_cron_spool_t)
+')
+
+########################################
+#
+# Cron Local policy
+#
+
+allow crond_t self:capability { dac_override setgid setuid sys_nice dac_read_search audit_control };
+dontaudit crond_t self:capability { sys_resource sys_tty_config };
+allow crond_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow crond_t self:process { setexec setfscreate };
+allow crond_t self:fd use;
+allow crond_t self:fifo_file rw_file_perms;
+allow crond_t self:unix_dgram_socket create_socket_perms;
+allow crond_t self:unix_stream_socket create_stream_socket_perms;
+allow crond_t self:unix_dgram_socket sendto;
+allow crond_t self:unix_stream_socket connectto;
+allow crond_t self:shm create_shm_perms;
+allow crond_t self:sem create_sem_perms;
+allow crond_t self:msgq create_msgq_perms;
+allow crond_t self:msg { send receive };
+
+allow crond_t crond_var_run_t:file create_file_perms;
+files_pid_filetrans(crond_t,crond_var_run_t,file)
+
+allow crond_t cron_spool_t:dir rw_dir_perms;
+allow crond_t cron_spool_t:file r_file_perms;
+allow crond_t system_cron_spool_t:dir r_dir_perms;
+allow crond_t system_cron_spool_t:file r_file_perms;
+
+kernel_read_kernel_sysctls(crond_t)
+dev_read_sysfs(crond_t)
+selinux_get_fs_mount(crond_t)
+selinux_validate_context(crond_t)
+selinux_compute_access_vector(crond_t)
+selinux_compute_create_context(crond_t)
+selinux_compute_relabel_context(crond_t)
+selinux_compute_user_contexts(crond_t)
+
+dev_read_urand(crond_t)
+
+fs_getattr_all_fs(crond_t)
+fs_search_auto_mountpoints(crond_t)
+
+term_dontaudit_use_console(crond_t)
+
+# need auth_chkpwd to check for locked accounts.
+auth_domtrans_chk_passwd(crond_t)
+
+corecmd_exec_shell(crond_t)
+corecmd_list_sbin(crond_t)
+corecmd_read_sbin_symlinks(crond_t)
+
+domain_use_interactive_fds(crond_t)
+
+files_read_etc_files(crond_t)
+files_read_generic_spool(crond_t)
+files_list_usr(crond_t)
+# Read from /var/spool/cron.
+files_search_var_lib(crond_t)
+files_search_default(crond_t)
+
+init_use_fds(crond_t)
+init_use_script_ptys(crond_t)
+init_rw_utmp(crond_t)
+
+libs_use_ld_so(crond_t)
+libs_use_shared_libs(crond_t)
+
+logging_send_syslog_msg(crond_t)
+
+seutil_read_config(crond_t)
+seutil_read_default_contexts(crond_t)
+seutil_sigchld_newrole(crond_t)
+
+miscfiles_read_localization(crond_t)
+
+userdom_use_unpriv_users_fds(crond_t)
+# Not sure why this is needed
+userdom_list_all_users_home_dirs(crond_t)
+
+ifdef(`distro_redhat', `
+	# Run the rpm program in the rpm_t domain. Allow creation of RPM log files
+	# via redirection of standard out.
+	optional_policy(`rpm',`
+		rpm_manage_log(crond_t)
+	')
+')
+
+ifdef(`targeted_policy',`
+	allow crond_t system_crond_tmp_t:dir create_dir_perms;
+	allow crond_t system_crond_tmp_t:file create_file_perms;
+	allow crond_t system_crond_tmp_t:lnk_file create_lnk_perms;
+	allow crond_t system_crond_tmp_t:sock_file create_file_perms;
+	allow crond_t system_crond_tmp_t:fifo_file create_file_perms;
+	files_tmp_filetrans(crond_t,system_crond_tmp_t,{ dir file lnk_file sock_file fifo_file })
+
+	unconfined_domain(crond_t)
+
+	# cjp: fix this to generic_user interfaces
+	userdom_manage_user_home_content_dirs(user,crond_t)
+	userdom_manage_generic_user_home_content_files(crond_t)
+	userdom_manage_generic_user_home_content_symlinks(crond_t)
+	userdom_manage_generic_user_home_content_sockets(crond_t)
+	userdom_manage_generic_user_home_content_pipes(crond_t)
+	userdom_generic_user_home_dir_filetrans_generic_user_home_content(crond_t,{ dir file lnk_file fifo_file sock_file })
+
+	allow crond_t unconfined_t:dbus send_msg;
+	allow crond_t initrc_t:dbus send_msg;
+',`
+	allow crond_t crond_tmp_t:dir create_dir_perms;
+	allow crond_t crond_tmp_t:file create_file_perms;
+	files_tmp_filetrans(crond_t, crond_tmp_t, { file dir })
+
+	mta_send_mail(crond_t)
+')
+
+tunable_policy(`fcron_crond', `
+	allow crond_t system_cron_spool_t:file create_file_perms;
+')
+
+optional_policy(`hal',`
+	hal_dbus_send(crond_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(crond_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(crond_t)
+')
+
+optional_policy(`rpm',`
+	# Commonly used from postinst scripts
+	rpm_read_pipes(crond_t)
+')
+
+optional_policy(`postgresql',`
+	# allow crond to find /usr/lib/postgresql/bin/do.maintenance
+	postgresql_search_db(crond_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(crond_t)
+')
+
+########################################
+#
+# System cron process domain
+#
+
+optional_policy(`squid',`
+	# cjp: why?
+	squid_domtrans(system_crond_t)
+')
+
+ifdef(`targeted_policy',`
+	# cjp: FIXME
+	allow crond_t unconfined_t:process transition;
+',`
+	allow system_crond_t self:capability { dac_override dac_read_search chown setgid setuid fowner net_bind_service fsetid };
+	allow system_crond_t self:process { signal_perms setsched };
+	allow system_crond_t self:fifo_file rw_file_perms;
+	allow system_crond_t self:passwd rootok;
+
+	# The entrypoint interface is not used as this is not
+	# a regular entrypoint.  Since crontab files are
+	# not directly executed, crond must ensure that
+	# the crontab file has a type that is appropriate
+	# for the domain of the user cron job.  It
+	# performs an entrypoint permission check
+	# for this purpose.
+	allow system_crond_t system_cron_spool_t:file entrypoint;
+
+	allow system_crond_t system_cron_spool_t:file r_file_perms;
+
+	# Permit a transition from the crond_t domain to this domain.
+	# The transition is requested explicitly by the modified crond 
+	# via setexeccon.  There is no way to set up an automatic
+	# transition, since crontabs are configuration files, not executables.
+	allow crond_t system_crond_t:process transition;
+	dontaudit crond_t system_crond_t:process { noatsecure siginh rlimitinh };
+	allow crond_t system_crond_t:fd use;
+	allow system_crond_t crond_t:fd use;
+	allow system_crond_t crond_t:fifo_file rw_file_perms;
+	allow system_crond_t crond_t:process sigchld;
+
+	# Write /var/lock/makewhatis.lock.
+	allow system_crond_t system_crond_lock_t:file create_file_perms;
+	files_lock_filetrans(system_crond_t,system_crond_lock_t,file)
+
+	# write temporary files
+	allow system_crond_t system_crond_tmp_t:file create_file_perms;
+	files_tmp_filetrans(system_crond_t,system_crond_tmp_t,file)
+
+	# write temporary files in crond tmp dir:
+	allow system_crond_t crond_tmp_t:dir rw_dir_perms;
+	type_transition system_crond_t crond_tmp_t:file system_crond_tmp_t;
+
+	# Read from /var/spool/cron.
+	allow system_crond_t cron_spool_t:dir r_dir_perms;
+	allow system_crond_t cron_spool_t:file r_file_perms;
+
+	kernel_read_kernel_sysctls(system_crond_t)
+	kernel_read_system_state(system_crond_t)
+	kernel_read_software_raid_state(system_crond_t)
+
+	# ps does not need to access /boot when run from cron
+	files_dontaudit_search_boot(system_crond_t)
+
+	corenet_tcp_sendrecv_all_if(system_crond_t)
+	corenet_raw_sendrecv_all_if(system_crond_t)
+	corenet_udp_sendrecv_all_if(system_crond_t)
+	corenet_tcp_sendrecv_all_nodes(system_crond_t)
+	corenet_raw_sendrecv_all_nodes(system_crond_t)
+	corenet_udp_sendrecv_all_nodes(system_crond_t)
+	corenet_tcp_sendrecv_all_ports(system_crond_t)
+	corenet_udp_sendrecv_all_ports(system_crond_t)
+	corenet_non_ipsec_sendrecv(system_crond_t)
+	corenet_tcp_bind_all_nodes(system_crond_t)
+	corenet_udp_bind_all_nodes(system_crond_t)
+
+	dev_getattr_all_blk_files(system_crond_t)
+	dev_getattr_all_chr_files(system_crond_t)
+	dev_read_urand(system_crond_t)
+
+	fs_getattr_all_fs(system_crond_t)
+	fs_getattr_all_files(system_crond_t)
+	fs_getattr_all_symlinks(system_crond_t)
+	fs_getattr_all_pipes(system_crond_t)
+	fs_getattr_all_sockets(system_crond_t)
+
+	corecmd_exec_bin(system_crond_t)
+	corecmd_exec_sbin(system_crond_t)
+
+	domain_exec_all_entry_files(system_crond_t)
+	# quiet other ps operations
+	domain_dontaudit_read_all_domains_state(system_crond_t)
+
+	files_exec_etc_files(system_crond_t)
+	files_read_etc_files(system_crond_t)
+	files_read_etc_runtime_files(system_crond_t)
+	files_list_all(system_crond_t)
+	files_getattr_all_dirs(system_crond_t)
+	files_getattr_all_files(system_crond_t)
+	files_getattr_all_symlinks(system_crond_t)
+	files_getattr_all_pipes(system_crond_t)
+	files_getattr_all_sockets(system_crond_t)
+	files_read_usr_files(system_crond_t)
+	files_read_var_files(system_crond_t)
+	# for nscd:
+	files_dontaudit_search_pids(system_crond_t)
+	# Access other spool directories like
+	# /var/spool/anacron and /var/spool/slrnpull.
+	files_manage_generic_spool(system_crond_t)
+
+	init_use_fds(system_crond_t)
+	init_use_script_fds(system_crond_t)
+	init_use_script_ptys(system_crond_t)
+	init_read_utmp(system_crond_t)
+	init_dontaudit_rw_utmp(system_crond_t)
+	# prelink tells init to restart it self, we either need to allow or dontaudit
+	init_write_initctl(system_crond_t)
+
+	libs_use_ld_so(system_crond_t)
+	libs_use_shared_libs(system_crond_t)
+	libs_exec_lib_files(system_crond_t)
+	libs_exec_ld_so(system_crond_t)
+
+	logging_read_generic_logs(system_crond_t)
+	logging_send_syslog_msg(system_crond_t)
+
+	miscfiles_read_localization(system_crond_t)
+	miscfiles_manage_man_pages(system_crond_t)
+
+	seutil_read_config(system_crond_t)
+
+	mta_send_mail(system_crond_t)
+
+	ifdef(`distro_redhat', `
+		# Run the rpm program in the rpm_t domain. Allow creation of RPM log files
+		# via redirection of standard out.
+		optional_policy(`rpm',`
+			rpm_manage_log(system_crond_t)
+		')
+	')
+
+	tunable_policy(`cron_can_relabel',`
+		seutil_domtrans_setfiles(system_crond_t)
+	',`
+		selinux_get_fs_mount(system_crond_t)
+		selinux_validate_context(system_crond_t)
+		selinux_compute_access_vector(system_crond_t)
+		selinux_compute_create_context(system_crond_t)
+		selinux_compute_relabel_context(system_crond_t)
+		selinux_compute_user_contexts(system_crond_t)
+		seutil_read_file_contexts(system_crond_t)
+	')
+
+	optional_policy(`apache',`
+		# Needed	 for certwatch
+		apache_exec_modules(system_crond_t)
+		apache_read_config(system_crond_t)
+		apache_read_log(system_crond_t)
+		apache_read_sys_content(system_crond_t)
+	')
+
+	optional_policy(`cyrus',`
+		cyrus_manage_data(system_crond_t)
+	')
+
+	optional_policy(`ftp',`
+		ftp_read_log(system_crond_t)
+	')
+
+	optional_policy(`inn',`
+		inn_manage_log(system_crond_t)
+		inn_manage_pid(system_crond_t)
+		inn_read_config(system_crond_t)
+	')
+
+	optional_policy(`mrtg',`
+		mrtg_append_create_logs(system_crond_t)
+	')
+
+	optional_policy(`mysql',`
+		mysql_read_config(system_crond_t)
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind(system_crond_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use(system_crond_t)
+	')
+
+	optional_policy(`postfix',`
+		postfix_read_config(system_crond_t)
+	')	
+
+	optional_policy(`prelink',`
+		prelink_read_cache(system_crond_t)
+		prelink_manage_log(system_crond_t)
+		prelink_delete_cache(system_crond_t)
+	')
+
+	optional_policy(`samba',`
+		samba_read_config(system_crond_t)
+		samba_read_log(system_crond_t)
+		#samba_read_secrets(system_crond_t)
+	')
+
+	optional_policy(`slocate',`
+		slocate_create_append_log(system_crond_t)
+	')
+
+	optional_policy(`sysstat',`
+		sysstat_manage_log(system_crond_t)
+	')
+
+	ifdef(`TODO',`
+	dontaudit userdomain system_crond_t:fd use;
+
+	allow system_crond_t { sysfs_t rpc_pipefs_t }:dir getattr;
+
+	# for if /var/mail is a symlink
+	allow system_crond_t mail_spool_t:lnk_file read;
+
+	ifdef(`mta.te', `
+	mta_send_mail_transition(system_crond_t)
+	allow mta_user_agent system_crond_t:fd use;
+	r_dir_file(system_mail_t, crond_tmp_t)
+	')
+
+	# for daemon re-start
+	allow system_crond_t syslogd_t:lnk_file read;
+
+	') dnl end TODO
+')

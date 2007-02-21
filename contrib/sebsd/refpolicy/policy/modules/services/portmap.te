@@ -1,0 +1,220 @@
+
+policy_module(portmap,1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+type portmap_t;
+type portmap_exec_t;
+init_daemon_domain(portmap_t,portmap_exec_t)
+
+type portmap_helper_t;
+type portmap_helper_exec_t;
+init_system_domain(portmap_helper_t,portmap_helper_exec_t)
+role system_r types portmap_helper_t;
+
+type portmap_tmp_t;
+files_tmp_file(portmap_tmp_t)
+
+type portmap_var_run_t;
+files_pid_file(portmap_var_run_t)
+
+########################################
+#
+# Portmap local policy
+#
+
+allow portmap_t self:capability { setuid setgid };
+dontaudit portmap_t self:capability sys_tty_config;
+allow portmap_t self:netlink_route_socket r_netlink_socket_perms;
+allow portmap_t self:unix_dgram_socket create_socket_perms;
+allow portmap_t self:unix_stream_socket create_stream_socket_perms;
+allow portmap_t self:tcp_socket create_stream_socket_perms;
+allow portmap_t self:udp_socket create_socket_perms;
+
+allow portmap_t portmap_tmp_t:dir create_dir_perms;
+allow portmap_t portmap_tmp_t:file create_file_perms;
+files_tmp_filetrans(portmap_t, portmap_tmp_t, { file dir })
+
+allow portmap_t portmap_var_run_t:file create_file_perms;
+allow portmap_t portmap_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(portmap_t,portmap_var_run_t,file)
+
+kernel_read_kernel_sysctls(portmap_t)
+kernel_list_proc(portmap_t)
+kernel_read_proc_symlinks(portmap_t)
+kernel_tcp_recvfrom(portmap_t) 
+
+corenet_tcp_sendrecv_all_if(portmap_t)
+corenet_udp_sendrecv_all_if(portmap_t)
+corenet_raw_sendrecv_all_if(portmap_t)
+corenet_tcp_sendrecv_all_nodes(portmap_t)
+corenet_udp_sendrecv_all_nodes(portmap_t)
+corenet_raw_sendrecv_all_nodes(portmap_t)
+corenet_tcp_sendrecv_all_ports(portmap_t)
+corenet_udp_sendrecv_all_ports(portmap_t)
+corenet_non_ipsec_sendrecv(portmap_t)
+corenet_tcp_bind_all_nodes(portmap_t)
+corenet_udp_bind_all_nodes(portmap_t)
+corenet_tcp_bind_portmap_port(portmap_t)
+corenet_udp_bind_portmap_port(portmap_t)
+corenet_tcp_connect_all_ports(portmap_t)
+# portmap binds to arbitary ports
+corenet_tcp_bind_generic_port(portmap_t)
+corenet_udp_bind_generic_port(portmap_t)
+corenet_tcp_bind_reserved_port(portmap_t)
+corenet_udp_bind_reserved_port(portmap_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(portmap_t)
+corenet_dontaudit_udp_bind_all_reserved_ports(portmap_t)
+
+dev_read_sysfs(portmap_t)
+
+fs_getattr_all_fs(portmap_t)
+fs_search_auto_mountpoints(portmap_t)
+
+term_dontaudit_use_console(portmap_t)
+
+domain_use_interactive_fds(portmap_t)
+
+files_read_etc_files(portmap_t)
+
+init_use_fds(portmap_t)
+init_use_script_ptys(portmap_t)
+init_udp_send(portmap_t)
+init_udp_send_script(portmap_t)
+
+libs_use_ld_so(portmap_t)
+libs_use_shared_libs(portmap_t)
+
+logging_send_syslog_msg(portmap_t)
+
+miscfiles_read_localization(portmap_t)
+
+sysnet_read_config(portmap_t)
+
+userdom_dontaudit_use_unpriv_user_fds(portmap_t)
+userdom_dontaudit_search_sysadm_home_dirs(portmap_t)
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(portmap_t)
+	term_dontaudit_use_generic_ptys(portmap_t)
+	files_dontaudit_read_root_files(portmap_t)
+')
+
+optional_policy(`inetd',`
+	inetd_udp_send(portmap_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(portmap_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(portmap_t)
+	nis_udp_send_ypbind(portmap_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(portmap_t)
+')
+
+optional_policy(`rpc',`
+	rpc_udp_send_nfs(portmap_t)
+') 
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(portmap_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(portmap_t)
+')
+
+ifdef(`TODO',`
+ifdef(`rpcd.te',`can_udp_send(portmap_t, rpcd_t)')
+allow portmap_t rpcd_t:udp_socket sendto;
+allow rpcd_t portmap_t:udp_socket recvfrom;
+
+ifdef(`lpd.te',`can_udp_send(portmap_t, lpd_t)')
+allow portmap_t lpd_t:udp_socket sendto;
+allow lpd_t portmap_t:udp_socket recvfrom;
+
+can_udp_send(portmap_t, kernel_t)
+allow portmap_t kernel_t:udp_socket sendto;
+allow kernel_t portmap_t:udp_socket recvfrom;
+
+can_udp_send(kernel_t, portmap_t)
+allow kernel_t portmap_t:udp_socket sendto;
+allow portmap_t kernel_t:udp_socket recvfrom;
+
+') dnl end TODO
+
+########################################
+#
+# Portmap helper local policy
+#
+
+dontaudit portmap_helper_t self:capability net_admin;
+allow portmap_helper_t self:netlink_route_socket r_netlink_socket_perms;
+allow portmap_helper_t self:tcp_socket create_stream_socket_perms;
+allow portmap_helper_t self:udp_socket create_socket_perms;
+
+allow portmap_helper_t portmap_var_run_t:file create_file_perms;
+files_pid_filetrans(portmap_helper_t,portmap_var_run_t,file)
+
+corenet_tcp_sendrecv_all_if(portmap_helper_t)
+corenet_udp_sendrecv_all_if(portmap_helper_t)
+corenet_raw_sendrecv_all_if(portmap_helper_t)
+corenet_tcp_sendrecv_all_nodes(portmap_helper_t)
+corenet_udp_sendrecv_all_nodes(portmap_helper_t)
+corenet_raw_sendrecv_all_nodes(portmap_helper_t)
+corenet_tcp_sendrecv_all_ports(portmap_helper_t)
+corenet_udp_sendrecv_all_ports(portmap_helper_t)
+corenet_non_ipsec_sendrecv(portmap_helper_t)
+corenet_tcp_bind_all_nodes(portmap_helper_t)
+corenet_udp_bind_all_nodes(portmap_helper_t)
+corenet_tcp_bind_reserved_port(portmap_helper_t)
+corenet_udp_bind_reserved_port(portmap_helper_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(portmap_helper_t)
+corenet_dontaudit_udp_bind_all_reserved_ports(portmap_helper_t)
+corenet_tcp_connect_all_ports(portmap_helper_t)
+
+domain_dontaudit_use_interactive_fds(portmap_helper_t)
+
+files_read_etc_files(portmap_helper_t)
+files_rw_generic_pids(portmap_helper_t)
+
+init_rw_utmp(portmap_helper_t)
+
+libs_use_ld_so(portmap_helper_t)
+libs_use_shared_libs(portmap_helper_t)
+
+logging_send_syslog_msg(portmap_helper_t)
+
+sysnet_read_config(portmap_helper_t)
+
+userdom_dontaudit_use_all_users_fds(portmap_helper_t)
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(portmap_helper_t)
+	term_dontaudit_use_generic_ptys(portmap_helper_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(portmap_helper_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(portmap_helper_t)
+')
+
+# temporary:
+gen_require(`
+	type rpcd_t, nfsd_t;
+')
+# rpcd_t needs to talk to the portmap_t domain
+portmap_udp_chat(rpcd_t) 
+portmap_tcp_connect(nfsd_t) 
+portmap_udp_chat(nfsd_t)

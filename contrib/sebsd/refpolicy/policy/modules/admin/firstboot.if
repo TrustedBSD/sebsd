@@ -1,0 +1,113 @@
+## <summary>
+##	Final system configuration run during the first boot
+##	after installation of Red Hat/Fedora systems.
+## </summary>
+
+########################################
+## <summary>
+##	Execute firstboot in the firstboot domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_domtrans',`
+	gen_require(`
+		type firstboot_t, firstboot_exec_t;
+	')
+
+	domain_auto_trans($1,firstboot_exec_t,firstboot_t)
+
+	allow $1 firstboot_t:fd use;
+	allow firstboot_t $1:fd use;
+	allow firstboot_t $1:fifo_file rw_file_perms;
+	allow firstboot_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute firstboot in the firstboot domain, and
+##	allow the specified role the firstboot domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the firstboot domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the firstboot domain to use.
+##	</summary>
+## </param>
+#
+interface(`firstboot_run',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	firstboot_domtrans($1)
+	role $2 types firstboot_t;
+	allow firstboot_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Inherit and use a file descriptor from firstboot.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_use_fds',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	allow $1 firstboot_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit a
+##	file descriptor from firstboot.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firstboot_dontaudit_use_fds',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	dontaudit $1 firstboot_t:fd use;
+')
+
+########################################
+## <summary>
+##	Write to a firstboot unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_write_pipes',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	allow $1 firstboot_t:fifo_file write;
+')

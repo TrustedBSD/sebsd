@@ -1,0 +1,10 @@
+# Fix files that might have the wrong label if the system was
+# booted without sebsd.
+
+# /var/run
+/var/run/ld.*\.so\.hints	system_u:object_r:ld_so_cache_t
+/var/run/sendmail\.pid		system_u:object_r:sendmail_var_run_t
+/var/run/syslog\.pid		system_u:object_r:syslogd_var_run_t
+/var/run/cron\.pid		system_u:object_r:crond_var_run_t
+/var/run/sshd\.pid		system_u:object_r:sshd_var_run_t
+/var/run/httpd\.pid		system_u:object_r:httpd_var_run_t

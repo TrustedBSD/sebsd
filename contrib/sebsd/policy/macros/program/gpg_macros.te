@@ -1,0 +1,102 @@
+#
+# Macros for gpg and pgp
+#
+# Author:  Russell Coker <russell@coker.com.au>
+#
+# based on the work of:
+# Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser
+#
+
+#
+# gpg_domain(domain_prefix)
+#
+# Define a derived domain for the gpg/pgp program when executed by
+# a user domain.
+#
+# The type declaration for the executable type for this program is
+# provided separately in domains/program/gpg.te.
+#
+define(`gpg_domain', `
+# Derived domain based on the calling user domain and the program.
+ifdef(`single_userdomain', `
+typealias $1_t alias $1_gpg_t;
+typealias $1_home_t alias $1_gpg_secret_t;
+# if we have a single user domain then gpg needs SETUID access...
+allow $1_t self:capability { setuid };
+', `
+type $1_gpg_t, domain, privlog;
+type $1_gpg_secret_t, file_type, homedirfile, sysadmfile;
+')dnl end ifdef single_userdomain
+
+# Transition from the user domain to the derived domain.
+domain_auto_trans($1_t, gpg_exec_t, $1_gpg_t)
+
+can_network($1_gpg_t)
+
+# for a bug in kmail
+dontaudit $1_gpg_t $1_t:unix_stream_socket { getattr read write };
+
+# The user role is authorized for this domain.
+role $1_r types $1_gpg_t;
+
+allow $1_t $1_gpg_secret_t:file getattr;
+
+allow $1_gpg_t device_t:dir r_dir_perms;
+allow $1_gpg_t { random_device_t urandom_device_t }:chr_file r_file_perms;
+
+allow $1_gpg_t etc_t:file r_file_perms;
+
+allow $1_gpg_t self:unix_stream_socket create_stream_socket_perms;
+allow $1_gpg_t self:tcp_socket create_stream_socket_perms;
+
+allow $1_gpg_t devpts_t:dir search;
+allow $1_gpg_t { $1_devpts_t $1_tty_device_t }:chr_file rw_file_perms;
+ifdef(`gnome-pty-helper.te', `allow $1_gpg_t $1_gph_t:fd use;')
+
+# Inherit and use descriptors
+allow $1_gpg_t { privfd $1_t }:fd use;
+allow { $1_t $1_gpg_t } $1_gpg_t:process signal;
+
+# setrlimit is for ulimit -c 0
+allow $1_gpg_t self:process { setrlimit setcap };
+
+# allow ps to show gpg
+can_ps($1_t, $1_gpg_t)
+
+uses_shlib($1_gpg_t)
+
+# should not need read access...
+allow $1_gpg_t home_root_t:dir { read search };
+
+# use $1_gpg_secret_t for files it creates
+# NB we are doing the type transition for directory creation only!
+# so ~/.gnupg will be of $1_gpg_secret_t, then files created under it such as
+# secring.gpg will be of $1_gpg_secret_t too.  But when you use gpg to decrypt
+# a file and write output to your home directory it will use user_home_t.
+file_type_auto_trans($1_gpg_t, $1_home_dir_t, $1_gpg_secret_t, dir)
+rw_dir_create_file($1_gpg_t, $1_gpg_secret_t)
+
+file_type_auto_trans($1_gpg_t, $1_home_dir_t, $1_home_t, file)
+create_dir_file($1_gpg_t, $1_home_t)
+
+# allow the usual access to /tmp
+file_type_auto_trans($1_gpg_t, tmp_t, $1_tmp_t)
+
+ifdef(`nfs_home_dirs', `
+create_dir_file($1_gpg_t, nfs_t)
+')dnl end if nfs_home_dirs
+
+allow $1_gpg_t self:capability { ipc_lock setuid };
+allow $1_gpg_t devtty_t:chr_file rw_file_perms;
+
+allow $1_gpg_t { etc_t usr_t }:dir r_dir_perms;
+allow $1_gpg_t fs_t:filesystem getattr;
+allow $1_gpg_t usr_t:file r_file_perms;
+read_locale($1_gpg_t)
+allow $1_t $1_gpg_secret_t:dir rw_dir_perms;
+
+dontaudit $1_gpg_t var_t:dir search;
+
+ifdef(`gpg-agent.te', `gpg_agent_domain($1)')
+
+')dnl end gpg_domain definition

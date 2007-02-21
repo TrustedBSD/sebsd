@@ -1,0 +1,31 @@
+<a name="top":></a>
+<h1>Layer: [[mod_layer]]</h1><p/>
+<h2>Module: [[mod_name]]</h2><p/>
+[[if interfaces and templates]]
+<a href=#interfaces>Interfaces</a>
+<a href=#templates>Templates</a>
+[[end]]
+<h3>Description:</h3>
+[[if mod_desc]] 
+<p>[[mod_desc]]</p>
+[[else]]
+<p>[[mod_summary]]</p>
+[[end]]
+[[if mod_req]]
+<p>This module is required to be included in all policies.</p>
+[[end]]
+[[if interfaces]]
+<a name="interfaces"></a>
+<h3>Interfaces: </h3>
+[[interfaces]]
+<a href=#top>Return</a>
+[[end]]
+[[if templates]]
+<a name="templates"></a>
+<h3>Templates: </h3>
+[[templates]]
+<a href=#top>Return</a>
+[[end]]
+[[if not templates and not interfaces]]
+<h3>No interfaces or templates.</h3>
+[[end]]

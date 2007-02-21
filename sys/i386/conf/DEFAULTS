@@ -1,0 +1,18 @@
+#
+# DEFAULTS -- Default kernel configuration file for FreeBSD/i386
+#
+# $FreeBSD: src/sys/i386/conf/DEFAULTS,v 1.3 2005/11/27 23:16:58 ru Exp $
+
+machine		i386
+
+# Bus support.
+device		isa
+
+# Floating point support.
+device		npx
+
+# Pseudo devices.
+device		mem		# Memory and kernel memory devices
+device		io		# I/O device
+
+options 	PUC_FASTINTR

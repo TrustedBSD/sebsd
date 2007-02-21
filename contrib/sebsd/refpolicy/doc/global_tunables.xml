@@ -1,0 +1,459 @@
+<tunable name="allow_cvs_read_shadow" dftval="false">
+<desc>
+<p>
+Allow cvs daemon to read shadow
+</p>
+</desc>
+</tunable>
+<tunable name="allow_execheap" dftval="false">
+<desc>
+<p>
+Allow making the heap executable.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_execmem" dftval="false">
+<desc>
+<p>
+Allow making anonymous memory executable, e.g.
+for runtime-code generation or executable stack.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_execmod" dftval="false">
+<desc>
+<p>
+Allow making a modified private file
+mapping executable (text relocation).
+</p>
+</desc>
+</tunable>
+<tunable name="allow_execstack" dftval="false">
+<desc>
+<p>
+Allow making the stack executable via mprotect.
+Also requires allow_execmem.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_ftpd_anon_write" dftval="false">
+<desc>
+<p>
+Allow ftp servers to modify public files
+used for public file transfer services.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_gssd_read_tmp" dftval="true">
+<desc>
+<p>
+Allow gssd to read temp directory.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_httpd_anon_write" dftval="false">
+<desc>
+<p>
+Allow Apache to modify public files
+used for public file transfer services.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_java_execstack" dftval="false">
+<desc>
+<p>
+Allow java executable stack
+</p>
+</desc>
+</tunable>
+<tunable name="allow_kerberos" dftval="false">
+<desc>
+<p>
+Allow system to run with kerberos
+</p>
+</desc>
+</tunable>
+<tunable name="allow_rsync_anon_write" dftval="false">
+<desc>
+<p>
+Allow rsync to modify public files
+used for public file transfer services.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_saslauthd_read_shadow" dftval="false">
+<desc>
+<p>
+Allow sasl to read shadow
+</p>
+</desc>
+</tunable>
+<tunable name="allow_smbd_anon_write" dftval="false">
+<desc>
+<p>
+Allow samba to modify public files
+used for public file transfer services.
+</p>
+</desc>
+</tunable>
+<tunable name="allow_ptrace" dftval="false">
+<desc>
+<p>
+Allow sysadm to ptrace all processes
+</p>
+</desc>
+</tunable>
+<tunable name="allow_ypbind" dftval="false">
+<desc>
+<p>
+Allow system to run with NIS
+</p>
+</desc>
+</tunable>
+<tunable name="fcron_crond" dftval="false">
+<desc>
+<p>
+Enable extra rules in the cron domain
+to support fcron.
+</p>
+</desc>
+</tunable>
+<tunable name="ftp_home_dir" dftval="false">
+<desc>
+<p>
+Allow ftp to read and write files in the user home directories
+</p>
+</desc>
+</tunable>
+<tunable name="ftpd_is_daemon" dftval="false">
+<desc>
+<p>
+Allow ftpd to run directly without inetd
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_builtin_scripting" dftval="false">
+<desc>
+<p>
+Allow httpd to use built in scripting (usually php)
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_can_network_connect" dftval="false">
+<desc>
+<p>
+Allow http daemon to tcp connect
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_can_network_connect_db" dftval="false">
+<desc>
+<p>
+Allow httpd to connect to mysql/posgresql
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_can_network_relay" dftval="false">
+<desc>
+<p>
+Allow httpd to act as a relay
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_enable_cgi" dftval="false">
+<desc>
+<p>
+Allow httpd cgi support
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_enable_ftp_server" dftval="false">
+<desc>
+<p>
+Allow httpd to act as a FTP server by
+listening on the ftp port.
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_enable_homedirs" dftval="false">
+<desc>
+<p>
+Allow httpd to read home directories
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_ssi_exec" dftval="false">
+<desc>
+<p>
+Run SSI execs in system CGI script domain.
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_tty_comm" dftval="false">
+<desc>
+<p>
+Allow http daemon to communicate with the TTY
+</p>
+</desc>
+</tunable>
+<tunable name="httpd_unified" dftval="false">
+<desc>
+<p>
+Run CGI in the main httpd domain
+</p>
+</desc>
+</tunable>
+<tunable name="named_write_master_zones" dftval="false">
+<desc>
+<p>
+Allow BIND to write the master zone files.
+Generally this is used for dynamic DNS.
+</p>
+</desc>
+</tunable>
+<tunable name="nfs_export_all_rw" dftval="false">
+<desc>
+<p>
+Allow nfs to be exported read/write.
+</p>
+</desc>
+</tunable>
+<tunable name="nfs_export_all_ro" dftval="false">
+<desc>
+<p>
+Allow nfs to be exported read only
+</p>
+</desc>
+</tunable>
+<tunable name="pppd_can_insmod" dftval="false">
+<desc>
+<p>
+Allow pppd to load kernel modules for certain modems
+</p>
+</desc>
+</tunable>
+<tunable name="read_default_t" dftval="false">
+<desc>
+<p>
+Allow reading of default_t files.
+</p>
+</desc>
+</tunable>
+<tunable name="run_ssh_inetd" dftval="false">
+<desc>
+<p>
+Allow ssh to run from inetd instead of as a daemon.
+</p>
+</desc>
+</tunable>
+<tunable name="samba_enable_home_dirs" dftval="false">
+<desc>
+<p>
+Allow samba to export user home directories.
+</p>
+</desc>
+</tunable>
+<tunable name="spamassasin_can_network" dftval="false">
+<desc>
+<p>
+Allow spamassassin to do DNS lookups
+</p>
+</desc>
+</tunable>
+<tunable name="squid_connect_any" dftval="false">
+<desc>
+<p>
+Allow squid to connect to all ports, not just
+HTTP, FTP, and Gopher ports.
+</p>
+</desc>
+</tunable>
+<tunable name="ssh_sysadm_login" dftval="false">
+<desc>
+<p>
+Allow ssh logins as sysadm_r:sysadm_t
+</p>
+</desc>
+</tunable>
+<tunable name="stunnel_is_daemon" dftval="false">
+<desc>
+<p>
+Configure stunnel to be a standalone daemon or
+inetd service.
+</p>
+</desc>
+</tunable>
+<tunable name="use_nfs_home_dirs" dftval="false">
+<desc>
+<p>
+Support NFS home directories
+</p>
+</desc>
+</tunable>
+<tunable name="use_samba_home_dirs" dftval="false">
+<desc>
+<p>
+Support SAMBA home directories
+</p>
+</desc>
+</tunable>
+<tunable name="user_ping" dftval="false">
+<desc>
+<p>
+Control users use of ping and traceroute
+</p>
+</desc>
+</tunable>
+<tunable name="allow_gpg_execstack" dftval="false">
+<desc>
+<p>
+Allow gpg executable stack
+</p>
+</desc>
+</tunable>
+<tunable name="allow_ssh_keysign" dftval="false">
+<desc>
+<p>
+allow host key based authentication
+</p>
+</desc>
+</tunable>
+<tunable name="allow_user_mysql_connect" dftval="false">
+<desc>
+<p>
+Allow users to connect to mysql
+</p>
+</desc>
+</tunable>
+<tunable name="allow_write_xshm" dftval="false">
+<desc>
+<p>
+Allows clients to write to the X server shared
+memory segments.
+</p>
+</desc>
+</tunable>
+<tunable name="cdrecord_read_content" dftval="false">
+<desc>
+<p>
+Allow cdrecord to read various content.
+nfs, samba, removable devices, user temp
+and untrusted content files
+</p>
+</desc>
+</tunable>
+<tunable name="cron_can_relabel" dftval="false">
+<desc>
+<p>
+Allow system cron jobs to relabel filesystem
+for restoring file contexts.
+</p>
+</desc>
+</tunable>
+<tunable name="pppd_for_user" dftval="false">
+<desc>
+<p>
+Allow pppd to be run for a regular user
+</p>
+</desc>
+</tunable>
+<tunable name="read_untrusted_content" dftval="false">
+<desc>
+<p>
+Allow applications to read untrusted content
+If this is disallowed, Internet content has
+to be manually relabeled for read access to be granted
+</p>
+</desc>
+</tunable>
+<tunable name="spamassassin_can_network" dftval="false">
+<desc>
+<p>
+Allow user spamassassin clients to use the network.
+</p>
+</desc>
+</tunable>
+<tunable name="staff_read_sysadm_file" dftval="false">
+<desc>
+<p>
+Allow staff_r users to search the sysadm home
+dir and read files (such as ~/.bashrc)
+</p>
+</desc>
+</tunable>
+<tunable name="user_direct_mouse" dftval="false">
+<desc>
+<p>
+Allow regular users direct mouse access
+</p>
+</desc>
+</tunable>
+<tunable name="user_dmesg" dftval="false">
+<desc>
+<p>
+Allow users to read system messages.
+</p>
+</desc>
+</tunable>
+<tunable name="user_net_control" dftval="false">
+<desc>
+<p>
+Allow users to control network interfaces
+(also needs USERCTL=true)
+</p>
+</desc>
+</tunable>
+<tunable name="user_rw_noexattrfile" dftval="false">
+<desc>
+<p>
+Allow user to r/w files on filesystems
+that do not have extended attributes (FAT, CDROM, FLOPPY)
+</p>
+</desc>
+</tunable>
+<tunable name="user_rw_usb" dftval="false">
+<desc>
+<p>
+Allow users to rw usb devices
+</p>
+</desc>
+</tunable>
+<tunable name="user_tcp_server" dftval="false">
+<desc>
+<p>
+Allow users to run TCP servers (bind to ports and accept connection from
+the same domain and outside users)  disabling this forces FTP passive mode
+and may change other protocols.
+</p>
+</desc>
+</tunable>
+<tunable name="user_ttyfile_stat" dftval="false">
+<desc>
+<p>
+Allow w to display everyone
+</p>
+</desc>
+</tunable>
+<tunable name="write_untrusted_content" dftval="false">
+<desc>
+<p>
+Allow applications to write untrusted content
+If this is disallowed, no Internet content
+will be stored.
+</p>
+</desc>
+</tunable>
+<tunable name="xdm_sysadm_login" dftval="false">
+<desc>
+<p>
+Allow xdm logins as sysadm
+</p>
+</desc>
+</tunable>
+<tunable name="spamd_enable_home_dirs" dftval="true">
+<desc>
+<p>
+Allow spammd to read/write user home directories.
+</p>
+</desc>
+</tunable>

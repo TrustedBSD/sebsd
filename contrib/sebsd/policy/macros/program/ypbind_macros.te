@@ -1,0 +1,21 @@
+define(`can_ypbind',`')
+
+ifdef(`targeted_policy', `
+pushdef(`ypbind.te')
+')
+
+ifdef(`ypbind.te', `
+ifdef(`allow_ypbind', `
+undefine(`can_ypbind')
+define(`can_ypbind', `
+r_dir_file($1,var_yp_t)
+can_network($1)
+allow $1 port_t:{ tcp_socket udp_socket } name_bind;
+allow $1 $1:capability { net_bind_service };
+') dnl can_ypbind
+') dnl allow_ypbind
+') dnl ypbind.te
+
+ifdef(`targeted_policy', `
+popdef(`ypbind.te')
+')

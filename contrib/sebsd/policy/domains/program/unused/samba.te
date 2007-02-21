@@ -1,0 +1,116 @@
+#DESC SAMBA - SMB file server
+#
+# Author: Ryan Bergauer (bergauer@rice.edu)
+# X-Debian-Packages: samba
+#
+
+#################################
+#
+# Declarations for Samba
+#
+
+daemon_domain(smbd, `, privhome, auth_chkpwd')
+daemon_domain(nmbd)
+type samba_etc_t, file_type, sysadmfile, usercanread;
+type samba_log_t, file_type, sysadmfile, logfile;
+type samba_var_t, file_type, sysadmfile;
+type samba_share_t, file_type, sysadmfile;
+type samba_secrets_t, file_type, sysadmfile;
+typealias samba_var_t alias samba_spool_t;
+
+# for /var/run/samba/messages.tdb
+allow smbd_t nmbd_var_run_t:file rw_file_perms;
+
+allow smbd_t self:process setrlimit;
+
+# not sure why it needs this
+tmp_domain(smbd)
+
+ifdef(`crond.te', `
+allow system_crond_t samba_etc_t:file { read getattr lock };
+allow system_crond_t samba_log_t:file { read getattr lock };
+#allow system_crond_t samba_secrets_t:file { read getattr lock };
+')
+
+#################################
+#
+# Rules for the smbd_t domain.
+#
+
+# Permissions normally found in every_domain.
+general_domain_access(smbd_t)
+general_proc_read_access(smbd_t)
+
+type smbd_port_t, port_type;
+allow smbd_t smbd_port_t:tcp_socket name_bind;
+
+# Use capabilities.
+allow smbd_t self:capability { setgid setuid sys_resource net_bind_service lease };
+
+# Use the network.
+can_network(smbd_t)
+can_ypbind(smbd_t)
+
+allow smbd_t urandom_device_t:chr_file { getattr read };
+
+# Permissions for Samba files in /etc/samba
+# either allow read access to the directory or allow the auto_trans rule to
+# allow creation of the secrets.tdb file and the MACHINE.SID file
+#allow smbd_t samba_etc_t:dir { search getattr };
+file_type_auto_trans(smbd_t, samba_etc_t, samba_secrets_t, file)
+
+allow smbd_t { etc_t samba_etc_t etc_runtime_t }:file r_file_perms;
+
+# Permissions for Samba cache files in /var/cache/samba and /var/lib/samba
+allow smbd_t var_lib_t:dir search;
+allow smbd_t samba_var_t:dir create_dir_perms;
+allow smbd_t samba_var_t:file create_file_perms;
+
+# Permissions to write log files.
+allow smbd_t samba_log_t:file { create ra_file_perms };
+allow smbd_t var_log_t:dir search;
+allow smbd_t samba_log_t:dir ra_dir_perms;
+
+allow smbd_t usr_t:file { getattr read };
+
+# Access Samba shares.
+allow smbd_t samba_share_t:dir create_dir_perms;
+allow smbd_t samba_share_t:file create_file_perms;
+
+ifdef(`logrotate.te', `
+# the application should be changed
+can_exec(logrotate_t, samba_log_t)
+')
+#################################
+#
+# Rules for the nmbd_t domain.
+#
+
+# Permissions normally found in every_domain.
+general_domain_access(nmbd_t)
+general_proc_read_access(nmbd_t)
+
+type nmbd_port_t, port_type;
+allow nmbd_t nmbd_port_t:udp_socket name_bind;
+
+# Use capabilities.
+allow nmbd_t self:capability { net_bind_service };
+
+# Use the network.
+can_network(nmbd_t)
+
+# Permissions for Samba files in /etc/samba
+allow nmbd_t samba_etc_t:file { getattr read };
+allow nmbd_t samba_etc_t:dir { search getattr };
+
+# Permissions for Samba cache files in /var/cache/samba
+allow nmbd_t samba_var_t:dir { write remove_name add_name lock getattr search };
+allow nmbd_t samba_var_t:file { lock unlink create write setattr read getattr rename };
+
+allow nmbd_t usr_t:file { getattr read };
+
+# Permissions to write log files.
+allow nmbd_t samba_log_t:file { create ra_file_perms };
+allow nmbd_t var_log_t:dir search;
+allow nmbd_t samba_log_t:dir ra_dir_perms;
+

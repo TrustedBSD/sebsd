@@ -1,0 +1,68 @@
+Merging TODO:
+
+	devfs changes to pass complete paths of objects into MAC Framework
+	for label initialization.
+
+	System V IPC, POSIX Semaphore ABI changes to avoid sharing user
+	  and kernel structures.  Probably need to remove module unload
+	  changes for now.
+
+	System V IPC, POSIX Sempahore MAC changes to permit labeling
+	  and access control by MAC policies.
+
+	ipcs(1) label support.
+
+	Removal of redundant suser check in kern_xxx.c
+
+	NFS client credential fixes.
+
+Consider to merge TODO:
+
+	p_canwait().
+
+	pseudofs uses MNT_MULTILABEL always.
+
+	mac_update_mbuf_from_cipso()
+
+	sppp MAC support
+
+	ppp MAC support
+
+	Biba/MLS sequential compartment set support.
+
+	FFS resilience improvements for EA support
+
+	setfsmac in /sbin
+
+	fsck_ffs ea support
+
+	acl.9 expansions
+
+	ls(1) labels without long form
+
+	mac_support.4 man page showing what is (and isn't) supported
+	  with MAC.
+
+	sysinstall(8) support for multi-label file systems.
+
+Probably not to merge, at least not in current form:
+
+	security as a directory in /etc (note: mergemaster handles this
+	  poorly).
+
+	Use multilabel md file systems in the diskless environment.
+
+	rc executable so that there's the possibility of a domain
+	  transition from init.
+
+	tty labeling in login(1)/login.conf(5), init(8).
+
+	Build a MAC kernel by default, include in installs/releases.
+
+	SAVESTART flag in kern_exec.c -- is this needed?
+
+	missingops?
+
+	truss(1) hexdump support?
+
+	inetd(8) resource limits and labels improvements.

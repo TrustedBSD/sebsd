@@ -1,0 +1,4 @@
+# devd
+/sbin/devd		--	system_u:object_r:devd_exec_t
+/var/run/devd.pid	--	system_u:object_r:devd_var_run_t
+/var/run/devd.pipe		system_u:object_r:devd_sock_t

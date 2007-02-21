@@ -1,0 +1,88 @@
+#DESC udev - Linux configurable dynamic device naming support
+#
+# Author:  Dan Walsh dwalsh@redhat.com
+#
+
+#################################
+#
+# Rules for the udev_t domain.
+#
+# udev_exec_t is the type of the udev executable.
+#
+daemon_domain(udev, `, privmodule, privmem, fs_domain, privfd, dbus_client_domain')
+
+general_domain_access(udev_t)
+
+etc_domain(udev)
+typealias udev_etc_t alias etc_udev_t;
+type udev_helper_exec_t, file_type, sysadmfile, exec_type;
+r_dir_file(udev_t, udev_helper_exec_t)
+can_exec(udev_t, udev_helper_exec_t)
+
+#
+# Rules used for udev
+#
+type udev_tbl_t, file_type, sysadmfile;
+file_type_auto_trans(udev_t, device_t, udev_tbl_t, file)
+allow udev_t self:capability { chown dac_override dac_read_search fowner fsetid sys_admin mknod };
+allow udev_t self:file { getattr read };
+allow udev_t self:unix_stream_socket {connectto create_stream_socket_perms};
+allow udev_t self:unix_dgram_socket create_socket_perms;
+allow udev_t self:fifo_file rw_file_perms;
+allow udev_t device_t:blk_file create_file_perms;
+allow udev_t device_t:chr_file create_file_perms;
+allow udev_t device_t:sock_file create_file_perms;
+allow udev_t etc_t:file { getattr read execute };
+allow udev_t { bin_t sbin_t }:dir r_dir_perms;
+allow udev_t { sbin_t bin_t }:lnk_file read;
+can_exec(udev_t, { shell_exec_t bin_t sbin_t } )
+can_exec(udev_t, udev_exec_t)
+r_dir_file(udev_t, sysfs_t)
+allow udev_t sysadm_tty_device_t:chr_file { read write };
+allow udev_t { device_t device_type }:{chr_file blk_file} { relabelfrom relabelto create_file_perms };
+	
+# to read the file_contexts file?
+r_dir_file(udev_t, policy_config_t)
+
+allow udev_t policy_config_t:dir { search };
+allow udev_t proc_t:file { read };
+
+# Get security policy decisions.
+can_getsecurity(udev_t)
+
+allow udev_t kernel_t:fd { use };
+allow udev_t kernel_t:unix_dgram_socket { sendto ioctl read write };
+
+allow udev_t initrc_var_run_t:file r_file_perms;
+dontaudit udev_t initrc_var_run_t:file write;
+
+domain_auto_trans(initrc_t, udev_exec_t, udev_t)
+domain_auto_trans(kernel_t, udev_exec_t, udev_t)
+domain_auto_trans(udev_t, restorecon_exec_t, restorecon_t)
+allow restorecon_t udev_t:unix_dgram_socket { read write };
+allow udev_t devpts_t:dir { search };
+allow udev_t etc_runtime_t:file { getattr read };
+allow udev_t etc_t:file { ioctl };
+allow udev_t proc_t:file { getattr };
+ifdef(`xdm.te', `
+allow udev_t xdm_var_run_t:file { getattr read };
+')
+
+ifdef(`hotplug.te', `
+r_dir_file(udev_t, hotplug_etc_t)
+')
+allow udev_t var_log_t:dir { search };
+
+ifdef(`consoletype.te', `
+can_exec(udev_t, consoletype_exec_t)
+')
+domain_auto_trans(udev_t, ifconfig_exec_t, ifconfig_t)
+allow ifconfig_t udev_t:unix_dgram_socket { read write };
+
+dontaudit udev_t file_t:dir search;
+allow udev_t device_t:lnk_file create_file_perms;
+allow udev_t var_lock_t:dir { search };
+allow udev_t var_lock_t:file { getattr read };
+ifdef(`dhcpc.te', `
+domain_auto_trans(udev_t, dhcpc_exec_t, dhcpc_t)
+')

@@ -1,0 +1,5 @@
+# nrpe
+/usr/bin/nrpe		--	system_u:object_r:nrpe_exec_t
+/etc/nagios/nrpe.cfg	--	system_u:object_r:nrpe_etc_t
+/usr/lib/netsaint/plugins(/.*)?	--	system_u:object_r:bin_t
+/usr/lib/nagios/plugins(/.*)?	--	system_u:object_r:bin_t

@@ -1,0 +1,269 @@
+
+policy_module(lvm,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+type clvmd_t;
+type clvmd_exec_t;
+init_daemon_domain(clvmd_t,clvmd_exec_t)
+
+type clvmd_var_run_t;
+files_pid_file(clvmd_var_run_t)
+
+type lvm_t;
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type lvm_exec_t;
+')
+init_system_domain(lvm_t,lvm_exec_t)
+# needs privowner because it assigns the identity system_u to device nodes
+# but runs as the identity of the sysadmin
+domain_obj_id_change_exemption(lvm_t)
+role system_r types lvm_t;
+
+type lvm_etc_t;
+files_type(lvm_etc_t)
+
+type lvm_lock_t;
+files_lock_file(lvm_lock_t)
+
+type lvm_metadata_t;
+files_type(lvm_metadata_t)
+
+type lvm_var_run_t;
+files_pid_file(lvm_var_run_t)
+
+type lvm_tmp_t;
+files_tmp_file(lvm_tmp_t)
+
+########################################
+#
+# Cluster LVM daemon local policy
+#
+
+dontaudit clvmd_t self:capability sys_tty_config;
+allow clvmd_t self:process signal_perms;
+allow clvmd_t self:socket create_socket_perms;
+allow clvmd_t self:fifo_file { read write };
+allow clvmd_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow clvmd_t self:tcp_socket create_stream_socket_perms;
+allow clvmd_t self:udp_socket create_socket_perms;
+
+allow clvmd_t clvmd_var_run_t:file create_file_perms;
+allow clvmd_t clvmd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(clvmd_t,clvmd_var_run_t,file)
+
+kernel_read_kernel_sysctls(clvmd_t)
+kernel_list_proc(clvmd_t)
+kernel_read_proc_symlinks(clvmd_t)
+
+corenet_tcp_sendrecv_all_if(clvmd_t)
+corenet_udp_sendrecv_all_if(clvmd_t)
+corenet_raw_sendrecv_all_if(clvmd_t)
+corenet_tcp_sendrecv_all_nodes(clvmd_t)
+corenet_udp_sendrecv_all_nodes(clvmd_t)
+corenet_raw_sendrecv_all_nodes(clvmd_t)
+corenet_tcp_sendrecv_all_ports(clvmd_t)
+corenet_udp_sendrecv_all_ports(clvmd_t)
+corenet_non_ipsec_sendrecv(clvmd_t)
+corenet_tcp_bind_all_nodes(clvmd_t)
+corenet_udp_bind_all_nodes(clvmd_t)
+corenet_tcp_bind_reserved_port(clvmd_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(clvmd_t)
+
+dev_read_sysfs(clvmd_t)
+
+fs_getattr_all_fs(clvmd_t)
+fs_search_auto_mountpoints(clvmd_t)
+
+term_dontaudit_use_console(clvmd_t)
+
+domain_use_interactive_fds(clvmd_t)
+
+files_list_usr(clvmd_t)
+
+init_use_fds(clvmd_t)
+init_use_script_ptys(clvmd_t)
+
+libs_use_ld_so(clvmd_t)
+libs_use_shared_libs(clvmd_t)
+
+logging_send_syslog_msg(clvmd_t)
+
+miscfiles_read_localization(clvmd_t)
+
+seutil_dontaudit_search_config(clvmd_t)
+seutil_sigchld_newrole(clvmd_t)
+
+sysnet_read_config(clvmd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(clvmd_t)
+userdom_dontaudit_search_sysadm_home_dirs(clvmd_t)
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(clvmd_t)
+	term_dontaudit_use_generic_ptys(clvmd_t)
+	files_dontaudit_read_root_files(clvmd_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(clvmd_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(clvmd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(clvmd_t)
+')
+
+########################################
+#
+# LVM Local policy
+#
+
+# DAC overrides and mknod for modifying /dev entries (vgmknodes)
+allow lvm_t self:capability { dac_override ipc_lock sys_admin sys_nice mknod chown sys_resource };
+dontaudit lvm_t self:capability sys_tty_config;
+allow lvm_t self:process { sigchld sigkill sigstop signull signal };
+# LVM will complain a lot if it cannot set its priority.
+allow lvm_t self:process setsched;
+allow lvm_t self:file rw_file_perms;
+allow lvm_t self:fifo_file rw_file_perms;
+allow lvm_t self:unix_dgram_socket create_socket_perms;
+
+allow lvm_t lvm_tmp_t:dir create_dir_perms;
+allow lvm_t lvm_tmp_t:file create_file_perms;
+files_tmp_filetrans(lvm_t, lvm_tmp_t, { file dir })
+
+# /lib/lvm-<version> holds the actual LVM binaries (and symlinks)
+allow lvm_t lvm_exec_t:dir search;
+allow lvm_t lvm_exec_t:{ file lnk_file } r_file_perms;
+
+# LVM is split into many individual binaries
+can_exec(lvm_t, lvm_exec_t)
+
+# Creating lock files
+allow lvm_t lvm_lock_t:dir rw_dir_perms;
+allow lvm_t lvm_lock_t:file create_file_perms;
+files_lock_filetrans(lvm_t,lvm_lock_t,file)
+
+allow lvm_t lvm_var_run_t:file create_file_perms;
+allow lvm_t lvm_var_run_t:dir create_dir_perms;
+files_pid_filetrans(lvm_t,lvm_var_run_t,file)
+
+allow lvm_t lvm_etc_t:file r_file_perms;
+allow lvm_t lvm_etc_t:lnk_file r_file_perms;
+# Write to /etc/lvm, /etc/lvmtab, /etc/lvmtab.d
+allow lvm_t lvm_etc_t:dir rw_dir_perms;
+allow lvm_t lvm_metadata_t:file create_file_perms;
+allow lvm_t lvm_metadata_t:dir rw_dir_perms;
+type_transition lvm_t lvm_etc_t:file lvm_metadata_t;
+files_etc_filetrans(lvm_t,lvm_metadata_t,file)
+
+kernel_read_system_state(lvm_t)
+kernel_read_kernel_sysctls(lvm_t)
+# Read system variables in /proc/sys
+kernel_read_kernel_sysctls(lvm_t)
+# it has no reason to need this
+kernel_dontaudit_getattr_core_if(lvm_t)
+
+selinux_get_fs_mount(lvm_t)
+selinux_validate_context(lvm_t)
+selinux_compute_access_vector(lvm_t)
+selinux_compute_create_context(lvm_t)
+selinux_compute_relabel_context(lvm_t)
+selinux_compute_user_contexts(lvm_t)
+
+dev_create_generic_chr_files(lvm_t)
+dev_read_rand(lvm_t)
+dev_read_urand(lvm_t)
+dev_rw_lvm_control(lvm_t)
+dev_manage_generic_symlinks(lvm_t)
+dev_relabel_generic_dev_dirs(lvm_t)
+dev_manage_generic_blk_files(lvm_t)
+# Read /sys/block. Device mapper metadata is kept there.
+dev_read_sysfs(lvm_t)
+# cjp: this has no effect since LVM does not
+# have lnk_file relabelto for anything else.
+# perhaps this should be blk_files?
+dev_relabel_generic_symlinks(lvm_t)
+# LVM (vgscan) scans for devices by stating every file in /dev and applying a regex...
+dev_dontaudit_read_all_chr_files(lvm_t)
+dev_dontaudit_read_all_blk_files(lvm_t)
+dev_dontaudit_getattr_generic_chr_files(lvm_t)
+dev_dontaudit_getattr_generic_blk_files(lvm_t)
+dev_dontaudit_getattr_generic_pipes(lvm_t)
+
+fs_getattr_xattr_fs(lvm_t)
+fs_search_auto_mountpoints(lvm_t)
+fs_read_tmpfs_symlinks(lvm_t)
+fs_donaudit_read_removable_files(lvm_t)
+
+storage_relabel_fixed_disk(lvm_t)
+# LVM creates block devices in /dev/mapper or /dev/<vg>
+# depending on its version
+# LVM(2) needs to create directores (/dev/mapper, /dev/<vg>)
+# and links from /dev/<vg> to /dev/mapper/<vg>-<lv>
+# cjp: need create interface here for fixed disk create
+storage_dev_filetrans_fixed_disk(lvm_t)
+# Access raw devices and old /dev/lvm (c 109,0).  Is this needed?
+storage_manage_fixed_disk(lvm_t)
+
+term_dontaudit_getattr_all_user_ttys(lvm_t)
+term_dontaudit_getattr_pty_dirs(lvm_t)
+
+corecmd_search_sbin(lvm_t)
+corecmd_dontaudit_getattr_sbin_files(lvm_t)
+
+domain_use_interactive_fds(lvm_t)
+
+files_read_etc_files(lvm_t)
+files_read_etc_runtime_files(lvm_t)
+# for when /usr is not mounted:
+files_dontaudit_search_isid_type_dirs(lvm_t)
+
+init_use_fds(lvm_t)
+init_dontaudit_getattr_initctl(lvm_t)
+init_use_script_ptys(lvm_t)
+
+libs_use_ld_so(lvm_t)
+libs_use_shared_libs(lvm_t)
+
+logging_send_syslog_msg(lvm_t)
+
+miscfiles_read_localization(lvm_t)
+
+seutil_read_config(lvm_t)
+seutil_read_file_contexts(lvm_t)
+seutil_search_default_contexts(lvm_t)
+seutil_sigchld_newrole(lvm_t)
+
+ifdef(`distro_redhat',`
+	# this is from the initrd:
+	files_rw_isid_type_dirs(lvm_t)
+')
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(lvm_t)
+	term_dontaudit_use_generic_ptys(lvm_t)
+
+	files_dontaudit_read_root_files(lvm_t)
+')
+
+optional_policy(`bootloader',`
+	bootloader_rw_tmp_files(lvm_t)
+')
+
+optional_policy(`gpm',`
+	gpm_dontaudit_getattr_gpmctl(lvm_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(lvm_t)
+')

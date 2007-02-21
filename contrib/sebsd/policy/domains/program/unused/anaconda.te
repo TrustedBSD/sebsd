@@ -1,0 +1,251 @@
+#DESC Anaconda - Red Hat Installation program
+#
+# Authors:  Dan Walsh <dwalsh@redhat.com>
+#
+#
+
+#################################
+#
+# Rules for the anaconda_t domain.
+#
+# anaconda_t is the domain of the installation program
+#
+type anaconda_t, admin, etc_writer, fs_domain, privmem, auth_write, domain, privlog, privowner, privmodule, sysctl_kernel_writer;
+role system_r types anaconda_t;
+uses_shlib(anaconda_t);
+
+# for halt to down interfaces
+allow anaconda_t self:udp_socket create_socket_perms;
+
+# read files in /etc/init.d
+allow anaconda_t etc_t:lnk_file r_file_perms;
+
+allow anaconda_t self:passwd rootok;
+read_locale(anaconda_t)
+
+r_dir_file(anaconda_t, usr_t)
+
+# Read system information files in /proc.
+allow anaconda_t proc_t:dir r_dir_perms;
+allow anaconda_t proc_t:{ file lnk_file } r_file_perms;
+
+# Allow IPC with self
+allow anaconda_t self:unix_dgram_socket create_socket_perms;
+allow anaconda_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow anaconda_t self:fifo_file rw_file_perms;
+
+# Read the root directory of a usbdevfs filesystem, and
+# the devices and drivers files.  Permit stating of the
+# device nodes, but nothing else.
+allow anaconda_t usbdevfs_t:dir r_dir_perms;
+allow anaconda_t usbdevfs_t:lnk_file r_file_perms;
+allow anaconda_t usbdevfs_t:file getattr;
+
+# allow anaconda to fork and renice itself
+allow anaconda_t self:process { fork sigchld setsched setpgid };
+
+# Can create ptys for open_init_pty
+can_create_pty(anaconda)
+
+tmp_domain(anaconda)
+
+var_run_domain(anaconda)
+allow anaconda_t var_run_t:{ file sock_file lnk_file } unlink;
+allow anaconda_t var_run_t:dir { create rmdir };
+
+allow anaconda_t framebuf_device_t:chr_file r_file_perms;
+
+# Use capabilities.
+allow anaconda_t self:capability ~{ sys_admin sys_module };
+
+# Use system operations.
+allow anaconda_t kernel_t:system *;
+
+# Run helper programs in the anaconda_t domain.
+allow anaconda_t { bin_t sbin_t }:dir r_dir_perms;
+allow anaconda_t { bin_t sbin_t }:lnk_file read;
+can_exec(anaconda_t, etc_t)
+can_exec(anaconda_t, lib_t)
+can_exec(anaconda_t, bin_t)
+can_exec(anaconda_t, sbin_t)
+can_exec(anaconda_t, exec_type)
+#
+#  These rules are here to allow init scripts to su
+#
+role system_r types ldconfig_t;
+domain_auto_trans(anaconda_t, ldconfig_exec_t, ldconfig_t)
+
+role system_r types sysadm_su_t;
+domain_auto_trans(anaconda_t, su_exec_t, sysadm_su_t)
+allow anaconda_t self:passwd rootok;
+
+# read /lib/modules
+allow anaconda_t modules_object_t:dir { search read };
+
+# Read conf.modules.
+allow anaconda_t modules_conf_t:file r_file_perms;
+
+# Run other rc scripts in the anaconda_t domain.
+domain_auto_trans(anaconda_t, initrc_exec_t, initrc_t)
+
+# Run init (telinit) in the anaconda_t domain.
+can_exec(anaconda_t, init_exec_t)
+
+# Communicate with the init process.
+allow anaconda_t initctl_t:fifo_file rw_file_perms;
+
+# Read /proc/PID directories for all domains.
+can_ps(anaconda_t, domain)
+allow anaconda_t domain:process getsession;
+
+# Mount and unmount file systems.
+allow anaconda_t fs_type:filesystem mount_fs_perms;
+allow anaconda_t file_t:dir { read search getattr mounton };
+
+# Update /etc/ld.so.cache.
+allow anaconda_t ld_so_cache_t:file rw_file_perms;
+
+ifdef(`sendmail.te', `
+# Update /etc/mail.
+allow anaconda_t etc_mail_t:file { setattr rw_file_perms };
+')
+
+# Update /var/log/wtmp and /var/log/dmesg.
+allow anaconda_t wtmp_t:file { setattr rw_file_perms };
+allow anaconda_t var_log_t:file { setattr rw_file_perms };
+allow anaconda_t lastlog_t:file { setattr rw_file_perms };
+domain_auto_trans(anaconda_t, dmesg_exec_t, dmesg_t)
+
+# remove old locks
+allow anaconda_t lockfile:dir rw_dir_perms;
+allow anaconda_t lockfile:file { getattr unlink };
+
+# Access /var/lib/random-seed.
+allow anaconda_t var_lib_t:file rw_file_perms;
+allow anaconda_t var_lib_t:file unlink;
+
+# Create lock file.
+allow anaconda_t var_lock_t:dir create_dir_perms;
+allow anaconda_t var_lock_t:file create_file_perms;
+
+# Set the clock.
+allow anaconda_t clock_device_t:devfile_class_set rw_file_perms;
+
+# Kill all processes.
+allow anaconda_t domain:process signal_perms;
+
+# Write to /dev/urandom.
+allow anaconda_t urandom_device_t:chr_file rw_file_perms;
+
+# Set device ownerships/modes.
+allow anaconda_t framebuf_device_t:lnk_file read;
+allow anaconda_t framebuf_device_t:devfile_class_set setattr;
+allow anaconda_t misc_device_t:devfile_class_set setattr;
+allow anaconda_t device_t:devfile_class_set setattr;
+allow anaconda_t fixed_disk_device_t:devfile_class_set setattr;
+allow anaconda_t removable_device_t:devfile_class_set setattr;
+
+# Stat any file.
+allow anaconda_t file_type:file_class_set getattr;
+allow anaconda_t file_type:dir { search getattr };
+
+# Read and write console and ttys.
+allow anaconda_t devtty_t:chr_file rw_file_perms;
+allow anaconda_t console_device_t:chr_file rw_file_perms;
+allow anaconda_t tty_device_t:chr_file rw_file_perms;
+allow anaconda_t ttyfile:chr_file rw_file_perms;
+allow anaconda_t ptyfile:chr_file rw_file_perms;
+
+# Reset tty labels.
+allow anaconda_t ttyfile:chr_file relabelfrom;
+allow anaconda_t tty_device_t:chr_file relabelto;
+
+ifdef(`redhat', `
+# Create and read /boot/kernel.h and /boot/System.map.
+# Redhat systems typically create this file at boot time.
+allow anaconda_t boot_t:lnk_file rw_file_perms;
+file_type_auto_trans(anaconda_t, boot_t, boot_runtime_t, file)
+')
+
+allow anaconda_t system_map_t:{ file lnk_file } r_file_perms;
+
+# Unlink /halt.
+allow anaconda_t root_t:dir { search write remove_name };
+allow anaconda_t root_t:file { unlink write };
+
+allow anaconda_t var_spool_t:file rw_file_perms;
+
+# Allow access to the sysadm TTYs. Note that this will give access to the 
+# TTYs to any process in the anaconda_t domain. Therefore, daemons and such
+# started from init should be placed in their own domain.
+allow anaconda_t admin_tty_type:chr_file rw_file_perms;
+
+# Access sound device and files.
+allow anaconda_t sound_device_t:chr_file { setattr ioctl read write };
+ifdef(`sound.te', `allow anaconda_t sound_file_t:file { setattr write };')
+
+ifdef(`redhat', `
+# Access /var/lib/rpm.
+allow anaconda_t var_lib_rpm_t:dir rw_dir_perms;
+allow anaconda_t var_lib_rpm_t:file create_file_perms;
+domain_auto_trans(anaconda_t, rpm_exec_t, rpm_t)
+')
+
+# Update /var/log/ksyms.*.
+# badly named type, /var/log/boot gets the same name too which is confusing
+file_type_auto_trans(anaconda_t, var_log_t, var_log_ksyms_t, file)
+
+ifdef(`apmd.te', `
+# Access /dev/apm_bios.
+allow anaconda_t apm_bios_t:chr_file { setattr getattr };')
+
+ifdef(`lpd.te', `
+# Read printconf files.
+allow anaconda_t printconf_t:dir r_dir_perms;
+allow anaconda_t printconf_t:file r_file_perms;')
+
+# Create and delete /.autofsck
+allow anaconda_t root_t:dir { search write add_name };
+allow anaconda_t root_t:file { create setattr unlink getattr };
+allow anaconda_t file_t:file { unlink getattr };
+
+# Read user home directories.
+allow anaconda_t { home_root_t home_type }:dir r_dir_perms;
+allow anaconda_t home_type:file r_file_perms;
+
+# for system start scripts
+allow anaconda_t pidfile:dir rw_dir_perms;
+allow anaconda_t pidfile:sock_file unlink;
+rw_dir_create_file(anaconda_t, var_lib_t)
+
+# allow start scripts to clean /tmp
+allow anaconda_t { unlabeled_t tmpfile }:dir { rw_dir_perms rmdir };
+allow anaconda_t { unlabeled_t tmpfile }:notdevfile_class_set { getattr unlink };
+
+# for lsof which is used by alsa shutdown
+dontaudit anaconda_t domain:{ udp_socket tcp_socket fifo_file unix_dgram_socket } getattr;
+dontaudit anaconda_t proc_kmsg_t:file getattr;
+
+# Rsync
+dontaudit anaconda_t mail_spool_t:lnk_file read;
+
+allow anaconda_t sysfs_t:dir { getattr read search };
+allow anaconda_t sysfs_t:file { getattr read };
+allow anaconda_t sysfs_t:lnk_file { getattr read };
+allow anaconda_t udev_runtime_t:file rw_file_perms;
+allow anaconda_t device_type:chr_file { setattr };
+
+# for lsof in shutdown scripts
+allow anaconda_t security_t:dir getattr;
+ifdef(`udev.te', `
+domain_auto_trans(anaconda_t, udev_exec_t, udev_t)
+')
+allow anaconda_t krb5_conf_t:file read;
+dontaudit anaconda_t krb5_conf_t:file write;
+
+ifdef(`ssh-agent.te', `
+role system_r types sysadm_ssh_agent_t;
+domain_auto_trans(anaconda_t, ssh_agent_exec_t, sysadm_ssh_agent_t)
+')
+domain_auto_trans(anaconda_t , admin_passwd_exec_t, sysadm_passwd_t)
+unconfined_domain(anaconda_t) 

@@ -1,0 +1,4 @@
+# $FreeBSD: src/tools/tools/tinderbox/etc/update_head.rc,v 1.1 2005/07/20 19:59:46 des Exp $
+branches	= HEAD
+platforms	= alpha, amd64, i386/i386, i386/pc98, sparc64
+targets		= update

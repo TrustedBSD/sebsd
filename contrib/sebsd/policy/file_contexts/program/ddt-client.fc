@@ -1,0 +1,6 @@
+# ddt - Dynamic DNS client
+/usr/sbin/ddtcd		--	system_u:object_r:ddt_client_exec_t
+/var/run/ddtcd\.pid	--	system_u:object_r:ddt_client_var_run_t
+/etc/ddtcd\.conf	--	system_u:object_r:ddt_client_etc_t
+/var/lib/ddt-client(/.*)?	system_u:object_r:var_lib_ddt_client_t
+/var/log/ddtcd\.log.*	--	system_u:object_r:ddt_client_log_t

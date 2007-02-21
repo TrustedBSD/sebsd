@@ -1,0 +1,8 @@
+# hotplug
+/etc/hotplug(/.*)?		system_u:object_r:hotplug_etc_t
+/sbin/hotplug		--	system_u:object_r:hotplug_exec_t
+/etc/hotplug.d/default/default.* system_u:object_r:sbin_t
+/etc/hotplug/.*agent	--	system_u:object_r:sbin_t
+/etc/hotplug/.*rc	-- 	system_u:object_r:sbin_t
+/etc/hotplug/hotplug.functions --	system_u:object_r:sbin_t
+/var/run/usb(/.*)?		system_u:object_r:hotplug_var_run_t

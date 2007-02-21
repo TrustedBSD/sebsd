@@ -1,0 +1,362 @@
+#
+# This file describes the security contexts to be applied to files
+# when the security policy is installed.  The setfiles program
+# reads this file and labels files accordingly.
+#
+# Each specification has the form:
+#       regexp [ -type ] ( context | <<none>> )
+#
+# By default, the regexp is an anchored match on both ends (i.e. a 
+# caret (^) is prepended and a dollar sign ($) is appended automatically).
+# This default may be overridden by using .* at the beginning and/or
+# end of the regular expression.  
+#
+# The optional type field specifies the file type as shown in the mode
+# field by ls, e.g. use -d to match only directories or -- to match only
+# regular files.
+#
+# The value of <<none> may be used to indicate that matching files
+# should not be relabeled.
+#
+# The last matching specification is used.
+#
+# If there are multiple hard links to a file that match
+# different specifications and those specifications indicate
+# different security contexts, then a warning is displayed
+# but the file is still labeled based on the last matching
+# specification other than <<none>>.
+#
+# Some of the files listed here get re-created during boot and therefore
+# need type transition rules to retain the correct type. These files are
+# listed here anyway so that if the setfiles program is used on a running
+# system it does not relabel them to something we do not want. An example of
+# this is /var/run/utmp.
+#
+
+#
+# The security context for all files not otherwise specified.
+#
+/.*				system_u:object_r:default_t
+
+#
+# The root directory.
+#
+/			-d	system_u:object_r:root_t
+
+#
+# Ordinary user home directories.
+# HOME_ROOT expands to all valid home directory prefixes found in /etc/passwd
+# HOME_DIR expands to each user's home directory,
+#                  and to HOME_ROOT/[^/]+ for each HOME_ROOT.
+# ROLE expands to each user's role when role != user_r, and to "user" otherwise.
+#
+HOME_ROOT		-d	system_u:object_r:home_root_t
+HOME_DIR		-d	system_u:object_r:ROLE_home_dir_t
+HOME_DIR/.+			system_u:object_r:ROLE_home_t
+
+/root/.default_contexts	-- 	system_u:object_r:default_context_t
+#
+# A common mount point
+/mnt(/.*)?		-d	system_u:object_r:mnt_t
+/media(/.*)?		-d	system_u:object_r:mnt_t
+/cdrom(.*)?		-d	system_u:object_r:mnt_t
+
+#
+# /var
+#
+/var(/.*)?			system_u:object_r:var_t
+/var/catman(/.*)?		system_u:object_r:catman_t
+/var/cache/man(/.*)?		system_u:object_r:catman_t
+/var/yp(/.*)?			system_u:object_r:var_yp_t
+/var/lib(/.*)?			system_u:object_r:var_lib_t
+/var/lib/nfs(/.*)?		system_u:object_r:var_lib_nfs_t
+/var/lib/texmf(/.*)?		system_u:object_r:tetex_data_t
+/var/cache/fonts(/.*)?		system_u:object_r:tetex_data_t
+/var/lock(/.*)?			system_u:object_r:var_lock_t
+/var/tmp(/.*)?			system_u:object_r:tmp_t
+#
+/var/tmp/vi\.recover		system_u:object_r:tmp_t
+/var/empty			system_u:object_r:etc_t
+/var/db/mounttab		system_u:object_r:etc_runtime_t
+
+#
+# /var/ftp
+#
+/var/ftp/bin(/.*)?		system_u:object_r:bin_t
+/var/ftp/bin/ls		--	system_u:object_r:ls_exec_t
+/var/ftp/lib(/.*)?		system_u:object_r:lib_t
+/var/ftp/lib/ld.*\.so.*		system_u:object_r:ld_so_t
+/var/ftp/lib/lib.*\.so.*	system_u:object_r:shlib_t
+/var/ftp/etc(/.*)?		system_u:object_r:etc_t
+
+#
+# /bin
+#
+/bin(/.*)?			system_u:object_r:bin_t
+/bin/sh			--	system_u:object_r:shell_exec_t
+/bin/tcsh		--	system_u:object_r:shell_exec_t
+/bin/bash		--	system_u:object_r:shell_exec_t
+/bin/bash2		--	system_u:object_r:shell_exec_t
+/bin/sash		--	system_u:object_r:shell_exec_t
+/bin/d?ash		--	system_u:object_r:shell_exec_t
+/bin/zsh.*		--	system_u:object_r:shell_exec_t
+/usr/sbin/sesh		--	system_u:object_r:shell_exec_t
+/bin/ls			--	system_u:object_r:ls_exec_t
+
+#
+# /boot
+#
+/boot(/.*)?			system_u:object_r:boot_t
+/boot/System\.map-.*	--	system_u:object_r:system_map_t
+/boot/kernel\.h.*	--	system_u:object_r:boot_runtime_t
+
+#
+# /dev
+#
+/dev(/.*)?			system_u:object_r:device_t
+/dev/MAKEDEV			system_u:object_r:sbin_t
+/dev/null			system_u:object_r:null_device_t
+/dev/zero			system_u:object_r:zero_device_t
+/dev/console			system_u:object_r:console_device_t
+/dev/(kmem|mem|port)		system_u:object_r:memory_device_t
+/dev/nvram			system_u:object_r:memory_device_t
+/dev/random			system_u:object_r:random_device_t
+/dev/urandom			system_u:object_r:random_device_t
+/dev/[^/]*tty[^/]*		system_u:object_r:tty_device_t
+/dev/vcs[^/]*			system_u:object_r:tty_device_t
+/dev/tty			system_u:object_r:devtty_t
+/dev/ad[^/]*			system_u:object_r:fixed_disk_device_t
+/dev/loop.*			system_u:object_r:fixed_disk_device_t
+/dev/ram.*			system_u:object_r:fixed_disk_device_t
+/dev/s(cd|r)[^/]*		system_u:object_r:removable_device_t
+/dev/fd[^/]+			system_u:object_r:removable_device_t
+/dev/rtc			system_u:object_r:clock_device_t
+/dev/psaux			system_u:object_r:mouse_device_t
+/dev/.*mouse.*	-c		system_u:object_r:mouse_device_t
+/dev/ptmx			system_u:object_r:ptmx_t
+/dev/sequencer			system_u:object_r:misc_device_t
+
+/proc(/.*)?			<<none>>
+
+#
+# /etc
+#
+/etc(/.*)?			system_u:object_r:etc_t
+/etc/\.pwd\.lock	--	system_u:object_r:shadow_t
+/etc/passwd\.lock	--	system_u:object_r:shadow_t
+/etc/group\.lock	--	system_u:object_r:shadow_t
+/etc/shadow.*		--	system_u:object_r:shadow_t
+#/etc/spwd.db		--	system_u:object_r:shadow_t
+/etc/gshadow.*		--	system_u:object_r:shadow_t
+/etc/blkid\.tab		--	system_u:object_r:etc_runtime_t
+/etc/fstab\.REVOKE	--	system_u:object_r:etc_runtime_t
+/etc/HOSTNAME		--	system_u:object_r:etc_runtime_t
+/etc/ioctl\.save	--	system_u:object_r:etc_runtime_t
+/etc/master.passwd		system_u:object_r:shadow_t
+/etc/mtab		--	system_u:object_r:etc_runtime_t
+/var/db/mounttab		system_u:object_r:etc_runtime_t
+/etc/motd			system_u:object_r:etc_runtime_t
+/etc/issue			system_u:object_r:etc_runtime_t
+/etc/issue\.net			system_u:object_r:etc_runtime_t
+/etc/ld\.so\.cache		system_u:object_r:ld_so_cache_t
+/etc/ld\.so\.preload		system_u:object_r:ld_so_cache_t
+/etc/resolv\.conf.*		system_u:object_r:resolv_conf_t
+/etc/security/sebsd(/.*)?	system_u:object_r:policy_config_t	
+/etc/security/sebsd/src(/.*)?	system_u:object_r:policy_src_t
+/etc/security/default_context.*	system_u:object_r:default_context_t
+/etc/services			system_u:object_r:etc_t
+/etc/namedb(/.*)?		system_u:object_r:named_zone_t
+/etc/namedb/named.conf		system_u:object_r:named_conf_t
+/etc/rc.d/cleanvar		system_u:object_r:cleanvar_exec_t
+/etc/rc.d/dhclient		system_u:object_r:initrc_exec_t
+/etc/rc.d/sshd			system_u:object_r:initrc_exec_t
+/etc/rc.shutdown		system_u:object_r:initrc_exec_t
+/etc/rc				system_u:object_r:initrc_exec_t
+/etc/opiekeys			system_u:object_r:opiekey_t
+#
+# /lib
+#
+/lib(/.*)?			system_u:object_r:lib_t
+/lib/ld.*\.so.*			system_u:object_r:ld_so_t
+/lib/lib.*\.so.*		system_u:object_r:shlib_t
+/lib/[^/]*/lib.*\.so.*		system_u:object_r:shlib_t
+/lib/devfsd/.*\.so.*		system_u:object_r:shlib_t
+/lib/security/.*\.so.*		system_u:object_r:shlib_t
+/lib/libSegFault.so             system_u:object_r:lib_t
+/etc/selinux(/.*)?		system_u:object_r:selinux_config_t
+/etc/security/selinux(/.*)?	system_u:object_r:policy_config_t	
+/etc/security/selinux/src(/.*)?	system_u:object_r:policy_src_t
+/etc/security/default_contexts.*	system_u:object_r:default_context_t
+/etc/selinux/[^/]*/policy(/.*)?	system_u:object_r:policy_config_t
+/etc/selinux/[^/]*/src(/.*)?	system_u:object_r:policy_src_t
+/etc/selinux/[^/]*/contexts(/.*)?	system_u:object_r:default_context_t
+/etc/selinux/[^/]*/contexts/files(/.*)? system_u:object_r:file_context_t
+
+#
+# /sbin
+#
+/sbin(/.*)?			system_u:object_r:sbin_t
+
+#
+# /tmp
+#
+/tmp(/.*)?			system_u:object_r:tmp_t
+/tmp/orbit.*			system_u:object_r:user_tmp_t
+/tmp/\.ICE-unix(/.*)?		system_u:object_r:user_tmp_t
+
+#
+# /usr
+#
+/usr(/.*)?			system_u:object_r:usr_t
+/usr/etc(/.*)?			system_u:object_r:etc_t
+/usr/libexec(/.*)?		system_u:object_r:lib_t
+/libexec(/.*)?			system_u:object_r:lib_t
+/usr/src(/.*)?			system_u:object_r:src_t
+/usr/tmp(/.*)?			system_u:object_r:tmp_t
+/usr/man(/.*)?			system_u:object_r:man_t
+/usr/share/man(/.*)?		system_u:object_r:man_t
+/usr/share/mc/extfs/.*	--	system_u:object_r:bin_t
+/usr/share/texmf/teTeX/bin(/.*)?	system_u:object_r:bin_t
+/usr/share/selinux(/.*)?	system_u:object_r:policy_src_t
+
+#
+# /usr/bin
+#
+/usr/bin(/.*)?			system_u:object_r:bin_t
+/usr/bin/makemap		system_u:object_r:sbin_t
+
+#
+# /usr/lib
+#
+/usr/lib(/.*)?			system_u:object_r:lib_t
+/usr/lib/lib.*\.so.*		system_u:object_r:shlib_t
+/usr/lib/python.*\.so		system_u:object_r:shlib_t
+/usr/lib/.*/lib[^/]*\.so.*	system_u:object_r:shlib_t
+/usr/lib/.*/.*\.so		system_u:object_r:shlib_t
+/usr/lib/autofs/.*\.so		system_u:object_r:shlib_t
+/usr/lib/perl5/man(/.*)?	system_u:object_r:man_t
+/usr/lib/perl.*\.so		system_u:object_r:shlib_t
+/usr/lib/emacsen-common/.*	system_u:object_r:bin_t
+/usr/lib/.*/bin(/.*)?		system_u:object_r:bin_t
+/usr/lib/gconv/.*\.so		system_u:object_r:shlib_t
+/usr/share/guile/g-wrapped/.*\.so system_u:object_r:shlib_t
+/usr/share/selinux(/.*)?	system_u:object_r:policy_src_t
+/usr/games(/.*)?		system_u:object_r:bin_t
+/usr/libexec/ld.*\.so.*		system_u:object_r:ld_so_t
+/libexec/ld.*\.so.*		system_u:object_r:ld_so_t
+/usr/lib/pam_.*			system_u:object_r:shlib_t
+
+#
+# /usr/local
+#
+/usr/local/etc(/.*)?		system_u:object_r:etc_t
+/usr/local/src(/.*)?		system_u:object_r:src_t
+/usr/local/sbin(/.*)?		system_u:object_r:sbin_t
+/usr/local/man(/.*)?		system_u:object_r:man_t
+
+#
+# /usr/local/bin
+#
+/usr/local/bin(/.*)?		system_u:object_r:bin_t
+/usr/local/bin/bash		system_u:object_r:shell_exec_t
+
+#
+# /usr/local/lib(64)?
+#
+/usr/local/lib(64)?(/.*)?		system_u:object_r:lib_t
+/usr/local/lib(64)?(/.*)+\.so(\.[^/]*)*	--	system_u:object_r:shlib_t
+
+#
+# /usr/sbin
+#
+/usr/sbin(/.*)?			system_u:object_r:sbin_t
+/usr/sbin/makemap		system_u:object_r:sbin_t
+
+#
+# /usr/X11R6/(.*/)?bin
+#
+/usr/X11R6/(.*/)?bin(/.*)?	system_u:object_r:bin_t
+
+#
+# /usr/X11R6/(.*/)?lib(64)?
+#
+/usr/X11R6/(.*/)?lib(64)?(/.*)?		system_u:object_r:lib_t
+/usr/X11R6/(.*/)?lib(64)?(/.*)+\.so(\.[^/]*)* --	system_u:object_r:shlib_t
+
+#
+# /usr/X11R6/man
+#
+/usr/X11R6/man(/.*)?		system_u:object_r:man_t
+
+#
+# /usr/kerberos
+#
+/usr/kerberos/bin(/.*)?		system_u:object_r:bin_t
+/usr/kerberos/sbin(/.*)?	system_u:object_r:sbin_t
+/usr/kerberos/lib(64)?(/.*)?		system_u:object_r:lib_t
+/usr/kerberos/lib(64)?/lib[^/]*\.so(\.[^/]*)* -- system_u:object_r:shlib_t
+
+#
+# /usr/ports
+#
+/usr/ports/distfiles(/.*)?	system_u:object_t:port_work_t
+
+#
+# Fonts dir
+#
+/usr/X11R6/lib/X11/fonts(/.*)?		system_u:object_r:fonts_t
+/usr/share/fonts(/.*)?			system_u:object_r:fonts_t
+/usr/local/share/fonts(/.*)?		system_u:object_r:fonts_t
+
+#
+# /var/run
+#
+/var/run(/.*)?			system_u:object_r:var_run_t
+/var/run/.*\.*pid		<<none>>
+/var/run/ld\.so\..*		system_u:object_r:ld_so_cache_t
+/var/run/ld-elf\.so\..*		system_u:object_r:ld_so_cache_t
+
+#
+# /var/spool
+#
+/var/spool(/.*)?		system_u:object_r:var_spool_t
+/var/spool/texmf(/.*)?		system_u:object_r:tetex_data_t
+
+# 
+# /var/log
+#
+/var/log(/.*)?			system_u:object_r:var_log_t
+/var/log/wtmp.*		--	system_u:object_r:wtmp_t
+/var/log/btmp.*		--	system_u:object_r:faillog_t
+/var/log/faillog	--	system_u:object_r:faillog_t
+/var/log/ksyms.*	--	system_u:object_r:var_log_ksyms_t
+/var/log/dmesg		--	system_u:object_r:var_log_t
+/var/log/lastlog	--	system_u:object_r:lastlog_t
+/var/log/ksymoops(/.*)?		system_u:object_r:var_log_ksyms_t
+/var/log/syslog		--	system_u:object_r:var_log_t
+/var/log/messages		system_u:object_r:var_log_t
+
+#
+# Lost and found directories.
+#
+/lost\+found(/.*)?		system_u:object_r:lost_found_t
+/usr/lost\+found(/.*)?		system_u:object_r:lost_found_t
+/boot/lost\+found(/.*)?		system_u:object_r:lost_found_t
+HOME_ROOT/lost\+found(/.*)?	system_u:object_r:lost_found_t
+/var/lost\+found(/.*)?		system_u:object_r:lost_found_t
+/tmp/lost\+found(/.*)?		system_u:object_r:lost_found_t
+/usr/local/lost\+found(/.*)?	system_u:object_r:lost_found_t
+
+#
+# system localization
+#
+/usr/share/zoneinfo(/.*)?	system_u:object_r:locale_t
+/usr/share/locale(/.*)?		system_u:object_r:locale_t
+/usr/lib/locale(/.*)?		system_u:object_r:locale_t
+/etc/localtime		--	system_u:object_r:locale_t
+/etc/localtime		-l	system_u:object_r:etc_t
+#
+#  The krb5.conf file is always being tested for writability, so
+#  we defined a type to dontautit
+#
+/etc/krb5\.conf		--	system_u:object_r:krb5_conf_t

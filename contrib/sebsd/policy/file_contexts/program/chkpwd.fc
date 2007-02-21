@@ -1,0 +1,3 @@
+# chkpwd
+/sbin/unix_chkpwd	--	system_u:object_r:chkpwd_exec_t
+/sbin/unix_verify	--	system_u:object_r:chkpwd_exec_t

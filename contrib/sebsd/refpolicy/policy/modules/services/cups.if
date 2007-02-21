@@ -1,0 +1,228 @@
+## <summary>Common UNIX printing system</summary>
+
+########################################
+## <summary>
+##	Execute cups in the cups domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`cups_domtrans',`
+	gen_require(`
+		type cupsd_t, cupsd_exec_t;
+	')
+
+	domain_auto_trans($1,cupsd_exec_t,cupsd_t)
+
+	allow $1 cupsd_t:fd use;
+	allow cupsd_t $1:fd use;
+	allow cupsd_t $1:fifo_file rw_file_perms;
+	allow cupsd_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	cups over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_dbus_chat',`
+	gen_require(`
+		type cupsd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 cupsd_t:dbus send_msg;
+	allow cupsd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Execute cups_config in the cups_config domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`cups_domtrans_config',`
+	gen_require(`
+		type cupsd_config_t, cupsd_config_exec_t;
+	')
+
+	domain_auto_trans($1,cupsd_config_exec_t,cupsd_config_t)
+
+	allow $1 cupsd_config_t:fd use;
+	allow cupsd_config_t $1:fd use;
+	allow cupsd_config_t $1:fifo_file rw_file_perms;
+	allow cupsd_config_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send generic signals to the cups
+##	configuration daemon.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_signal_config',`
+	gen_require(`
+		type cupsd_config_t;
+	')
+
+	allow $1 cupsd_config_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	cupsd_config over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_dbus_chat_config',`
+	gen_require(`
+		type cupsd_config_t;
+		class dbus send_msg;
+	')
+
+	allow $1 cupsd_config_t:dbus send_msg;
+	allow cupsd_config_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read cups configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_read_config',`
+	gen_require(`
+		type cupsd_etc_t, cupsd_rw_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 cupsd_etc_t:dir search_dir_perms;
+	allow $1 cupsd_etc_t:file { getattr read };
+	allow $1 cupsd_rw_etc_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Read cups-writable configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_read_rw_config',`
+	gen_require(`
+		type cupsd_etc_t, cupsd_rw_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 cupsd_etc_t:dir search_dir_perms;
+	allow $1 cupsd_rw_etc_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Read cups log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_read_log',`
+	gen_require(`
+		type cupsd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 cupsd_log_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Write cups log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_write_log',`
+	gen_require(`
+		type cupsd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 cupsd_log_t:file write;
+')
+
+########################################
+## <summary>
+##	Connect to ptal over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_stream_connect_ptal',`
+	gen_require(`
+		type ptal_t, ptal_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 ptal_var_run_t:dir search;
+	allow $1 ptal_var_run_t:sock_file write;
+	allow $1 ptal_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Connect to cups over TCP.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_tcp_connect',`
+	gen_require(`
+		type cupsd_t;
+	')
+
+	allow $1 cupsd_t:tcp_socket { connectto recvfrom };
+	allow cupsd_t $1:tcp_socket { acceptfrom recvfrom };
+	kernel_tcp_recvfrom($1)
+')

@@ -1,0 +1,4 @@
+# $FreeBSD: src/sys/arm/at91/std.at91,v 1.1 2006/02/17 22:33:13 imp Exp $
+
+files	"../at91/files.at91"
+cpu	CPU_ARM9

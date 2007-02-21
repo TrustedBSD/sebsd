@@ -1,0 +1,331 @@
+#DESC Initrc - System initialization scripts
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+# X-Debian-Packages: sysvinit policycoreutils
+#
+
+#################################
+#
+# Rules for the initrc_t domain.
+#
+# initrc_t is the domain of the init rc scripts.
+# initrc_exec_t is the type of the init program.
+#
+ifdef(`sendmail.te', `
+# do not use privmail for sendmail as it creates a type transition conflict
+type initrc_t, ifdef(`unlimitedRC', `admin, etc_writer, fs_domain, privmem, auth_write, ') domain, privlog, privowner, privmodule, sysctl_kernel_writer;
+allow system_mail_t initrc_t:fd use;
+allow system_mail_t initrc_t:fifo_file write;
+', `
+type initrc_t, ifdef(`unlimitedRC', `admin, etc_writer, fs_domain, privmem,auth_write, ') domain, privlog, privowner, privmodule, sysctl_kernel_writer, privmail;
+')
+role system_r types initrc_t;
+uses_shlib(initrc_t);
+can_ypbind(initrc_t)
+type initrc_exec_t, file_type, sysadmfile, exec_type;
+
+# for halt to down interfaces
+allow initrc_t self:udp_socket create_socket_perms;
+
+allow initrc_t self:fd { create use };
+
+# read files in /etc/init.d
+allow initrc_t etc_t:lnk_file r_file_perms;
+allow initrc_t resolv_conf_t:{ file lnk_file } r_file_perms;
+
+read_locale(initrc_t)
+
+r_dir_file(initrc_t, usr_t)
+
+# Read system information files in /proc.
+allow initrc_t proc_t:dir r_dir_perms;
+allow initrc_t proc_t:{ file lnk_file } r_file_perms;
+
+# Allow IPC with self
+allow initrc_t self:unix_dgram_socket create_socket_perms;
+allow initrc_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow initrc_t self:fifo_file rw_file_perms;
+
+# Read the root directory of a usbdevfs filesystem, and
+# the devices and drivers files.  Permit stating of the
+# device nodes, but nothing else.
+allow initrc_t usbdevfs_t:dir r_dir_perms;
+allow initrc_t usbdevfs_t:{ file lnk_file } r_file_perms;
+allow initrc_t usbdevfs_device_t:file getattr;
+
+allow initrc_t device_t:dir r_dir_perms;
+
+# allow initrc to fork and renice itself
+allow initrc_t self:process { fork sigchld setsched setpgid setrlimit };
+
+# Can create ptys for open_init_pty
+can_create_pty(initrc)
+
+tmp_domain(initrc)
+
+var_run_domain(initrc)
+allow initrc_t var_run_t:{ file sock_file lnk_file } unlink;
+allow initrc_t var_run_t:dir { create rmdir };
+
+allow initrc_t framebuf_device_t:chr_file r_file_perms;
+
+# Use capabilities.
+allow initrc_t self:capability ~{ sys_admin sys_module };
+
+# Use system operations.
+allow initrc_t kernel_t:system *;
+
+# Set values in /proc/sys.
+can_sysctl(initrc_t)
+
+# Run helper programs in the initrc_t domain.
+allow initrc_t {bin_t sbin_t }:dir r_dir_perms;
+allow initrc_t {bin_t sbin_t }:lnk_file read;
+can_exec(initrc_t, etc_t)
+can_exec(initrc_t, lib_t)
+can_exec(initrc_t, bin_t)
+can_exec(initrc_t, sbin_t)
+can_exec(initrc_t, exec_type)
+#
+#  These rules are here to allow init scripts to su
+#
+ifdef(`su.te', `
+su_restricted_domain(initrc,system)
+role system_r types initrc_su_t;
+')
+allow initrc_t self:passwd rootok;
+
+# read /lib/modules
+allow initrc_t modules_object_t:dir { search read };
+
+# Read conf.modules.
+allow initrc_t modules_conf_t:file r_file_perms;
+
+# Run other rc scripts in the initrc_t domain.
+can_exec(initrc_t, initrc_exec_t)
+
+# Run init (telinit) in the initrc_t domain.
+can_exec(initrc_t, init_exec_t)
+
+# Communicate with the init process.
+allow initrc_t initctl_t:fifo_file rw_file_perms;
+
+# Send messages to portmap and ypbind.
+ifdef(`portmap.te', `can_udp_send(initrc_t, portmap_t)')
+ifdef(`ypbind.te', `can_udp_send(initrc_t, ypbind_t)')
+
+# Read /proc/PID directories for all domains.
+r_dir_file(initrc_t, domain)
+allow initrc_t domain:process { getattr getsession };
+
+# Mount and unmount file systems.
+allow initrc_t fs_type:filesystem mount_fs_perms;
+allow initrc_t { file_t default_t }:dir { read search getattr mounton };
+
+# Create runtime files in /etc, e.g. /etc/mtab, /etc/HOSTNAME.
+file_type_auto_trans(initrc_t, etc_t, etc_runtime_t, file)
+
+# Update /etc/ld.so.cache.
+allow initrc_t ld_so_cache_t:file { unlink rw_file_perms };
+
+ifdef(`sendmail.te', `
+# Update /etc/mail.
+allow initrc_t etc_mail_t:file { setattr rw_file_perms };
+allow initrc_t sendmail_exec_t:lnk_file read;
+')
+
+ifdef(`xfs.te', `
+# Unlink the xfs socket.
+allow initrc_t xfs_tmp_t:dir rw_dir_perms;
+allow initrc_t xfs_tmp_t:dir rmdir;
+allow initrc_t xfs_tmp_t:sock_file { read getattr unlink };
+allow initrc_t fonts_t:dir create_dir_perms;
+allow initrc_t fonts_t:file create_file_perms;
+')
+
+# Update /var/log/wtmp and /var/log/dmesg.
+allow initrc_t wtmp_t:file { setattr rw_file_perms };
+allow initrc_t var_log_t:file { setattr rw_file_perms };
+allow initrc_t lastlog_t:file { setattr rw_file_perms };
+
+# remove old locks
+allow initrc_t lockfile:dir rw_dir_perms;
+allow initrc_t lockfile:file { getattr unlink };
+
+# Access /var/lib/random-seed.
+allow initrc_t var_lib_t:file rw_file_perms;
+allow initrc_t var_lib_t:file unlink;
+
+# /var/db/entropy
+allow initrc_t var_db_entropy_t:file { read write create };
+allow initrc_t var_db_entropy_t:dir { read add_name remove_name };
+
+# Create lock file.
+allow initrc_t var_lock_t:dir create_dir_perms;
+allow initrc_t var_lock_t:file create_file_perms;
+
+# Set the clock.
+allow initrc_t clock_device_t:devfile_class_set rw_file_perms;
+
+# Kill all processes.
+allow initrc_t domain:process signal_perms;
+
+# Read and unlink /var/run/*.pid files.
+allow initrc_t pidfile:file { getattr read unlink };
+
+# Write to /dev/random.
+allow initrc_t random_device_t:chr_file rw_file_perms;
+
+# Set device ownerships/modes.
+allow initrc_t framebuf_device_t:lnk_file read;
+allow initrc_t framebuf_device_t:devfile_class_set setattr;
+allow initrc_t misc_device_t:devfile_class_set setattr;
+allow initrc_t device_t:devfile_class_set setattr;
+allow initrc_t fixed_disk_device_t:devfile_class_set setattr;
+allow initrc_t removable_device_t:devfile_class_set setattr;
+allow initrc_t device_t:lnk_file read;
+
+# Stat any file.
+allow initrc_t file_type:notdevfile_class_set getattr;
+allow initrc_t file_type:dir { search getattr };
+
+# Read and write console and ttys.
+allow initrc_t devtty_t:chr_file rw_file_perms;
+allow initrc_t console_device_t:chr_file rw_file_perms;
+allow initrc_t tty_device_t:chr_file rw_file_perms;
+allow initrc_t ttyfile:chr_file rw_file_perms;
+allow initrc_t ptyfile:chr_file rw_file_perms;
+
+# Reset tty labels.
+allow initrc_t ttyfile:chr_file relabelfrom;
+allow initrc_t tty_device_t:chr_file relabelto;
+
+# Use lock files in /var/spool/lock.
+allow initrc_t var_spool_t:dir create_dir_perms;
+allow initrc_t var_spool_t:file { create_file_perms unlink };
+
+ifdef(`redhat', `
+# Create and read /boot/kernel.h and /boot/System.map.
+# Redhat systems typically create this file at boot time.
+allow initrc_t boot_t:lnk_file rw_file_perms;
+file_type_auto_trans(initrc_t, boot_t, boot_runtime_t, file)
+
+#
+# readahead asks for these
+#
+allow initrc_t etc_aliases_t:file { getattr read };
+allow initrc_t system_cron_spool_t:file { getattr read };
+allow initrc_t var_lib_nfs_t:file { getattr read };
+
+# for /halt /.autofsck and other flag files
+file_type_auto_trans({ initrc_t sysadm_t }, root_t, etc_runtime_t, file)
+
+# Access /var/lib/rpm.
+allow initrc_t var_lib_rpm_t:dir rw_dir_perms;
+allow initrc_t var_lib_rpm_t:file create_file_perms;
+')
+
+allow initrc_t system_map_t:{ file lnk_file } r_file_perms;
+
+ifdef(`rhgb.te', `
+allow initrc_t ramfs_t:dir search;
+allow initrc_t ramfs_t:sock_file write;
+allow initrc_t rhgb_t:unix_stream_socket { read write };
+')
+
+ifdef(`gpm.te', `allow initrc_t gpmctl_t:sock_file setattr;')
+
+allow initrc_t var_spool_t:file rw_file_perms;
+
+# Allow access to the sysadm TTYs. Note that this will give access to the 
+# TTYs to any process in the initrc_t domain. Therefore, daemons and such
+# started from init should be placed in their own domain.
+allow initrc_t admin_tty_type:chr_file rw_file_perms;
+
+# Access sound device and files.
+allow initrc_t sound_device_t:chr_file { setattr ioctl read write };
+ifdef(`sound.te', `allow initrc_t sound_file_t:file { setattr write };')
+
+ifdef(`apmd.te',
+`# Access /dev/apm_bios.
+allow initrc_t apm_bios_t:chr_file { setattr getattr };')
+
+ifdef(`lpd.te',
+`# Read printconf files.
+allow initrc_t printconf_t:dir r_dir_perms;
+allow initrc_t printconf_t:file r_file_perms;')
+
+# Read user home directories.
+allow initrc_t { home_root_t home_type }:dir r_dir_perms;
+allow initrc_t home_type:file r_file_perms;
+
+# for system start scripts
+allow initrc_t pidfile:dir rw_dir_perms;
+allow initrc_t pidfile:sock_file unlink;
+rw_dir_create_file(initrc_t, var_lib_t)
+
+# allow start scripts to clean /tmp
+allow initrc_t tmpfile:dir { rw_dir_perms rmdir };
+allow initrc_t tmpfile:notdevfile_class_set { getattr unlink };
+
+# allow making links in /dev
+allow initrc_t device_t:dir { add_name };
+allow initrc_t device_t:lnk_file { create };
+allow device_t device_t:filesystem associate;
+
+# /var/.diskless
+allow initrc_t var_t:dir { add_name remove_name rmdir create };
+
+#################################
+#
+# Rules for the run_init_t domain.
+#
+run_program(sysadm_t, sysadm_r, init, initrc_exec_t, initrc_t)
+allow initrc_t privfd:fd use;
+
+# Transition to system_r:initrc_t upon executing init scripts.
+ifdef(`direct_sysadm_daemon', `
+role_transition sysadm_r initrc_exec_t system_r;
+domain_auto_trans(sysadm_t, initrc_exec_t, initrc_t)
+')
+
+#
+# Shutting down xinet causes these
+#
+# Fam
+dontaudit initrc_t device_t:dir { read write };
+# Rsync
+dontaudit initrc_t mail_spool_t:lnk_file read;
+
+allow initrc_t sysfs_t:dir { getattr read search };
+allow initrc_t sysfs_t:file { getattr read };
+allow initrc_t sysfs_t:lnk_file { getattr read };
+allow initrc_t udev_runtime_t:file rw_file_perms;
+allow initrc_t device_type:chr_file { setattr };
+allow initrc_t binfmt_misc_fs_t:dir { getattr search };
+allow initrc_t binfmt_misc_fs_t:file { getattr ioctl write };
+ifdef(`pam.te', `
+allow initrc_t pam_var_run_t:dir rw_dir_perms;
+allow initrc_t pam_var_run_t:file { getattr read unlink };
+')
+
+# for lsof in shutdown scripts
+allow initrc_t krb5_conf_t:file read;
+dontaudit initrc_t krb5_conf_t:file write;
+#
+# Wants to remove udev.tbl
+#
+allow initrc_t device_t:dir rw_dir_perms;
+allow initrc_t device_t:lnk_file { unlink };
+allow initrc_t initrc_t:process { getsched };
+
+r_dir_file(initrc_t,selinux_config_t)
+
+ifdef(`unlimitedRC', `
+unconfined_domain(initrc_t) 
+')
+#
+# initrc script does a cat /selinux/enforce
+#
+allow initrc_t security_t:dir { getattr search };
+allow initrc_t security_t:file { getattr read };

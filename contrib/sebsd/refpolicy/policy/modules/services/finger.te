@@ -1,0 +1,135 @@
+
+policy_module(finger,1.1.0)
+
+########################################
+#
+# Declarations
+#
+type fingerd_t;
+type fingerd_exec_t;
+init_daemon_domain(fingerd_t,fingerd_exec_t)
+inetd_tcp_service_domain(fingerd_t,fingerd_exec_t)
+
+type fingerd_etc_t;
+files_config_file(fingerd_etc_t)
+
+type fingerd_log_t;
+logging_log_file(fingerd_log_t)
+
+type fingerd_var_run_t;
+files_pid_file(fingerd_var_run_t)
+
+########################################
+#
+# Local policy
+#
+allow fingerd_t self:capability { setgid setuid };
+dontaudit fingerd_t self:capability { sys_tty_config fsetid };
+allow fingerd_t self:process signal_perms;
+allow fingerd_t self:fifo_file { read write getattr };
+allow fingerd_t self:tcp_socket connected_stream_socket_perms;
+allow fingerd_t self:udp_socket create_socket_perms;
+allow fingerd_t self:unix_dgram_socket create_socket_perms;
+allow fingerd_t self:unix_stream_socket create_socket_perms;
+
+allow fingerd_t fingerd_var_run_t:file create_file_perms;
+allow fingerd_t fingerd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(fingerd_t,fingerd_var_run_t,file)
+
+allow fingerd_t fingerd_etc_t:file r_file_perms;
+allow fingerd_t fingerd_etc_t:dir r_dir_perms;
+allow fingerd_t fingerd_etc_t:lnk_file { getattr read };
+
+allow fingerd_t fingerd_log_t:file create_file_perms;
+logging_log_filetrans(fingerd_t,fingerd_log_t,file)
+
+kernel_read_kernel_sysctls(fingerd_t)
+kernel_read_system_state(fingerd_t)
+kernel_tcp_recvfrom(fingerd_t)
+
+corenet_tcp_sendrecv_all_if(fingerd_t)
+corenet_udp_sendrecv_all_if(fingerd_t)
+corenet_raw_sendrecv_all_if(fingerd_t)
+corenet_tcp_sendrecv_all_nodes(fingerd_t)
+corenet_udp_sendrecv_all_nodes(fingerd_t)
+corenet_raw_sendrecv_all_nodes(fingerd_t)
+corenet_tcp_sendrecv_all_ports(fingerd_t)
+corenet_udp_sendrecv_all_ports(fingerd_t)
+corenet_non_ipsec_sendrecv(fingerd_t)
+corenet_tcp_bind_all_nodes(fingerd_t)
+corenet_udp_bind_all_nodes(fingerd_t)
+corenet_tcp_bind_fingerd_port(fingerd_t)
+
+dev_read_sysfs(fingerd_t)
+
+fs_getattr_all_fs(fingerd_t)
+fs_search_auto_mountpoints(fingerd_t)
+
+term_dontaudit_use_console(fingerd_t)
+term_getattr_all_user_ttys(fingerd_t)
+term_getattr_all_user_ptys(fingerd_t)
+
+auth_read_lastlog(fingerd_t)
+
+corecmd_exec_bin(fingerd_t)
+corecmd_exec_sbin(fingerd_t)
+corecmd_exec_shell(fingerd_t)
+
+domain_use_interactive_fds(fingerd_t)
+
+files_search_home(fingerd_t)
+files_read_etc_files(fingerd_t)
+files_read_etc_runtime_files(fingerd_t)
+
+init_read_utmp(fingerd_t)
+init_dontaudit_write_utmp(fingerd_t)
+init_use_fds(fingerd_t)
+init_use_script_ptys(fingerd_t)
+
+libs_use_ld_so(fingerd_t)
+libs_use_shared_libs(fingerd_t)
+
+logging_send_syslog_msg(fingerd_t)
+
+mta_getattr_spool(fingerd_t)
+
+sysnet_read_config(fingerd_t)
+
+miscfiles_read_localization(fingerd_t)
+
+userdom_read_unpriv_users_home_content_files(fingerd_t)
+userdom_dontaudit_use_unpriv_user_fds(fingerd_t)
+userdom_dontaudit_search_sysadm_home_dirs(fingerd_t)
+# stop it accessing sub-directories, prevents checking a Maildir for new mail,
+# have to change this when we create a type for Maildir
+userdom_dontaudit_search_generic_user_home_dirs(fingerd_t)
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_unallocated_ttys(fingerd_t)
+	term_dontaudit_use_generic_ptys(fingerd_t)
+	files_dontaudit_read_root_files(fingerd_t)
+')
+
+optional_policy(`cron',`
+	cron_system_entry(fingerd_t,fingerd_exec_t)
+')
+
+optional_policy(`logrotate',`
+	logrotate_exec(fingerd_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(fingerd_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(fingerd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(fingerd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(fingerd_t)
+')

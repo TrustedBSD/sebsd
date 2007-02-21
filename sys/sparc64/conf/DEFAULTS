@@ -1,0 +1,9 @@
+#
+# DEFAULTS -- Default kernel configuration file for FreeBSD/sparc64
+#
+# $FreeBSD: src/sys/sparc64/conf/DEFAULTS,v 1.4 2005/11/27 23:17:00 ru Exp $
+
+machine		sparc64
+
+# Pseudo devices.
+device		mem		# Memory and kernel memory devices

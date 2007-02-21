@@ -1,0 +1,7 @@
+# netsaint - network monitoring server
+/usr/sbin/netsaint		--	system_u:object_r:nagios_exec_t
+#/var/run/netsaint(/.*)?		system_u:object_r:nagios_var_run_t
+/etc/netsaint(/.*)?			system_u:object_r:nagios_etc_t
+/var/log/netsaint(/.*)?			system_u:object_r:nagios_log_t
+/usr/lib(64)?/netsaint/plugins(/.*)?		system_u:object_r:bin_t
+/usr/lib(64)?/cgi-bin/netsaint/.+	--	system_u:object_r:nagios_cgi_exec_t

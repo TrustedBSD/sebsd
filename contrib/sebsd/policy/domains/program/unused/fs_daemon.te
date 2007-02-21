@@ -1,0 +1,14 @@
+#DESC file system daemons
+#
+# Author:  Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: smartmontools
+
+daemon_domain(fsdaemon, `, fs_domain')
+allow fsdaemon_t self:unix_dgram_socket create_socket_perms;
+
+# for config
+allow fsdaemon_t etc_t:file { getattr read };
+
+allow fsdaemon_t device_t:dir read;
+allow fsdaemon_t fixed_disk_device_t:blk_file rw_file_perms;
+allow fsdaemon_t self:capability { sys_rawio sys_admin };

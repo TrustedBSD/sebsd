@@ -1,0 +1,197 @@
+
+policy_module(devices,1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute device_node;
+attribute memory_raw_read;
+attribute memory_raw_write;
+
+#
+# device_t is the type of /dev.
+#
+type device_t;
+fs_associate_tmpfs(device_t)
+files_type(device_t)
+files_mountpoint(device_t)
+files_associate_tmp(device_t)
+
+# Only directories and symlinks should be labeled device_t.
+# If there are other files with this type, it is wrong.
+# Relabelto is allowed for setfiles to function, in case
+# a device node has no specific type yet, but is for some
+# reason labeled with a specific type
+#cjp: want this, but udev policy breaks this
+#neverallow domain device_t:{ file fifo_file sock_file chr_file blk_file } ~{ getattr setattr relabelfrom relabelto };
+
+#
+# Type for /dev/agpgart
+#
+type agp_device_t;
+dev_node(agp_device_t)
+
+#
+# Type for /dev/apm_bios
+#
+type apm_bios_t;
+dev_node(apm_bios_t)
+
+type cardmgr_dev_t;
+dev_node(cardmgr_dev_t)
+files_tmp_file(cardmgr_dev_t)
+
+#
+# clock_device_t is the type of
+# /dev/rtc.
+#
+type clock_device_t;
+dev_node(clock_device_t)
+
+#
+# cpu control devices /dev/cpu/0/*
+#
+type cpu_device_t;
+dev_node(cpu_device_t)
+
+# for the IBM zSeries z90crypt hardware ssl accelorator
+type crypt_device_t;
+dev_node(crypt_device_t)
+
+type dri_device_t;
+dev_node(dri_device_t)
+
+type event_device_t;
+dev_node(event_device_t)
+
+#
+# Type for framebuffer /dev/fb/*
+#
+type framebuf_device_t;
+dev_node(framebuf_device_t)
+
+#
+# Type for /dev/mapper/control
+#
+type lvm_control_t;
+dev_node(lvm_control_t)
+
+#
+# memory_device_t is the type of /dev/kmem,
+# /dev/mem and /dev/port.
+#
+type memory_device_t;
+dev_node(memory_device_t)
+
+neverallow ~memory_raw_read memory_device_t:{ chr_file blk_file } read;
+neverallow ~memory_raw_write memory_device_t:{ chr_file blk_file } { append write };
+
+type misc_device_t;
+dev_node(misc_device_t)
+
+#
+# A more general type for mouse devices.
+#
+type mouse_device_t;
+dev_node(mouse_device_t)
+
+#
+# Type for /dev/cpu/mtrr and /proc/mtrr
+#
+type mtrr_device_t;
+dev_node(mtrr_device_t)
+genfscon proc /mtrr gen_context(system_u:object_r:mtrr_device_t,s0)
+
+#
+# null_device_t is the type of /dev/null.
+#
+type null_device_t;
+dev_node(null_device_t)
+mls_trusted_object(null_device_t)
+sid devnull gen_context(system_u:object_r:null_device_t,s0)
+
+#
+# Type for /dev/pmu 
+#
+type power_device_t;
+dev_node(power_device_t)
+
+type printer_device_t;
+dev_node(printer_device_t)
+
+#
+# random_device_t is the type of /dev/random
+#
+type random_device_t;
+dev_node(random_device_t)
+
+type scanner_device_t;
+dev_node(scanner_device_t)
+
+#
+# Type for sound devices and mixers
+#
+type sound_device_t;
+dev_node(sound_device_t)
+
+#
+# sysfs_t is the type for the /sys pseudofs
+#
+type sysfs_t;
+files_mountpoint(sysfs_t)
+fs_type(sysfs_t)
+genfscon sysfs / gen_context(system_u:object_r:sysfs_t,s0)
+
+#
+# urandom_device_t is the type of /dev/urandom
+#
+type urandom_device_t;
+dev_node(urandom_device_t)
+
+#
+# usbfs_t is the type for the /proc/bus/usb pseudofs
+#
+type usbfs_t alias usbdevfs_t;
+files_mountpoint(usbfs_t)
+fs_noxattr_type(usbfs_t)
+genfscon usbfs / gen_context(system_u:object_r:usbfs_t,s0)
+genfscon usbdevfs / gen_context(system_u:object_r:usbfs_t,s0)
+
+#
+# usb_device_t is the type for /dev/bus/usb/[0-9]+/[0-9]+
+#
+type usb_device_t;
+dev_node(usb_device_t)
+
+# SEBSD still uses devfs so we need to genfscon the usb entries
+genfscon devfs /usb gen_context(system_u:object_r:usb_device_t,s0)
+
+type v4l_device_t;
+dev_node(v4l_device_t)
+
+type xserver_misc_device_t;
+dev_node(xserver_misc_device_t)
+
+#
+# zero_device_t is the type of /dev/zero.
+#
+type zero_device_t;
+dev_node(zero_device_t)
+mls_trusted_object(zero_device_t)
+
+
+# TODO:
+
+# this is not actually a device
+# move it to xserver
+type xconsole_device_t;
+files_type(xconsole_device_t)
+fs_associate_tmpfs(xconsole_device_t)
+files_associate_tmp(xconsole_device_t)
+
+# devfs is dead on selinux
+# this should be removed
+type devfs_control_t;
+dev_node(devfs_control_t)

@@ -1,0 +1,170 @@
+########################################
+#
+# Macros for switching between source policy
+# and loadable policy module support
+#
+
+##############################
+#
+# For adding the module statement
+#
+define(`policy_module',`
+	ifdef(`self_contained_policy',`',`
+		module $1 $2;
+
+		require {
+			role system_r;
+			all_kernel_class_perms
+		}
+	')
+')
+
+##############################
+#
+# For use in interfaces, to optionally insert a require block
+#
+define(`gen_require',`
+	ifdef(`self_contained_policy',`',`
+		require {
+			$1
+		}
+	')
+')
+
+# helper function, since m4 wont expand macros
+# if a line is a comment (#):
+define(`policy_m4_comment',`
+##### $2 depth: $1
+')dnl
+
+##############################
+#
+# In the future interfaces should be in loadable modules
+#
+# template(name,rules)
+#
+define(`template',` dnl
+	ifdef(`$1',`errprint(__file__:__line__`: duplicate definition of $1(). Original definition on '$1. __endline__)',`define(`$1',__line__)') dnl
+	`define(`$1',` dnl
+	define(`policy_temp',incr(policy_call_depth)) dnl
+	pushdef(`policy_call_depth',policy_temp) dnl
+	undefine(`policy_temp') dnl
+	policy_m4_comment(policy_call_depth,begin `$1'(dollarsstar)) dnl
+	$2 dnl
+	define(`policy_temp',decr(policy_call_depth)) dnl
+	pushdef(`policy_call_depth',policy_temp) dnl
+	undefine(`policy_temp') dnl
+	policy_m4_comment(policy_call_depth,end `$1'(dollarsstar)) dnl
+	'')
+')
+
+##############################
+#
+# In the future interfaces should be in loadable modules
+#
+# interface(name,rules)
+#
+define(`interface',` dnl
+	ifdef(`$1',`errprint(__file__:__line__`: duplicate definition of $1(). Original definition on '$1. __endline__)',`define(`$1',__line__)') dnl
+	`define(`$1',` dnl
+	define(`policy_temp',incr(policy_call_depth)) dnl
+	pushdef(`policy_call_depth',policy_temp) dnl
+	undefine(`policy_temp') dnl
+	policy_m4_comment(policy_call_depth,begin `$1'(dollarsstar)) dnl
+	$2
+	define(`policy_temp',decr(policy_call_depth)) dnl
+	pushdef(`policy_call_depth',policy_temp) dnl
+	undefine(`policy_temp') dnl
+	policy_m4_comment(policy_call_depth,end `$1'(dollarsstar)) dnl
+	'')
+')
+
+define(`policy_call_depth',0)
+
+##############################
+#
+# Optional policy handling
+#
+define(`optional_policy',`
+	ifdef(`self_contained_policy',`
+		ifdef(`$1.te',`$2',`$3')
+	',`
+		optional {
+			$2
+		ifelse(`$3',`',`',`
+		} else {
+			$3
+		')
+		}
+	')
+')
+
+##############################
+#
+# Determine if we should use the default
+# tunable value as specified by the policy
+# or if the override value should be used
+#
+define(`dflt_or_overr',`ifdef(`$1',$1,$2)')
+
+##############################
+#
+# Extract booleans out of an expression.
+# This needs to be reworked so expressions
+# with parentheses can work.
+
+define(`delcare_required_symbols',`
+ifelse(regexp($1, `\w'), -1, `', `dnl
+bool regexp($1, `\(\w+\)', `\1');
+delcare_required_symbols(regexp($1, `\w+\(.*\)', `\1'))dnl
+') dnl
+')
+
+##############################
+#
+# Tunable declaration
+#
+define(`gen_tunable',`
+	ifdef(`self_contained_policy',`
+		bool $1 dflt_or_overr(`$1'_conf,$2);
+	',`
+		# loadable module tunable
+		# declaration will go here
+		# instead of bool when
+		# loadable modules support
+		# tunables
+		bool $1 dflt_or_overr(`$1'_conf,$2);
+	')
+')
+
+##############################
+#
+# Tunable policy handling
+#
+define(`tunable_policy',`
+	ifdef(`self_contained_policy',`
+		if (`$1') {
+			$2
+		ifelse(`$3',`',`',`
+		} else {
+			$3
+		')
+		}
+	',`
+		# structure for tunables
+		# will go here instead of a
+		# conditional when loadable
+		# modules support tunables
+		gen_require(`
+			delcare_required_symbols(`$1')
+		')
+
+		if (`$1') {
+			$2
+		ifelse(`$3',`',`',`
+		} else {
+			$3
+		')
+		}
+	')
+')

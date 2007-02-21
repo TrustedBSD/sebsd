@@ -1,0 +1,398 @@
+
+policy_module(logging,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute logfile;
+
+type auditctl_t;
+type auditctl_exec_t;
+init_system_domain(auditctl_t,auditctl_exec_t)
+role system_r types auditctl_t;
+
+type auditd_etc_t;
+files_security_file(auditd_etc_t)
+
+type auditd_log_t;
+files_security_file(auditd_log_t)
+
+type auditd_t;
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type auditd_exec_t;
+')
+init_daemon_domain(auditd_t,auditd_exec_t)
+
+type auditd_var_run_t;
+files_pid_file(auditd_var_run_t)
+
+type devlog_t;
+files_type(devlog_t)
+mls_trusted_object(devlog_t)
+
+type klogd_t;
+type klogd_exec_t;
+init_daemon_domain(klogd_t,klogd_exec_t)
+
+type klogd_tmp_t;
+files_tmp_file(klogd_tmp_t)
+
+type klogd_var_run_t;
+files_pid_file(klogd_var_run_t)
+
+type syslogd_t;
+type syslogd_exec_t;
+init_daemon_domain(syslogd_t,syslogd_exec_t)
+
+type syslogd_tmp_t;
+files_tmp_file(syslogd_tmp_t)
+
+type syslogd_var_run_t;
+files_pid_file(syslogd_var_run_t)
+
+type var_log_t;
+logging_log_file(var_log_t)
+
+########################################
+#
+# Auditd local policy
+#
+
+allow auditctl_t self:capability { audit_write audit_control };
+allow auditctl_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay nlmsg_readpriv };
+
+libs_use_ld_so(auditctl_t)
+libs_use_shared_libs(auditctl_t)
+
+allow auditctl_t etc_t:file { getattr read };
+
+allow auditctl_t auditd_etc_t:file r_file_perms;
+
+kernel_read_kernel_sysctls(auditctl_t)
+kernel_read_proc_symlinks(auditctl_t)
+
+domain_read_all_domains_state(auditctl_t)
+domain_use_interactive_fds(auditctl_t)
+
+mls_file_read_up(auditctl_t)
+
+term_use_all_terms(auditctl_t)
+
+init_use_script_ptys(auditctl_t)
+init_dontaudit_use_fds(auditctl_t)
+
+locallogin_dontaudit_use_fds(auditctl_t)
+
+logging_send_syslog_msg(auditctl_t)
+
+ifdef(`targeted_policy',`
+	term_use_generic_ptys(auditctl_t)
+	term_use_unallocated_ttys(auditctl_t)
+')
+
+ifdef(`TODO',`
+role secadm_r types auditctl_t;
+role sysadm_r types auditctl_t;
+audit_manager_domain(secadm_t)
+
+ifdef(`targeted_policy', `', `
+ifdef(`enable_mls', `
+audit_manager_domain(secadm_t)
+', `
+audit_manager_domain(sysadm_t)
+') 
+allow auditctl_t admin_tty_type:chr_file rw_file_perms;
+')
+') dnl end TODO
+
+########################################
+#
+# Auditd local policy
+#
+
+allow auditd_t self:capability { audit_write audit_control sys_nice sys_resource };
+dontaudit auditd_t self:capability sys_tty_config;
+allow auditd_t self:process { signal_perms setpgid setsched };
+allow auditd_t self:file { getattr read write };
+allow auditd_t self:unix_dgram_socket create_socket_perms;
+allow auditd_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay nlmsg_readpriv };
+allow auditd_t self:fifo_file rw_file_perms;
+
+allow auditd_t auditd_etc_t:file r_file_perms;
+
+allow auditd_t auditd_log_t:dir rw_dir_perms;
+allow auditd_t auditd_log_t:file create_file_perms;
+allow auditd_t auditd_log_t:lnk_file create_lnk_perms;
+allow auditd_t var_log_t:dir search;
+
+allow auditd_t auditd_var_run_t:file create_file_perms;
+allow auditd_t auditd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(auditd_t,auditd_var_run_t,file)
+
+kernel_read_kernel_sysctls(auditd_t)
+kernel_list_proc(auditd_t)
+kernel_read_proc_symlinks(auditd_t)
+
+dev_read_sysfs(auditd_t)
+
+fs_getattr_all_fs(auditd_t)
+fs_search_auto_mountpoints(auditd_t)
+
+term_dontaudit_use_console(auditd_t)
+
+# cjp: why?
+corecmd_exec_sbin(auditd_t)
+
+domain_use_interactive_fds(auditd_t)
+
+files_read_etc_files(auditd_t)
+files_list_usr(auditd_t)
+
+init_use_fds(auditd_t)
+init_exec(auditd_t)
+init_write_initctl(auditd_t)
+init_use_script_ptys(auditd_t)
+
+logging_send_syslog_msg(auditd_t)
+
+libs_use_ld_so(auditd_t)
+libs_use_shared_libs(auditd_t)
+
+miscfiles_read_localization(auditd_t)
+
+mls_file_read_up(auditd_t)
+mls_rangetrans_target(auditd_t)
+
+seutil_dontaudit_read_config(auditd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(auditd_t)
+userdom_dontaudit_search_sysadm_home_dirs(auditd_t)
+# cjp: this is questionable
+userdom_use_sysadm_ttys(auditd_t)
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_generic_ptys(auditd_t)
+	term_dontaudit_use_unallocated_ttys(auditd_t)
+	unconfined_dontaudit_read_pipes(auditd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(auditd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(auditd_t)
+')
+
+########################################
+#
+# klogd local policy
+#
+
+allow klogd_t self:capability sys_admin;
+dontaudit klogd_t self:capability { sys_resource sys_tty_config };
+allow klogd_t self:process signal_perms;
+
+allow klogd_t klogd_tmp_t:file create_file_perms;
+allow klogd_t klogd_tmp_t:dir create_dir_perms;
+files_tmp_filetrans(klogd_t,klogd_tmp_t,{ file dir })
+
+allow klogd_t klogd_var_run_t:file create_file_perms;
+allow klogd_t klogd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(klogd_t,klogd_var_run_t,file)
+
+kernel_read_system_state(klogd_t)
+kernel_read_messages(klogd_t)
+kernel_read_kernel_sysctls(klogd_t)
+# Control syslog and console logging
+kernel_clear_ring_buffer(klogd_t)
+kernel_change_ring_buffer_level(klogd_t)
+
+files_read_kernel_symbol_table(klogd_t)
+
+dev_read_raw_memory(klogd_t)
+dev_read_sysfs(klogd_t)
+
+fs_getattr_all_fs(klogd_t)
+fs_search_auto_mountpoints(klogd_t)
+
+term_dontaudit_use_console(klogd_t)
+
+domain_use_interactive_fds(klogd_t)
+
+files_read_etc_runtime_files(klogd_t)
+# read /etc/nsswitch.conf
+files_read_etc_files(klogd_t)
+
+init_use_fds(klogd_t)
+init_use_script_ptys(klogd_t)
+
+libs_use_ld_so(klogd_t)
+libs_use_shared_libs(klogd_t)
+
+logging_send_syslog_msg(klogd_t)
+
+miscfiles_read_localization(klogd_t)
+
+mls_file_read_up(klogd_t)
+
+userdom_dontaudit_search_sysadm_home_dirs(klogd_t)
+
+optional_policy(`udev',`
+	udev_read_db(klogd_t)
+')
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_generic_ptys(klogd_t)
+	term_dontaudit_use_unallocated_ttys(klogd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(klogd_t)
+')
+
+########################################
+#
+# syslogd local policy
+#
+
+# sys_admin chown fsetid for syslog-ng
+# cjp: why net_admin!
+allow syslogd_t self:capability { dac_override sys_resource sys_tty_config net_admin sys_admin chown fsetid };
+dontaudit syslogd_t self:capability sys_tty_config;
+allow syslogd_t self:process signal_perms;
+allow syslogd_t self:netlink_route_socket r_netlink_socket_perms;
+# receive messages to be logged
+allow syslogd_t self:unix_dgram_socket create_socket_perms;
+allow syslogd_t self:unix_stream_socket create_stream_socket_perms;
+allow syslogd_t self:unix_dgram_socket sendto;
+allow syslogd_t self:fifo_file rw_file_perms;
+allow syslogd_t self:udp_socket { connected_socket_perms connect };
+
+# Create and bind to /dev/log or /var/run/log.
+allow syslogd_t devlog_t:sock_file create_file_perms;
+files_pid_filetrans(syslogd_t,devlog_t,sock_file)
+
+# create/append log files.
+allow syslogd_t var_log_t:dir rw_dir_perms;
+allow syslogd_t var_log_t:file create_file_perms;
+# Allow access for syslog-ng
+allow syslogd_t var_log_t:dir { create setattr };
+
+# manage temporary files
+allow syslogd_t syslogd_tmp_t:file create_file_perms;
+allow syslogd_t syslogd_tmp_t:dir create_dir_perms;
+files_tmp_filetrans(syslogd_t,syslogd_tmp_t,{ dir file })
+
+allow syslogd_t syslogd_var_run_t:file create_file_perms;
+files_pid_filetrans(syslogd_t,syslogd_var_run_t,file)
+
+# manage pid file
+allow syslogd_t syslogd_var_run_t:file create_file_perms;
+allow syslogd_t syslogd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(syslogd_t,syslogd_var_run_t,file)
+
+kernel_read_kernel_sysctls(syslogd_t)
+kernel_read_proc_symlinks(syslogd_t)
+# Allow access to /proc/kmsg for syslog-ng
+kernel_read_messages(syslogd_t)
+kernel_clear_ring_buffer(syslogd_t)
+kernel_change_ring_buffer_level(syslogd_t)
+
+dev_filetrans(syslogd_t,devlog_t,sock_file)
+dev_read_sysfs(syslogd_t)
+
+fs_search_auto_mountpoints(syslogd_t)
+
+term_dontaudit_use_console(syslogd_t)
+# Allow syslog to a terminal
+term_write_unallocated_ttys(syslogd_t)
+
+# for sending messages to logged in users
+init_read_utmp(syslogd_t)
+init_dontaudit_write_utmp(syslogd_t)
+term_write_all_user_ttys(syslogd_t)
+
+corenet_raw_sendrecv_all_if(syslogd_t)
+corenet_udp_sendrecv_all_if(syslogd_t)
+corenet_raw_sendrecv_all_nodes(syslogd_t)
+corenet_udp_sendrecv_all_nodes(syslogd_t)
+corenet_udp_sendrecv_all_ports(syslogd_t)
+corenet_non_ipsec_sendrecv(syslogd_t)
+corenet_udp_bind_all_nodes(syslogd_t)
+corenet_tcp_bind_syslogd_port(syslogd_t)
+corenet_udp_bind_syslogd_port(syslogd_t)
+
+fs_getattr_all_fs(syslogd_t)
+
+init_use_fds(syslogd_t)
+init_use_script_ptys(syslogd_t)
+
+domain_use_interactive_fds(syslogd_t)
+
+files_read_etc_files(syslogd_t)
+files_read_etc_runtime_files(syslogd_t)
+# /initrd is not umounted before minilog starts
+files_dontaudit_search_isid_type_dirs(syslogd_t)
+
+libs_use_ld_so(syslogd_t)
+libs_use_shared_libs(syslogd_t)
+
+# cjp: this doesnt make sense
+logging_send_syslog_msg(syslogd_t)
+
+sysnet_read_config(syslogd_t)
+
+miscfiles_read_localization(syslogd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(syslogd_t)
+userdom_dontaudit_search_sysadm_home_dirs(syslogd_t)
+
+ifdef(`distro_suse',`
+	# suse creates a /dev/log under /var/lib/stunnel for chrooted stunnel
+	files_var_lib_filetrans(syslogd_t,devlog_t,sock_file)
+')
+
+ifdef(`targeted_policy',`
+	allow syslogd_t var_run_t:fifo_file { ioctl read write };
+	term_dontaudit_use_unallocated_ttys(syslogd_t)
+	term_dontaudit_use_generic_ptys(syslogd_t)
+	files_dontaudit_read_root_files(syslogd_t)
+')
+
+optional_policy(`inn',`
+	inn_manage_log(syslogd_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(syslogd_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(syslogd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(syslogd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(syslogd_t)
+')
+
+ifdef(`TODO',`
+allow syslogd_t tmpfs_t:dir search;
+dontaudit syslogd_t { userpty_type devpts_t }:chr_file getattr;
+
+# log to the xconsole
+allow syslogd_t xconsole_device_t:fifo_file { ioctl read write };
+
+#
+# Special case to handle crashes
+#
+allow syslogd_t { device_t file_t }:sock_file { getattr unlink };
+') dnl end TODO

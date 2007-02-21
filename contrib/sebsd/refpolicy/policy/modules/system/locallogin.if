@@ -1,0 +1,73 @@
+## <summary>Policy for local logins.</summary>
+
+########################################
+## <summary>
+##	Execute local logins in the local login domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`locallogin_domtrans',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	auth_domtrans_login_program($1,local_login_t)
+')
+
+########################################
+## <summary>
+##	Allow processes to inherit local login file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`locallogin_use_fds',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit local login file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`locallogin_dontaudit_use_fds',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	dontaudit $1 local_login_t:fd use;
+')
+
+########################################
+## <summary>
+##	Send a null signal to local login processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`locallogin_signull',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:process signull;
+')

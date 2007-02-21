@@ -1,0 +1,27 @@
+#DESC RSHD - RSH daemon
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+# X-Debian-Packages: rsh-server rsh-redone-server
+# Depends: inetd.te
+#
+
+#################################
+#
+# Rules for the rshd_t domain.
+#
+type rsh_port_t, port_type;
+daemon_sub_domain(inetd_t, rshd)
+
+ifdef(`tcpd.te', `
+domain_auto_trans(tcpd_t, rshd_exec_t, rshd_t)
+')
+
+# Use sockets inherited from inetd.
+allow rshd_t inetd_t:tcp_socket rw_stream_socket_perms;
+
+# Use capabilities.
+allow rshd_t self:capability { net_bind_service setuid setgid fowner fsetid chown dac_override};
+
+# Use the network.
+can_network(rshd_t)
+

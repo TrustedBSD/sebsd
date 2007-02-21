@@ -1,0 +1,173 @@
+.\" Copyright (c) 2003 Networks Associates Technology, Inc.
+.\" All rights reserved.
+.\"
+.\" This software was developed for the FreeBSD Project by Chris Costello
+.\" at Safeport Network Services and Network Associates Labs, the
+.\" Security Research Division of Network Associates, Inc. under
+.\" DARPA/SPAWAR contract N66001-01-C-8035 ("CBOSS"), as part of the
+.\" DARPA CHATS research program.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd November 3, 2003
+.Os
+.Dt MAC_SUPPORT 4
+.Sh NAME
+.Nm mac_support
+.Nd Mandatory Access Control: Support Statement
+.Sh DESCRIPTION
+The TrustedBSD MAC Framework provides support for augmented system
+access control policies, composition of multiple policies at runtime,
+as well as infrastructure for common policies, such as security label
+infrastructure.
+MAC support has been developed and tested in combination with specific
+FreeBSD kernel and userspace services; as support for MAC requires
+specific adaptation of security-relevant features, FreeBSD or third-party
+components, correct and secure deployment of MAC support requires
+careful configuration to avoid unsupported components.
+This document identifies FreeBSD kernel and userspace components that
+are (and are not) supported with MAC.
+Due to limitations in the kernel module build infrastructure in FreeBSD,
+it is necessary to link most services directly into the kernel rather
+than use modules.
+.Sh SUPPORTED FEATURES
+.Ss Schedulers
+	SCHED_4BSD
+	SCHED_ULE
+.Ss File Systems (multilabel)
+	FFS
+	SOFTUPDATES
+	UFS_ACL
+	UFS_DIRHASH
+.Ss File Systems (singlelabel)
+	CD9660
+	MSDOSFS
+	NFSCLIENT
+	NFS_ROOT
+	PROCFS
+	PSEUDOFS
+.Ss Process Facilities
+	KTRACE
+	_KPOSIX_PRIORITY_SCHEDULING
+.Ss Inter-Process Communication
+	SYSVSHM
+	SYSVMSG
+	SYSVSEM
+.Ss Compatibility and Emulation
+	COMPAT_43
+	COMPAT_FREEBSD4
+	COMPAT_LINUX
+.Ss Network Protocol Stacks
+	INET
+.Ss Miscellaneous
+	KBD_INSTALL_CDEV
+	Random pseudo-device
+	Loop-back network interface
+	Pseudo-terminals (PTY)
+	Memory disks (MD)
+	Berkeley packet filter (BPF)
+.Ss Device Drivers
+	SMP
+	All 802.1 ethernet devices
+	802.11 wireless devices
+	ISA, EISA, and PCI busses
+	PCCard and Cardbus buses
+	SCSI controllers and devices
+	ATA controllers and devices
+	Floppy disk controllers and devices
+	System console, PS/2 keyboard and mouse, AGP
+	Advanced power management (APM)
+	Advanced Configuration and Power Management (ACPI)
+	USB controllers and devices
+	Firewire controllers and devices
+	Serial ports
+.Sh UNSUPPORTED FEATURES
+This section identifies kernel and userspace features of FreeBSD that
+are known to be partially or completely incompatible with MAC support.
+Failures may include uncontrolled operations or information flow,
+as well as potential kernel panics due to uninitialized label data.
+This list is not intended to be all-encompassing, and if a feature is
+not explicitly listed in the explicit support list, it should be
+considered unsupported.
+.Ss Network Protocol Stacks
+	INET6
+.Ss File Systems
+	HPFS (ioctl)
+	LINPROCFS (insufficient review)
+	NFSSERVER (no enforcement)
+.Sh SEE ALSO
+.Xr mac 3 ,
+.Xr mac 4 ,
+.Xr mac_biba 4 ,
+.Xr mac_bsdextended 4 ,
+.Xr mac_ifoff 4 ,
+.Xr mac_lomac 4 ,
+.Xr mac_mls 4 ,
+.Xr mac_none 4 ,
+.Xr mac_partition 4 ,
+.Xr mac_portacl 4 ,
+.Xr mac_seeotheruids 4 ,
+.Xr mac_test 4 ,
+.Xr login.conf 5 ,
+.Xr maclabel 7 ,
+.Xr getfmac 8 ,
+.Xr getpmac 8 ,
+.Xr setfmac 8 ,
+.Xr setpmac 8 ,
+.Xr mac 9
+.Rs
+.%B "The FreeBSD Handbook"
+.%T "Mandatory Access Control"
+.%O http://www.FreeBSD.org/doc/en_US.ISO8859-1/books/handbook/mac.html
+.Re
+.Sh HISTORY
+The
+.Nm
+implementation first appeared in
+.Fx 5.0
+and was developed by the
+.Tn TrustedBSD
+Project.
+.Sh AUTHORS
+This software was contributed to the
+.Fx
+Project by Network Associates Labs,
+the Security Research Division of Network Associates
+Inc. under DARPA/SPAWAR contract N66001-01-C-8035
+.Pq Dq CBOSS ,
+as part of the DARPA CHATS research program.
+.Sh BUGS
+See
+.Xr mac 9
+concerning appropriateness for production use.
+The
+.Tn TrustedBSD
+MAC Framework is considered experimental in
+.Fx .
+.Pp
+While the MAC Framework design is intended to support the containment of
+the root user, not all attack channels are currently protected by entry
+point checks.
+As such, MAC Framework policies should not be relied on, in isolation,
+to protect against a malicious privileged user.

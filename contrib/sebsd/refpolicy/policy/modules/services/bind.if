@@ -1,0 +1,256 @@
+## <summary>Berkeley internet name domain DNS server.</summary>
+
+########################################
+## <summary>
+##	Execute ndc in the ndc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_domtrans_ndc',`
+	gen_require(`
+		type ndc_t, ndc_exec_t;
+	')
+
+	domain_auto_trans($1,ndc_exec_t,ndc_t)
+
+	allow $1 ndc_t:fd use;
+	allow ndc_t $1:fd use;
+	allow ndc_t $1:fifo_file rw_file_perms;
+	allow ndc_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send generic signals to BIND.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_signal',`
+	gen_require(`
+		type named_t;
+	')
+
+	allow $1 named_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute ndc in the ndc domain, and
+##	allow the specified role the ndc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the bind domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the bind domain to use.
+##	</summary>
+## </param>
+#
+interface(`bind_run_ndc',`
+	gen_require(`
+		type ndc_t;
+	')
+
+	bind_domtrans_ndc($1)
+	role $2 types ndc_t;
+	allow ndc_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute bind in the named domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_domtrans',`
+	gen_require(`
+		type named_t, named_exec_t;
+	')
+
+	domain_auto_trans($1,named_exec_t,named_t)
+
+	allow $1 named_t:fd use;
+	allow named_t $1:fd use;
+	allow named_t $1:fifo_file rw_file_perms;
+	allow named_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Read DNSSEC keys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_dnssec_keys',`
+	gen_require(`
+		type named_conf_t, named_zone_t, dnssec_t;
+	')
+
+	allow $1 { named_conf_t named_zone_t }:dir search;
+	allow $1 dnssec_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Read BIND named configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_config',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	allow $1 named_conf_t:dir search;
+	allow $1 named_conf_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Write BIND named configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_write_config',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	allow $1 named_conf_t:dir search;
+	allow $1 named_conf_t:file { write setattr };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	BIND configuration directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_manage_config_dirs',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	allow $1 named_conf_t:dir create_dir_perms;
+')
+
+########################################
+## <summary>
+##	Search the BIND cache directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_search_cache',`
+	gen_require(`
+		type named_conf_t, named_cache_t, named_zone_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_conf_t:dir search_dir_perms;
+	allow $1 named_zone_t:dir search_dir_perms;
+	allow $1 named_cache_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	BIND cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_manage_cache',`
+	gen_require(`
+		type named_cache_t, named_zone_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_zone_t:dir search_dir_perms;
+	allow $1 named_cache_t:dir rw_dir_perms;
+	allow $1 named_cache_t:file create_file_perms;
+	allow $1 named_cache_t:lnk_file create_lnk_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to set the attributes
+##	of the BIND pid directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_setattr_pid_dirs',`
+	gen_require(`
+		type named_var_run_t;
+	')
+
+	allow $1 named_var_run_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Read BIND zone files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_zone',`
+	gen_require(`
+		type named_zone_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_zone_t:dir search_dir_perms;
+	allow $1 named_zone_t:file r_file_perms;
+')
+

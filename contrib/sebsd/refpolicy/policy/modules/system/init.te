@@ -1,0 +1,720 @@
+
+policy_module(init,1.3.0)
+
+gen_require(`
+	class passwd rootok;
+')
+
+########################################
+#
+# Declarations
+#
+
+# used for direct running of init scripts
+# by admin domains
+attribute direct_run_init;
+attribute direct_init;
+attribute direct_init_entry;
+
+#
+# init_t is the domain of the init process.
+#
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type init_t;
+')
+domain_type(init_t)
+role system_r types init_t;
+
+#
+# init_exec_t is the type of the init program.
+#
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type init_exec_t;
+')
+kernel_domtrans_to(init_t,init_exec_t)
+domain_entry_file(init_t,init_exec_t)
+
+#
+# init_var_run_t is the type for /var/run/shutdown.pid.
+#
+type init_var_run_t;
+files_pid_file(init_var_run_t)
+
+#
+# initctl_t is the type of the named pipe created 
+# by init during initialization.  This pipe is used
+# to communicate with init.
+#
+type initctl_t;
+files_type(initctl_t)
+mls_trusted_object(initctl_t)
+
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type initrc_t;
+')
+domain_type(initrc_t)
+role system_r types initrc_t;
+
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type initrc_exec_t;
+')
+domain_entry_file(initrc_t,initrc_exec_t)
+
+type initrc_devpts_t;
+term_pty(initrc_devpts_t)
+files_type(initrc_devpts_t)
+
+type initrc_state_t;
+files_type(initrc_state_t)
+
+type initrc_tmp_t;
+files_tmp_file(initrc_tmp_t)
+
+type initrc_var_run_t;
+files_pid_file(initrc_var_run_t)
+
+########################################
+#
+# Init local policy
+#
+
+# Use capabilities. old rule:
+allow init_t self:capability ~sys_module;
+# is ~sys_module really needed? observed: 
+# sys_boot
+# sys_tty_config
+# kill: now provided by domain_kill_all_domains()
+# setuid (from /sbin/shutdown)
+# sys_chroot (from /usr/bin/chroot): now provided by corecmd_chroot_exec_chroot()
+
+allow init_t self:fifo_file rw_file_perms;
+
+# Re-exec itself
+allow init_t init_exec_t:file { getattr read ioctl execute execute_no_trans };
+
+allow init_t initrc_t:unix_stream_socket connectto;
+
+# For /var/run/shutdown.pid.
+allow init_t init_var_run_t:file { create getattr read append write setattr unlink };
+files_pid_filetrans(init_t,init_var_run_t,file)
+
+allow init_t initctl_t:fifo_file { create getattr read append write setattr unlink };
+fs_associate_tmpfs(initctl_t)
+dev_filetrans(init_t,initctl_t,fifo_file)
+
+# Modify utmp.
+allow init_t initrc_var_run_t:file { rw_file_perms setattr };
+
+# Run init scripts.
+domain_auto_trans(init_t,initrc_exec_t,initrc_t)
+
+kernel_read_system_state(init_t)
+kernel_share_state(init_t)
+
+dev_read_sysfs(init_t)
+
+mls_process_write_down(init_t)
+
+selinux_set_boolean(init_t)
+
+term_use_all_terms(init_t)
+
+corecmd_exec_chroot(init_t)
+corecmd_exec_bin(init_t)
+corecmd_exec_sbin(init_t)
+
+domain_kill_all_domains(init_t)
+domain_signal_all_domains(init_t)
+domain_signull_all_domains(init_t)
+domain_sigstop_all_domains(init_t)
+domain_sigstop_all_domains(init_t)
+domain_sigchld_all_domains(init_t)
+
+files_read_etc_files(init_t)
+files_rw_generic_pids(init_t)
+files_dontaudit_search_isid_type_dirs(init_t)
+files_manage_etc_runtime_files(init_t)
+# Run /etc/X11/prefdm:
+files_exec_etc_files(init_t)
+# file descriptors inherited from the rootfs:
+files_dontaudit_rw_root_files(init_t)
+files_dontaudit_rw_root_chr_files(init_t)
+
+libs_use_ld_so(init_t)
+libs_use_shared_libs(init_t)
+libs_rw_ld_so_cache(init_t)
+
+logging_send_syslog_msg(init_t)
+logging_rw_generic_logs(init_t)
+
+mcs_killall(init_t)
+
+mls_file_read_up(init_t)
+mls_file_write_down(init_t)
+mls_rangetrans_target(init_t)
+
+seutil_read_config(init_t)
+
+miscfiles_read_localization(init_t)
+
+ifdef(`distro_redhat',`
+	fs_rw_tmpfs_chr_files(init_t)
+	fs_tmpfs_filetrans(init_t,initctl_t,fifo_file)
+')
+
+ifdef(`targeted_policy',`
+	unconfined_domain(init_t)
+')
+
+optional_policy(`authlogin',`
+	auth_rw_login_records(init_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(init_t)
+')
+
+optional_policy(`portmap',`
+	portmap_udp_send(init_t)
+')
+
+# Run the shell in the sysadm_t domain for single-user mode.
+optional_policy(`userdomain',`
+	userdom_shell_domtrans_sysadm(init_t)
+')
+
+ifdef(`TODO',`
+allow init_t ramfs_t:sock_file write;
+')
+
+########################################
+#
+# Init script local policy
+#
+
+allow initrc_t self:process { getpgid setsched setpgid setrlimit getsched };
+allow initrc_t self:capability ~{ sys_admin sys_module };
+allow initrc_t self:passwd rootok;
+
+# Allow IPC with self
+allow initrc_t self:unix_dgram_socket create_socket_perms;
+allow initrc_t self:unix_stream_socket { create listen accept ioctl read getattr write setattr append bind connect getopt setopt shutdown connectto };
+allow initrc_t self:tcp_socket create_stream_socket_perms;
+allow initrc_t self:udp_socket create_socket_perms;
+allow initrc_t self:fifo_file rw_file_perms;
+allow initrc_t self:netlink_route_socket r_netlink_socket_perms;
+
+allow initrc_t init_t:fd use;
+
+allow initrc_t initrc_devpts_t:chr_file rw_term_perms;
+term_create_pty(initrc_t,initrc_devpts_t)
+
+can_exec(initrc_t,initrc_exec_t)
+
+allow initrc_t initrc_state_t:dir create_dir_perms;
+allow initrc_t initrc_state_t:file create_file_perms;
+allow initrc_t initrc_state_t:lnk_file { create read getattr setattr unlink rename };
+
+allow initrc_t initrc_var_run_t:file create_file_perms;
+files_pid_filetrans(initrc_t,initrc_var_run_t,file)
+
+can_exec(initrc_t,initrc_tmp_t)
+allow initrc_t initrc_tmp_t:file create_file_perms;
+allow initrc_t initrc_tmp_t:dir create_dir_perms;
+files_tmp_filetrans(initrc_t,initrc_tmp_t, { file dir })
+
+init_write_initctl(initrc_t)
+
+kernel_read_system_state(initrc_t)
+kernel_read_software_raid_state(initrc_t)
+kernel_read_network_state(initrc_t)
+kernel_read_ring_buffer(initrc_t)
+kernel_change_ring_buffer_level(initrc_t)
+kernel_clear_ring_buffer(initrc_t)
+kernel_get_sysvipc_info(initrc_t)
+kernel_read_all_sysctls(initrc_t)
+kernel_rw_all_sysctls(initrc_t)
+# for lsof which is used by alsa shutdown:
+kernel_dontaudit_getattr_message_if(initrc_t)
+
+files_read_kernel_symbol_table(initrc_t)
+
+corenet_tcp_sendrecv_all_if(initrc_t)
+corenet_raw_sendrecv_all_if(initrc_t)
+corenet_udp_sendrecv_all_if(initrc_t)
+corenet_tcp_sendrecv_all_nodes(initrc_t)
+corenet_raw_sendrecv_all_nodes(initrc_t)
+corenet_udp_sendrecv_all_nodes(initrc_t)
+corenet_tcp_sendrecv_all_ports(initrc_t)
+corenet_udp_sendrecv_all_ports(initrc_t)
+corenet_non_ipsec_sendrecv(initrc_t)
+corenet_tcp_bind_all_nodes(initrc_t)
+corenet_udp_bind_all_nodes(initrc_t)
+corenet_tcp_connect_all_ports(initrc_t)
+
+dev_read_rand(initrc_t)
+dev_read_urand(initrc_t)
+dev_write_rand(initrc_t)
+dev_write_urand(initrc_t)
+dev_rw_sysfs(initrc_t)
+dev_list_usbfs(initrc_t)
+dev_read_framebuffer(initrc_t)
+dev_read_realtime_clock(initrc_t)
+dev_read_sound_mixer(initrc_t)
+dev_write_sound_mixer(initrc_t)
+dev_setattr_all_chr_files(initrc_t)
+dev_read_lvm_control(initrc_t)
+dev_delete_lvm_control_dev(initrc_t)
+dev_manage_generic_symlinks(initrc_t)
+dev_manage_generic_files(initrc_t)
+# Wants to remove udev.tbl:
+dev_delete_generic_symlinks(initrc_t)
+
+fs_register_binary_executable_type(initrc_t)
+# rhgb-console writes to ramfs
+fs_write_ramfs_pipes(initrc_t)
+# cjp: not sure why these are here; should use mount policy
+fs_mount_all_fs(initrc_t)
+fs_unmount_all_fs(initrc_t)
+fs_remount_all_fs(initrc_t)
+fs_getattr_all_fs(initrc_t)
+
+selinux_get_enforce_mode(initrc_t)
+
+storage_getattr_fixed_disk_dev(initrc_t)
+storage_setattr_fixed_disk_dev(initrc_t)
+storage_setattr_removable_dev(initrc_t)
+
+term_use_all_terms(initrc_t)
+term_reset_tty_labels(initrc_t)
+
+auth_rw_login_records(initrc_t)
+auth_setattr_login_records(initrc_t)
+auth_rw_lastlog(initrc_t)
+auth_read_pam_pid(initrc_t)
+auth_delete_pam_pid(initrc_t)
+auth_delete_pam_console_data(initrc_t)
+
+corecmd_exec_bin(initrc_t)
+corecmd_exec_sbin(initrc_t)
+corecmd_exec_shell(initrc_t)
+corecmd_exec_ls(initrc_t)
+
+domain_kill_all_domains(initrc_t)
+domain_signal_all_domains(initrc_t)
+domain_signull_all_domains(initrc_t)
+domain_sigstop_all_domains(initrc_t)
+domain_sigstop_all_domains(initrc_t)
+domain_sigchld_all_domains(initrc_t)
+domain_read_all_domains_state(initrc_t)
+domain_getattr_all_domains(initrc_t)
+domain_dontaudit_ptrace_all_domains(initrc_t)
+domain_getsession_all_domains(initrc_t)
+domain_use_interactive_fds(initrc_t)
+domain_exec_all_entry_files(initrc_t)
+# for lsof which is used by alsa shutdown:
+domain_dontaudit_getattr_all_udp_sockets(initrc_t)
+domain_dontaudit_getattr_all_tcp_sockets(initrc_t)
+domain_dontaudit_getattr_all_dgram_sockets(initrc_t)
+domain_dontaudit_getattr_all_pipes(initrc_t)
+
+files_getattr_all_dirs(initrc_t)
+files_getattr_all_files(initrc_t)
+files_getattr_all_symlinks(initrc_t)
+files_getattr_all_pipes(initrc_t)
+files_getattr_all_sockets(initrc_t)
+files_purge_tmp(initrc_t)
+files_delete_all_locks(initrc_t)
+files_read_all_pids(initrc_t)
+files_delete_all_pids(initrc_t)
+files_delete_all_pid_dirs(initrc_t)
+files_read_etc_files(initrc_t)
+files_manage_etc_runtime_files(initrc_t)
+files_manage_generic_locks(initrc_t)
+files_exec_etc_files(initrc_t)
+files_read_usr_files(initrc_t)
+files_manage_urandom_seed(initrc_t)
+files_manage_generic_spool(initrc_t)
+# Mount and unmount file systems.
+# cjp: not sure why these are here; should use mount policy
+files_list_isid_type_dirs(initrc_t)
+files_mounton_isid_type_dirs(initrc_t)
+files_list_default(initrc_t)
+files_mounton_default(initrc_t)
+
+libs_rw_ld_so_cache(initrc_t)
+libs_use_ld_so(initrc_t)
+libs_use_shared_libs(initrc_t)
+libs_exec_lib_files(initrc_t)
+
+logging_send_syslog_msg(initrc_t)
+logging_manage_generic_logs(initrc_t)
+logging_read_all_logs(initrc_t)
+logging_append_all_logs(initrc_t)
+logging_read_audit_config(initrc_t)
+
+miscfiles_read_localization(initrc_t)
+# slapd needs to read cert files from its initscript
+miscfiles_read_certs(initrc_t)
+
+mcs_killall(initrc_t)
+
+mls_file_read_up(initrc_t)
+mls_file_write_down(initrc_t)
+mls_process_read_up(initrc_t)
+mls_process_write_down(initrc_t)
+mls_rangetrans_source(initrc_t)
+
+modutils_read_module_config(initrc_t)
+modutils_domtrans_insmod(initrc_t)
+
+seutil_read_config(initrc_t)
+
+sysnet_read_config(initrc_t)
+
+udev_rw_db(initrc_t)
+
+userdom_read_all_users_home_content_files(initrc_t)
+# Allow access to the sysadm TTYs. Note that this will give access to the 
+# TTYs to any process in the initrc_t domain. Therefore, daemons and such
+# started from init should be placed in their own domain.
+userdom_use_sysadm_terms(initrc_t)
+
+ifdef(`distro_debian',`
+	dev_setattr_generic_dirs(initrc_t)
+
+	fs_tmpfs_filetrans(initrc_t,initrc_var_run_t,dir)
+
+	# for storing state under /dev/shm
+	fs_setattr_tmpfs_dirs(initrc_t)
+	storage_manage_fixed_disk(initrc_t)
+	storage_tmpfs_filetrans_fixed_disk(initrc_t)
+
+	files_setattr_etc_dirs(initrc_t)
+')
+
+ifdef(`distro_gentoo',`
+	optional_policy(`arpwatch',`
+		arpwatch_manage_data_files(initrc_t)
+	')
+
+	optional_policy(`dhcp',`
+		dhcpd_setattr_state_files(initrc_t)
+	')
+')
+
+ifdef(`distro_redhat',`
+	# this is from kmodule, which should get its own policy:
+	allow initrc_t self:capability sys_admin;
+
+	# Red Hat systems seem to have a stray
+	# fd open from the initrd
+	kernel_dontaudit_use_fds(initrc_t)
+	files_dontaudit_read_root_files(initrc_t)
+
+	selinux_set_enforce_mode(initrc_t)
+
+	# Create and read /boot/kernel.h and /boot/System.map.
+	# Redhat systems typically create this file at boot time.
+	bootloader_create_runtime_file(initrc_t)
+	files_rw_boot_symlinks(initrc_t)
+
+	# These seem to be from the initrd
+	# during device initialization:
+	dev_create_generic_dirs(initrc_t)
+	dev_rwx_zero(initrc_t)
+	dev_rx_raw_memory(initrc_t)
+	dev_wx_raw_memory(initrc_t)
+	storage_raw_read_fixed_disk(initrc_t)
+	storage_raw_write_fixed_disk(initrc_t)
+
+	files_create_boot_flag(initrc_t)
+	# wants to read /.fonts directory
+	files_read_default_files(initrc_t)
+	files_mountpoint(initrc_tmp_t)
+
+	fs_rw_tmpfs_chr_files(initrc_t)
+
+	storage_manage_fixed_disk(initrc_t)
+	storage_dev_filetrans_fixed_disk(initrc_t)
+	storage_getattr_removable_dev(initrc_t)
+
+	# readahead asks for these
+	auth_dontaudit_read_shadow(initrc_t)
+
+	miscfiles_read_fonts(initrc_t)
+	miscfiles_read_hwdata(initrc_t)
+
+	optional_policy(`bind',`
+		bind_manage_config_dirs(initrc_t)
+		bind_write_config(initrc_t)
+	')
+
+	optional_policy(`rpc',`
+		#for /etc/rc.d/init.d/nfs to create /etc/exports
+		rpc_write_exports(initrc_t)
+	')
+
+	optional_policy(`sysnetwork',`
+		sysnet_rw_dhcp_config(initrc_t)
+	')
+
+	optional_policy(`xserver',`
+		xserver_delete_log(initrc_t)
+	')
+')
+
+ifdef(`distro_suse',`
+	optional_policy(`xserver',`
+		# set permissions on /tmp/.X11-unix
+		xserver_setattr_xdm_tmp_dirs(initrc_t)
+	')
+')
+
+ifdef(`targeted_policy',`
+	domain_subj_id_change_exemption(initrc_t)
+	unconfined_domain(initrc_t)
+',`
+	# cjp: require doesnt work in optionals :\
+	# this also would result in a type transition
+	# conflict if sendmail is enabled
+#	optional_policy(`sendmail',`',`
+#		mta_send_mail(initrc_t)
+#	')
+')
+
+optional_policy(`apm',`
+	dev_rw_apm_bios(initrc_t)
+')
+
+optional_policy(`apache',`
+	apache_read_config(initrc_t)
+	apache_list_modules(initrc_t)
+')
+
+optional_policy(`automount',`
+	automount_exec_config(initrc_t)
+')
+
+optional_policy(`bind',`
+	bind_read_config(initrc_t)
+
+	# for chmod in start script
+	bind_setattr_pid_dirs(initrc_t)
+')
+
+optional_policy(`bluetooth',`
+	dev_read_usbfs(initrc_t)
+	bluetooth_read_config(initrc_t)
+')
+
+optional_policy(`cpucontrol',`
+	cpucontrol_stub(initrc_t)
+	dev_getattr_cpu_dev(initrc_t)
+')
+
+optional_policy(`cups',`
+	cups_read_log(initrc_t)
+')
+
+optional_policy(`daemontools',`
+	daemontools_manage_svc(initrc_t)
+')
+
+optional_policy(`dbus',`
+	dbus_connect_system_bus(initrc_t)
+	dbus_send_system_bus(initrc_t)
+	dbus_system_bus_client_template(initrc,initrc_t)
+	dbus_read_config(initrc_t)
+
+	optional_policy(`networkmanager',`
+		networkmanager_dbus_chat(initrc_t)
+	')
+')
+
+optional_policy(`ftp',`
+	ftp_read_config(initrc_t)
+')
+
+optional_policy(`gpm',`
+	gpm_setattr_gpmctl(initrc_t)
+')
+
+optional_policy(`hotplug',`
+	dev_read_usbfs(initrc_t)
+
+	# init scripts run /etc/hotplug/usb.rc
+	hotplug_read_config(initrc_t)
+
+	modutils_read_module_deps(initrc_t)
+')
+
+optional_policy(`inn',`
+	inn_exec_config(initrc_t)
+')
+
+optional_policy(`ipsec',`
+	ipsec_read_config(initrc_t)
+	ipsec_manage_pid(initrc_t)
+')
+
+optional_policy(`kerberos',`
+	kerberos_use(initrc_t)
+')
+
+optional_policy(`ldap',`
+	ldap_read_config(initrc_t)
+	ldap_list_db(initrc_t)
+')
+
+optional_policy(`loadkeys',`
+	loadkeys_exec(initrc_t)
+')
+
+optional_policy(`lpd',`
+	# This is needed to permit chown to read /var/spool/lpd/lp.
+	# This is opens up security more than necessary; this means that ANYTHING
+	# running in the initrc_t domain can read the printer spool directory.
+	# Perhaps executing /etc/rc.d/init.d/lpd should transition
+	# to domain lpd_t, instead of waiting for executing lpd.
+	lpd_list_spool(initrc_t)
+
+	lpd_read_config(initrc_t)
+')
+
+optional_policy(`lvm',`
+	#allow initrc_t lvm_control_t:chr_file unlink;
+
+	dev_read_lvm_control(initrc_t)
+	dev_create_generic_chr_files(initrc_t)
+
+	lvm_read_config(initrc_t)
+')
+
+optional_policy(`mailman',`
+	mailman_list_data(initrc_t)
+	mailman_read_data_symlinks(initrc_t)
+')
+
+optional_policy(`mta',`
+	mta_read_config(initrc_t)
+	mta_dontaudit_read_spool_symlinks(initrc_t)
+')
+
+optional_policy(`mysql',`
+	ifdef(`distro_redhat',`
+		mysql_manage_db_dirs(initrc_t)
+	')
+
+	mysql_stream_connect(initrc_t)
+	mysql_write_log(initrc_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(initrc_t)
+	nis_udp_send_ypbind(initrc_t)
+	nis_list_var_yp(initrc_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(initrc_t)
+')
+
+optional_policy(`raid',`
+	raid_manage_mdadm_pid(initrc_t)
+')
+
+optional_policy(`rpc',`
+	rpc_read_exports(initrc_t)
+')
+
+optional_policy(`postgresql',`
+	postgresql_manage_db(initrc_t)
+	postgresql_read_config(initrc_t)
+')
+
+optional_policy(`postfix',`
+	postfix_list_spool(initrc_t)
+')
+
+optional_policy(`quota',`
+	quota_manage_flags(initrc_t)
+')
+
+optional_policy(`rhgb',`
+	corecmd_shell_entry_type(initrc_t)
+')
+
+optional_policy(`rpm',`
+	# bash tries to access a block device in the initrd
+	kernel_dontaudit_getattr_unlabeled_blk_files(initrc_t)
+
+	# for a bug in rm
+	files_dontaudit_write_all_pids(initrc_t)
+
+	# bash tries ioctl for some reason
+	files_dontaudit_ioctl_all_pids(initrc_t)
+
+	# why is this needed:
+	rpm_manage_db(initrc_t)
+')
+
+optional_policy(`samba',`
+	samba_rw_config(initrc_t)
+	samba_read_winbind_pid(initrc_t)
+')
+
+optional_policy(`squid',`
+	squid_read_config(initrc_t)
+	squid_manage_logs(initrc_t)
+')
+
+optional_policy(`ssh',`
+	ssh_dontaudit_read_server_keys(initrc_t)
+')
+
+# allow init scripts to su
+optional_policy(`su',`
+	su_restricted_domain_template(initrc,initrc_t,system_r)
+')
+
+optional_policy(`sysnetwork',`
+	sysnet_read_dhcpc_state(initrc_t)
+')
+
+optional_policy(`uml',`
+	uml_setattr_util_sockets(initrc_t)
+')
+
+optional_policy(`xfs',`
+	miscfiles_manage_fonts(initrc_t)
+
+	# cjp: is this really needed?
+	xfs_read_sockets(initrc_t)
+')
+
+optional_policy(`xserver',`
+	# init s	cript wants to check if it needs to update windowmanagerlist
+	xserver_read_xdm_rw_config(initrc_t)
+')
+
+optional_policy(`zebra',`
+	zebra_read_config(initrc_t)
+')
+
+ifdef(`TODO',`
+# Set device ownerships/modes.
+allow initrc_t xconsole_device_t:fifo_file setattr;
+
+ifdef(`distro_redhat', `
+	allow initrc_t device_t:dir create;
+')
+') dnl end TODO

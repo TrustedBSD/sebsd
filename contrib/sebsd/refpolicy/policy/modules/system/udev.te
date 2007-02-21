@@ -1,0 +1,208 @@
+
+policy_module(udev,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+# real declaration moved to mls until
+# range_transition works in loadable modules
+gen_require(`
+	type udev_exec_t;
+')
+
+type udev_t;
+type udev_helper_exec_t;
+kernel_domtrans_to(udev_t,udev_exec_t)
+domain_obj_id_change_exemption(udev_t)
+domain_entry_file(udev_t,udev_helper_exec_t)
+domain_interactive_fd(udev_t)
+init_daemon_domain(udev_t,udev_exec_t)
+
+type udev_etc_t alias etc_udev_t;
+files_config_file(udev_etc_t)
+
+# udev_runtime_t is the type of the udev table file
+# cjp: this is probably a copy of udev_tbl_t and can be removed
+type udev_runtime_t;
+files_type(udev_runtime_t)
+
+type udev_tbl_t alias udev_tdb_t;
+files_type(udev_tbl_t)
+
+type udev_var_run_t;
+files_pid_file(udev_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow udev_t self:capability { chown dac_override dac_read_search fowner fsetid sys_admin mknod net_raw net_admin sys_nice sys_rawio sys_resource sys_nice };
+dontaudit udev_t self:capability sys_tty_config;
+allow udev_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow udev_t self:process { execmem setfscreate };
+allow udev_t self:fd use;
+allow udev_t self:fifo_file rw_file_perms;
+allow udev_t self:sock_file r_file_perms;
+allow udev_t self:shm create_shm_perms;
+allow udev_t self:sem create_sem_perms;
+allow udev_t self:msgq create_msgq_perms;
+allow udev_t self:msg { send receive };
+allow udev_t self:unix_stream_socket { listen accept };
+allow udev_t self:unix_dgram_socket sendto;
+allow udev_t self:unix_stream_socket connectto;
+allow udev_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow udev_t self:rawip_socket create_socket_perms;
+
+allow udev_t udev_exec_t:file write;
+can_exec(udev_t, udev_exec_t)
+
+allow udev_t udev_helper_exec_t:dir r_dir_perms;
+
+# read udev config
+allow udev_t udev_etc_t:file r_file_perms;
+
+# create udev database in /dev/.udevdb
+allow udev_t udev_tbl_t:file create_file_perms;
+dev_filetrans(udev_t,udev_tbl_t,file)
+
+allow udev_t udev_var_run_t:file create_file_perms;
+allow udev_t udev_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(udev_t,udev_var_run_t,file)
+
+kernel_read_system_state(udev_t)
+kernel_getattr_core_if(udev_t)
+kernel_use_fds(udev_t)
+kernel_read_device_sysctls(udev_t)
+kernel_read_hotplug_sysctls(udev_t)
+kernel_read_modprobe_sysctls(udev_t)
+kernel_read_kernel_sysctls(udev_t)
+kernel_rw_hotplug_sysctls(udev_t)
+kernel_rw_unix_dgram_sockets(udev_t)
+kernel_dgram_send(udev_t)
+kernel_signal(udev_t)
+
+dev_rw_sysfs(udev_t)
+dev_manage_all_dev_nodes(udev_t)
+dev_rw_generic_files(udev_t)
+dev_delete_generic_files(udev_t)
+
+fs_getattr_all_fs(udev_t)
+fs_list_inotifyfs(udev_t)
+
+selinux_get_fs_mount(udev_t)
+selinux_validate_context(udev_t)
+selinux_compute_access_vector(udev_t)
+selinux_compute_create_context(udev_t)
+selinux_compute_relabel_context(udev_t)
+selinux_compute_user_contexts(udev_t)
+
+auth_use_nsswitch(udev_t)
+
+corecmd_exec_bin(udev_t)
+corecmd_exec_sbin(udev_t)
+corecmd_exec_shell(udev_t)
+
+domain_exec_all_entry_files(udev_t)
+domain_read_all_domains_state(udev_t)
+
+files_read_etc_runtime_files(udev_t)
+files_read_etc_files(udev_t)
+files_exec_etc_files(udev_t)
+files_dontaudit_search_isid_type_dirs(udev_t)
+files_getattr_generic_locks(udev_t)
+files_search_mnt(udev_t)
+
+init_use_fds(udev_t)
+init_read_utmp(udev_t)
+init_dontaudit_write_utmp(udev_t)
+
+libs_use_ld_so(udev_t)
+libs_use_shared_libs(udev_t)
+
+logging_search_logs(udev_t)
+logging_send_syslog_msg(udev_t)
+
+miscfiles_read_localization(udev_t)
+
+mls_file_read_up(udev_t)
+mls_file_write_down(udev_t)
+mls_file_upgrade(udev_t)
+mls_file_downgrade(udev_t)
+mls_process_write_down(udev_t)
+
+modutils_domtrans_insmod(udev_t)
+
+seutil_read_config(udev_t)
+seutil_read_default_contexts(udev_t)
+seutil_read_file_contexts(udev_t)
+seutil_domtrans_restorecon(udev_t)
+
+sysnet_domtrans_ifconfig(udev_t)
+
+userdom_use_sysadm_ttys(udev_t)
+userdom_dontaudit_search_all_users_home_content(udev_t)
+
+ifdef(`distro_redhat',`
+	fs_manage_tmpfs_dirs(udev_t)
+	fs_manage_tmpfs_files(udev_t)
+	fs_manage_tmpfs_symlinks(udev_t)
+	fs_manage_tmpfs_sockets(udev_t)
+	fs_manage_tmpfs_blk_files(udev_t)
+	fs_manage_tmpfs_chr_files(udev_t)
+	fs_relabel_tmpfs_blk_file(udev_t)
+	fs_relabel_tmpfs_chr_file(udev_t)
+
+	# for arping used for static IP addresses on PCMCIA ethernet
+	netutils_domtrans(udev_t)
+')
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_unallocated_ttys(udev_t)
+	term_dontaudit_use_generic_ptys(udev_t)
+
+	unconfined_domain(udev_t)
+')
+
+optional_policy(`authlogin',`
+	auth_read_pam_console_data(udev_t)
+	auth_domtrans_pam_console(udev_t)
+')
+
+optional_policy(`consoletype',`
+	consoletype_exec(udev_t)
+')
+
+optional_policy(`dbus',`
+	dbus_system_bus_client_template(udev,udev_t)
+')
+
+optional_policy(`hal',`
+	hal_dgram_send(udev_t)
+')
+
+optional_policy(`hotplug',`
+	hotplug_read_config(udev_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(udev_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(udev_t)
+')
+
+optional_policy(`sysnetwork',`
+	sysnet_domtrans_dhcpc(udev_t)
+')
+
+#optional_policy(`xdm',`
+#	xdm_read_pid(udev_t)
+#')
+
+ifdef(`TODO',`
+dontaudit udev_t ttyfile:chr_file unlink;
+') dnl endif TODO

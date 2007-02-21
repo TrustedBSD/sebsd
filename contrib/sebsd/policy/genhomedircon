@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Script to replace HOME_ROOT and similar entries in file_contexts
+#
+
+# Where home directories may be located. The list must start and end 
+# with spaces.
+HOMEDIRS=" /home /usr/home "
+
+# Mappings of users to role prefixes.
+USER_ROLES="root,sysadm"
+
+#
+#
+for i in $HOMEDIRS; do
+  for j in $i/*; do
+    if [ -d $j ]; then HOMES="$HOMES $j"; fi
+  done
+done
+HOMES="$HOMES "
+
+S1=`echo "$HOMEDIRS" | sed -e 's: /: s|^HOME_ROOT|/:g; s:\(.\) :\1|;p;g;:g'`
+SR=`echo "$USER_ROLES" | sed -e 's:\([a-z]*\),\([a-z]*\):s|\\\\(\1\\\\).*\)ROLE|\\\1\2|g:'`
+S2=`echo "$HOMES" | sed -e 's: /: s|^HOME_DIR|/:g; s:\(.\) :\1|;'$SR';s/ROLE/user/g;p;g;:g'`
+
+cat $1 | sed -e "/^HOME_ROOT/{h; $S1}; /^HOME_DIR/{h; $S2}" | grep -a -v '^HOME'

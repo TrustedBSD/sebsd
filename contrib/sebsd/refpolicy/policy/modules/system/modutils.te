@@ -1,0 +1,279 @@
+
+policy_module(modutils,1.1.0)
+
+gen_require(`
+	bool secure_mode_insmod;
+')
+
+########################################
+#
+# Declarations
+#
+
+# module loading config
+type modules_conf_t;
+files_type(modules_conf_t)
+
+# module dependencies
+type modules_dep_t;
+files_type(modules_dep_t)
+
+type insmod_t;
+type insmod_exec_t;
+mls_file_write_down(insmod_t)
+role system_r types insmod_t;
+
+type depmod_t;
+type depmod_exec_t;
+init_system_domain(depmod_t,depmod_exec_t)
+role system_r types depmod_t;
+
+type update_modules_t;
+type update_modules_exec_t;
+init_system_domain(update_modules_t,update_modules_exec_t)
+role system_r types update_modules_t;
+
+type update_modules_tmp_t;
+files_tmp_file(update_modules_tmp_t)
+
+########################################
+#
+# insmod local policy
+#
+
+allow insmod_t self:capability { dac_override net_raw sys_tty_config };
+#allow insmod_t self:process { execmem sigchld sigkill sigstop signull signal };
+
+allow insmod_t self:udp_socket create_socket_perms; 
+allow insmod_t self:rawip_socket create_socket_perms; 
+
+# Read module config and dependency information
+allow insmod_t { modules_conf_t modules_dep_t }:file r_file_perms;
+
+can_exec(insmod_t, insmod_exec_t)
+
+# make sediff happy (no effect)
+dontaudit insmod_t self:process { noatsecure rlimitinh siginh };
+type_transition insmod_t insmod_exec_t:process insmod_t;
+
+kernel_load_module(insmod_t)
+kernel_read_system_state(insmod_t)
+kernel_mount_debugfs(insmod_t)
+kernel_read_debugfs(insmod_t)
+# Rules for /proc/sys/kernel/tainted
+kernel_read_kernel_sysctls(insmod_t)
+kernel_rw_kernel_sysctl(insmod_t)
+kernel_read_hotplug_sysctls(insmod_t)
+
+files_read_kernel_modules(insmod_t)
+# for locking: (cjp: ????)
+files_write_kernel_modules(insmod_t)
+
+dev_search_sysfs(insmod_t)
+dev_search_usbfs(insmod_t)
+dev_write_mtrr(insmod_t)
+dev_read_urand(insmod_t)
+dev_rw_agp(insmod_t)
+dev_read_sound(insmod_t)
+dev_write_sound(insmod_t)
+dev_rw_apm_bios(insmod_t)
+# cjp: why is this needed?  insmod cannot mounton any dir
+# and it also transitions to mount
+dev_mount_usbfs(insmod_t)
+
+fs_getattr_xattr_fs(insmod_t)
+
+corecmd_exec_bin(insmod_t)
+corecmd_exec_sbin(insmod_t)
+corecmd_exec_shell(insmod_t)
+
+#domain_signal_all_domains(insmod_t)
+domain_use_interactive_fds(insmod_t)
+
+files_read_etc_runtime_files(insmod_t)
+files_read_etc_files(insmod_t)
+files_read_usr_files(insmod_t)
+files_exec_etc_files(insmod_t)
+# for nscd:
+files_dontaudit_search_pids(insmod_t)
+# for when /var is not mounted early in the boot:
+files_dontaudit_search_isid_type_dirs(insmod_t)
+
+init_rw_initctl(insmod_t)
+init_use_fds(insmod_t)
+init_use_script_fds(insmod_t)
+init_use_script_ptys(insmod_t)
+
+libs_use_ld_so(insmod_t)
+libs_use_shared_libs(insmod_t)
+
+logging_send_syslog_msg(insmod_t)
+logging_search_logs(insmod_t)
+
+miscfiles_read_localization(insmod_t)
+
+seutil_read_file_contexts(insmod_t)
+
+#if( ! secure_mode_insmod ) {
+#	kernel_domtrans_to(insmod_t,insmod_exec_t)
+#}
+
+ifdef(`hide_broken_symptoms',`
+	dev_dontaudit_rw_cardmgr(insmod_t)
+')
+
+#ifdef(`targeted_policy',`
+#	unconfined_domain(insmod_t)
+#')
+
+optional_policy(`hotplug',`
+	hotplug_search_config(insmod_t)
+')
+
+#optional_policy(`mount',`
+#	mount_domtrans(insmod_t)
+#')
+
+optional_policy(`nis',`
+	nis_use_ypbind(insmod_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(insmod_t)
+')
+
+optional_policy(`rpm',`
+	rpm_rw_pipes(insmod_t)
+')
+
+ifdef(`TODO',`
+allow insmod_t proc_t:file rw_file_perms;
+optional_policy(`xserver',`
+	xserver_getattr_log(insmod_t)
+	allow insmod_t xserver_misc_device_t:chr_file { read write };
+')
+')
+
+########################################
+#
+# depmod local policy
+#
+
+can_exec(depmod_t, depmod_exec_t)
+
+# Read conf.modules.
+allow depmod_t modules_conf_t:file r_file_perms;
+
+allow depmod_t modules_dep_t:file create_file_perms;
+files_kernel_modules_filetrans(depmod_t,modules_dep_t,file)
+
+kernel_read_system_state(depmod_t)
+
+files_read_kernel_symbol_table(depmod_t)
+files_read_kernel_modules(depmod_t)
+
+fs_getattr_xattr_fs(depmod_t)
+
+term_use_console(depmod_t)
+
+corecmd_search_bin(depmod_t)
+corecmd_search_sbin(depmod_t)
+
+domain_use_interactive_fds(depmod_t)
+
+init_use_fds(depmod_t)
+init_use_script_fds(depmod_t)
+init_use_script_ptys(depmod_t)
+
+files_read_etc_runtime_files(depmod_t)
+files_read_etc_files(depmod_t)
+files_read_usr_src_files(depmod_t)
+files_list_usr(depmod_t)
+
+libs_use_ld_so(depmod_t)
+libs_use_shared_libs(depmod_t)
+
+# Read System.map from home directories.
+files_list_home(depmod_t)
+userdom_read_staff_home_content_files(depmod_t)
+userdom_read_sysadm_home_content_files(depmod_t)
+
+ifdef(`targeted_policy', `
+	term_use_unallocated_ttys(depmod_t)
+	term_use_generic_ptys(depmod_t)
+')
+
+optional_policy(`rpm',`
+	rpm_rw_pipes(depmod_t)
+')
+
+ifdef(`TODO',`
+ifdef(`gnome-pty-helper.te', `allow depmod_t sysadm_gph_t:fd use;')
+') dnl end ifdef TODO
+
+allow depmod_t modules_object_t:file unlink;
+
+#################################
+#
+# update-modules local policy
+#
+
+allow update_modules_t self:fifo_file rw_file_perms;
+
+allow update_modules_t modules_dep_t:file rw_file_perms;
+
+can_exec(update_modules_t, insmod_exec_t)
+can_exec(update_modules_t, update_modules_exec_t)
+
+# manage module loading configuration
+allow update_modules_t modules_conf_t:file create_file_perms;
+files_kernel_modules_filetrans(update_modules_t,modules_conf_t,file)
+files_etc_filetrans(update_modules_t,modules_conf_t,file)
+
+# transition to depmod
+domain_auto_trans(update_modules_t, depmod_exec_t, depmod_t)
+allow update_modules_t depmod_t:fd use;
+allow depmod_t update_modules_t:fd use;
+allow depmod_t update_modules_t:fifo_file rw_file_perms;
+#allow depmod_t update_modules_t:process sigchld;
+
+allow update_modules_t update_modules_tmp_t:dir create_dir_perms;
+allow update_modules_t update_modules_tmp_t:file create_file_perms;
+files_tmp_filetrans(update_modules_t, update_modules_tmp_t, { file dir })
+
+kernel_read_kernel_sysctls(update_modules_t)
+kernel_read_system_state(update_modules_t)
+
+dev_read_urand(update_modules_t)
+
+fs_getattr_xattr_fs(update_modules_t)
+
+term_use_console(update_modules_t)
+
+init_use_fds(update_modules_t)
+init_use_script_fds(update_modules_t)
+init_use_script_ptys(update_modules_t)
+
+domain_use_interactive_fds(update_modules_t)
+
+files_read_etc_runtime_files(update_modules_t)
+files_read_etc_files(update_modules_t)
+files_exec_etc_files(update_modules_t)
+
+corecmd_exec_bin(update_modules_t)
+corecmd_exec_sbin(update_modules_t)
+corecmd_exec_shell(update_modules_t)
+
+libs_use_ld_so(update_modules_t)
+libs_use_shared_libs(update_modules_t)
+
+logging_send_syslog_msg(update_modules_t)
+
+miscfiles_read_localization(update_modules_t)
+
+userdom_dontaudit_search_sysadm_home_dirs(update_modules_t)
+
+ifdef(`targeted_policy',`
+	term_use_generic_ptys(update_modules_t)
+	term_use_unallocated_ttys(update_modules_t)
+')

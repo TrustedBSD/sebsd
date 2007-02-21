@@ -1,0 +1,113 @@
+## <summary>Bluetooth tools and system services.</summary>
+
+########################################
+## <summary>
+##	Read bluetooth daemon configuration.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_read_config',`
+	gen_require(`
+		type bluetooth_conf_t;
+	')
+
+	allow $1 bluetooth_conf_t:file { getattr read ioctl };
+')
+
+########################################
+## <summary>
+##	Execute bluetooth_helper in the bluetooth_helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_domtrans_helper',`
+	gen_require(`
+		type bluetooth_helper_t, bluetooth_helper_exec_t;
+	')
+
+	domain_auto_trans($1,bluetooth_helper_exec_t,bluetooth_helper_t)
+
+	allow $1 bluetooth_helper_t:fd use;
+	allow bluetooth_helper_t $1:fd use;
+	allow bluetooth_helper_t $1:fifo_file rw_file_perms;
+	allow bluetooth_helper_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	bluetooth over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_dbus_chat',`
+	gen_require(`
+		type bluetooth_t;
+		class dbus send_msg;
+	')
+
+	allow $1 bluetooth_t:dbus send_msg;
+	allow bluetooth_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Execute bluetooth_helper in the bluetooth_helper domain, and
+##	allow the specified role the bluetooth_helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the bluetooth_helper domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the bluetooth_helper domain to use.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_run_helper',`
+	gen_require(`
+		type bluetooth_helper_t;
+	')
+
+	bluetooth_domtrans_helper($1)
+	role $2 types bluetooth_helper_t;
+	allow bluetooth_helper_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Read bluetooth helper files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_dontaudit_read_helper_files',`
+	gen_require(`
+		type bluetooth_helper_t;
+	')
+
+	dontaudit $1 bluetooth_helper_t:dir search;
+	dontaudit $1 bluetooth_helper_t:file { read getattr };
+')

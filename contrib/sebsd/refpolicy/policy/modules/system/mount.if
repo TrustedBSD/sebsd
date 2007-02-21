@@ -1,0 +1,115 @@
+## <summary>Policy for mount.</summary>
+
+########################################
+## <summary>
+##	Execute mount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans',`
+	gen_require(`
+		type mount_t, mount_exec_t;
+	')
+
+	domain_auto_trans($1,mount_exec_t,mount_t)
+
+	allow $1 mount_t:fd use;
+	allow mount_t $1:fd use;
+	allow mount_t $1:fifo_file rw_file_perms;
+	allow mount_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute mount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mount domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the mount domain to use.
+##	</summary>
+## </param>
+#
+interface(`mount_run',`
+	gen_require(`
+		type mount_t;
+	')
+
+	mount_domtrans($1)
+	role $2 types mount_t;
+	allow mount_t $3:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute mount in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_exec',`
+	gen_require(`
+		type mount_exec_t;
+	')
+
+	allow $1 mount_exec_t:dir r_dir_perms;
+	allow $1 mount_exec_t:lnk_file r_file_perms;
+	can_exec($1,mount_exec_t)
+
+')
+
+########################################
+## <summary>
+##	Use file descriptors for mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_use_fds',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Allow the mount domain to send nfs requests for mounting
+##	network drives
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_send_nfs_client_request',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:udp_socket rw_socket_perms;
+')
+

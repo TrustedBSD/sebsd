@@ -1,0 +1,50 @@
+#DESC Dovecot POP and IMAP servers
+#
+# Author:  Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: dovecot-imapd, dovecot-pop3d
+
+daemon_domain(dovecot, `, privhome')
+
+allow dovecot_t dovecot_var_run_t:sock_file create_file_perms;
+
+can_exec(dovecot_t, dovecot_exec_t)
+
+type dovecot_cert_t, file_type, sysadmfile;
+
+allow dovecot_t self:capability { chown net_bind_service setgid setuid sys_chroot dac_override dac_read_search };
+allow dovecot_t self:process { setrlimit };
+can_network(dovecot_t)
+allow dovecot_t self:unix_dgram_socket create_socket_perms;
+allow dovecot_t self:unix_stream_socket create_stream_socket_perms;
+can_unix_connect(dovecot_t, self)
+
+# For SSL certificates
+allow dovecot_t usr_t:file { getattr read };
+
+allow dovecot_t etc_t:file { getattr read };
+allow dovecot_t initrc_var_run_t:file { getattr };
+# Dovecot sub-binaries are lib_t on Debian and bin_t on Fedora
+allow dovecot_t lib_t:file { execute execute_no_trans };
+allow dovecot_t bin_t:dir { getattr search };
+can_exec(dovecot_t, bin_t)
+
+allow dovecot_t pop_port_t:tcp_socket name_bind;
+allow dovecot_t urandom_device_t:chr_file { read };
+allow dovecot_t dovecot_cert_t:file { getattr read };
+
+allow dovecot_t { self proc_t }:file { getattr read };
+allow dovecot_t self:fifo_file rw_file_perms;
+
+dontaudit dovecot_t krb5_conf_t:file { write };
+allow dovecot_t krb5_conf_t:file { getattr read };
+
+daemon_sub_domain(dovecot_t, dovecot_auth, `, auth')
+allow dovecot_auth_t self:process { fork signal_perms };
+allow dovecot_auth_t dovecot_t:unix_stream_socket { getattr accept read write ioctl };
+allow dovecot_auth_t self:unix_dgram_socket create_socket_perms;
+allow dovecot_auth_t self:unix_stream_socket create_stream_socket_perms;
+allow dovecot_auth_t self:fifo_file rw_file_perms;
+allow dovecot_auth_t urandom_device_t:chr_file { getattr read };
+allow dovecot_auth_t etc_t:file { getattr read };
+allow dovecot_auth_t { self proc_t }:file { getattr read };
+read_locale(dovecot_auth_t)

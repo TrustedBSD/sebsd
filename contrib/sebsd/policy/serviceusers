@@ -1,0 +1,6 @@
+ifdef(`cyrus.te', `
+user cyrus roles cyrus_r;
+')
+ifdef(`mailman.te', `
+#user mailman roles mailman_r;
+')

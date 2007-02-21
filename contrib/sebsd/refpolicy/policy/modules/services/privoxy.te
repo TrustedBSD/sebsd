@@ -1,0 +1,103 @@
+
+policy_module(privoxy,1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type privoxy_t; # web_client_domain
+type privoxy_exec_t;
+init_daemon_domain(privoxy_t,privoxy_exec_t)
+
+type privoxy_etc_rw_t;
+files_type(privoxy_etc_rw_t)
+
+type privoxy_log_t;
+logging_log_file(privoxy_log_t)
+
+type privoxy_var_run_t;
+files_pid_file(privoxy_var_run_t)
+
+########################################
+#
+# Local Policy
+#
+
+allow privoxy_t self:capability { setgid setuid };
+dontaudit privoxy_t self:capability sys_tty_config;
+allow privoxy_t self:tcp_socket create_stream_socket_perms;
+
+allow privoxy_t privoxy_etc_rw_t:file rw_file_perms;
+
+allow privoxy_t privoxy_log_t:file create_file_perms;
+allow privoxy_t privoxy_log_t:dir rw_dir_perms;
+logging_log_filetrans(privoxy_t,privoxy_log_t,file)
+
+allow privoxy_t privoxy_var_run_t:file create_file_perms;
+allow privoxy_t privoxy_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(privoxy_t,privoxy_var_run_t,file)
+
+kernel_read_kernel_sysctls(privoxy_t)
+kernel_list_proc(privoxy_t)
+kernel_read_proc_symlinks(privoxy_t)
+
+corenet_tcp_sendrecv_all_if(privoxy_t)
+corenet_raw_sendrecv_all_if(privoxy_t)
+corenet_tcp_sendrecv_all_nodes(privoxy_t)
+corenet_raw_sendrecv_all_nodes(privoxy_t)
+corenet_tcp_sendrecv_all_ports(privoxy_t)
+corenet_non_ipsec_sendrecv(privoxy_t)
+corenet_tcp_bind_http_cache_port(privoxy_t)
+corenet_tcp_connect_http_port(privoxy_t)
+corenet_tcp_connect_ftp_port(privoxy_t)
+
+dev_read_sysfs(privoxy_t)
+
+fs_getattr_all_fs(privoxy_t)
+fs_search_auto_mountpoints(privoxy_t)
+
+term_dontaudit_use_console(privoxy_t)
+
+domain_use_interactive_fds(privoxy_t)
+
+files_read_etc_files(privoxy_t)
+
+init_use_fds(privoxy_t)
+init_use_script_ptys(privoxy_t)
+
+libs_use_ld_so(privoxy_t)
+libs_use_shared_libs(privoxy_t)
+
+logging_send_syslog_msg(privoxy_t)
+
+miscfiles_read_localization(privoxy_t)
+
+sysnet_dns_name_resolve(privoxy_t)
+
+userdom_dontaudit_use_unpriv_user_fds(privoxy_t)
+userdom_dontaudit_search_sysadm_home_dirs(privoxy_t)
+# cjp: this should really not be needed
+userdom_use_sysadm_terms(privoxy_t)
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_unallocated_ttys(privoxy_t)
+	term_dontaudit_use_generic_ptys(privoxy_t)
+	files_dontaudit_read_root_files(privoxy_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(privoxy_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(privoxy_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(privoxy_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(privoxy_t)
+')

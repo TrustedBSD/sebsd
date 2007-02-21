@@ -1,0 +1,21 @@
+# postgresql - ldap server
+/usr/lib(64)?/postgresql/bin/.* --	system_u:object_r:postgresql_exec_t
+/usr/bin/postgres	--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_dump	--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_dumpall	--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_resetxlog	--	system_u:object_r:postgresql_exec_t
+/etc/rc.d/init.d/postgresql --	system_u:object_r:postgresql_exec_t
+
+# not sure whether the following binaries need labelling
+/usr/bin/createlang	--	system_u:object_r:postgresql_exec_t
+/usr/bin/droplang	--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_encoding	--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_id		--	system_u:object_r:postgresql_exec_t
+/usr/bin/pg_restore	--	system_u:object_r:postgresql_exec_t
+
+/var/lib/postgres(/.*)?		system_u:object_r:postgresql_db_t
+/var/lib/pgsql(/.*)?		system_u:object_r:postgresql_db_t
+/var/run/postgresql(/.*)?	system_u:object_r:postgresql_var_run_t
+/etc/postgresql(/.*)?		system_u:object_r:postgresql_etc_t
+/var/log/postgres\.log.* --	system_u:object_r:postgresql_log_t
+/var/log/postgresql(/.*)?	system_u:object_r:postgresql_log_t

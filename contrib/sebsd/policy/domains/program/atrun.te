@@ -1,0 +1,37 @@
+#
+# Authors:  Stephen Smalley <sds@tislabs.com>, Timothy Fraser <tfraser@tislabs.com> and Brian Feldman <bfeldman@tislabs.com> (NAI Labs) 
+#
+
+#################################
+#
+# Rules for the atrun_t domain.
+#
+type atrun_t, domain, privlog;
+role system_r types atrun_t;
+role sysadm_r types atrun_t;
+base_file_read_access(atrun_t)
+type atrun_exec_t, file_type, sysadmfile, exec_type;
+domain_auto_trans({ crond_t system_crond_t sysadm_t }, atrun_exec_t, atrun_t)
+
+type atrun_tmp_t, file_type, sysadmfile, tmpfile;
+file_type_auto_trans(atrun_t, tmp_t, atrun_tmp_t)
+type atrun_var_run_t, file_type, sysadmfile, pidfile;
+file_type_auto_trans(atrun_t, var_run_t, atrun_var_run_t)
+
+# Use capabilities.
+allow atrun_t atrun_t:capability { setgid setuid };
+
+# Write to /var/at.
+type var_at_t, file_type, sysadmfile;
+allow atrun_t var_at_t:dir rw_dir_perms;
+allow atrun_t var_at_t:file create_file_perms;
+
+# Jobs output to /var/at/spool, and are read from /var/at/jobs
+type var_at_jobs_t, file_type, sysadmfile;
+type var_at_spool_t, file_type, sysadmfile;
+allow atrun_t { var_at_jobs_t var_at_spool_t }:dir rw_dir_perms;
+allow atrun_t var_at_jobs_t:file { r_file_perms unlink };
+allow atrun_t var_at_spool_t:file create_file_perms;
+
+uses_shlib(atrun_t)
+allow atrun_t self:fd { create use };

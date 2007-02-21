@@ -1,0 +1,35 @@
+#DESC hald - server for device info
+#
+# Author:  Russell Coker <rcoker@redhat.com>
+# X-Debian-Packages: 
+#
+
+#################################
+#
+# Rules for the hald_t domain.
+#
+# hald_exec_t is the type of the hald executable.
+#
+daemon_domain(hald, `, dbus_client_domain')
+
+allow hald_t etc_t:file { getattr read };
+allow hald_t self:unix_stream_socket create_stream_socket_perms;
+
+allow hald_t dbusd_t:dbus { acquire_svc };
+
+allow hald_t self:file { getattr read };
+
+allow hald_t { bin_t sbin_t }:dir search;
+allow hald_t hald_t:fifo_file rw_file_perms;
+allow hald_t usr_t:file { getattr read };
+
+allow hald_t bin_t:file { getattr };
+allow hald_t self:netlink_route_socket r_netlink_socket_perms;
+allow hald_t self:capability { net_admin sys_admin };
+can_network(hald_t)
+
+ifdef(`updfstab.te', `domain_auto_trans(hald_t, updfstab_exec_t, updfstab_t)')
+ifdef(`udev.te', `domain_auto_trans(hald_t, udev_exec_t, udev_t)')
+
+allow hald_t usbdevfs_t:dir search;
+allow hald_t usbdevfs_t:file { getattr read };

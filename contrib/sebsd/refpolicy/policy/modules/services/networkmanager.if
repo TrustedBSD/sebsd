@@ -1,0 +1,80 @@
+## <summary>Manager for dynamically switching between networks.</summary>
+
+########################################
+## <summary>
+##	Read and write NetworkManager UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_udp_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:udp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Read and write NetworkManager packet sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_packet_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:packet_socket { read write };
+')
+
+########################################
+## <summary>
+##	Read and write NetworkManager netlink
+##	routing sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_routing_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:netlink_route_socket { read write };
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	NetworkManager over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dbus_chat',`
+	gen_require(`
+		type NetworkManager_t;
+		class dbus send_msg;
+	')
+
+	allow $1 NetworkManager_t:dbus send_msg;
+	allow NetworkManager_t $1:dbus send_msg;
+')

@@ -1,0 +1,19 @@
+## <summary>Smart disk monitoring daemon policy</summary>
+
+#######################################
+## <summary>
+##	Allow caller to read smartmon temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type reading the temporary files.
+##	</summary>
+## </param>
+#
+interface(`smartmon_read_tmp_files',`
+	gen_require(`
+		type fsdaemon_tmp_t;
+	')
+
+	allow $1 fsdaemon_tmp_t:file { getattr ioctl read };
+')

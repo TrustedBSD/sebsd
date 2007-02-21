@@ -1,0 +1,11 @@
+#
+# DEFAULTS -- Default kernel configuration file for FreeBSD/alpha
+#
+# $FreeBSD: src/sys/alpha/conf/DEFAULTS,v 1.3 2005/11/27 23:16:58 ru Exp $
+
+machine		alpha
+
+# Pseudo devices.
+device		mem		# Memory and kernel memory devices
+
+options 	PUC_FASTINTR

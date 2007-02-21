@@ -1,0 +1,586 @@
+## <summary>Periodic execution of scheduled commands.</summary>
+
+#######################################
+## <summary>
+##	The per user domain template for the cron module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for running programs on behalf of the user, from cron.
+##	A type for the user crontab is also created.
+##	</p>
+##	<p>
+##	This template is invoked automatically for each user, and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+#
+template(`cron_per_userdomain_template',`
+	gen_require(`
+		attribute cron_spool_type;
+		type crond_t, cron_spool_t, crontab_exec_t;
+	')
+
+	# Type of user crontabs once moved to cron spool.
+	type $1_cron_spool_t, cron_spool_type;
+	files_type($1_cron_spool_t)
+
+	type $1_crond_t;
+	domain_type($1_crond_t)
+	domain_cron_exemption_target($1_crond_t)
+	corecmd_shell_entry_type($1_crond_t)
+	role $3 types $1_crond_t;
+
+	type $1_crontab_t;
+	domain_type($1_crontab_t)
+	domain_entry_file($1_crontab_t,crontab_exec_t)
+	role $3 types $1_crontab_t;
+
+	##############################
+	#
+	# $1_crond_t local policy
+	#
+
+	allow $1_crond_t self:capability dac_override;
+	allow $1_crond_t self:process { signal_perms setsched };
+	allow $1_crond_t self:fifo_file rw_file_perms;
+	allow $1_crond_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_crond_t self:unix_dgram_socket create_socket_perms;
+
+	# The entrypoint interface is not used as this is not
+	# a regular entrypoint.  Since crontab files are
+	# not directly executed, crond must ensure that
+	# the crontab file has a type that is appropriate
+	# for the domain of the user cron job.  It
+	# performs an entrypoint permission check
+	# for this purpose.
+	allow $1_crond_t $1_cron_spool_t:file entrypoint;
+
+	# Permit a transition from the crond_t domain to this domain.
+	# The transition is requested explicitly by the modified crond 
+	# via setexeccon.  There is no way to set up an automatic
+	# transition, since crontabs are configuration files, not executables.
+	allow crond_t $1_crond_t:process transition;
+	dontaudit crond_t $1_crond_t:process { noatsecure siginh rlimitinh };
+	allow crond_t $1_crond_t:fd use;
+	allow $1_crond_t crond_t:fd use;
+	allow $1_crond_t crond_t:fifo_file rw_file_perms;
+	allow $1_crond_t crond_t:process sigchld;
+
+	kernel_read_system_state($1_crond_t)
+	kernel_read_kernel_sysctls($1_crond_t)
+
+	# ps does not need to access /boot when run from cron
+	files_dontaudit_search_boot($1_crond_t)
+
+	corenet_tcp_sendrecv_all_if($1_crond_t)
+	corenet_raw_sendrecv_all_if($1_crond_t)
+	corenet_udp_sendrecv_all_if($1_crond_t)
+	corenet_tcp_sendrecv_all_nodes($1_crond_t)
+	corenet_raw_sendrecv_all_nodes($1_crond_t)
+	corenet_udp_sendrecv_all_nodes($1_crond_t)
+	corenet_tcp_sendrecv_all_ports($1_crond_t)
+	corenet_udp_sendrecv_all_ports($1_crond_t)
+	corenet_non_ipsec_sendrecv($1_crond_t)
+	corenet_tcp_bind_all_nodes($1_crond_t)
+	corenet_udp_bind_all_nodes($1_crond_t)
+	corenet_tcp_connect_all_ports($1_crond_t)
+
+	dev_read_urand($1_crond_t)
+
+	fs_getattr_all_fs($1_crond_t)
+
+	domain_exec_all_entry_files($1_crond_t)
+	# quiet other ps operations
+	domain_dontaudit_read_all_domains_state($1_crond_t)
+	domain_dontaudit_getattr_all_domains($1_crond_t)
+
+	files_read_usr_files($1_crond_t)
+	files_exec_etc_files($1_crond_t)
+	# for nscd:
+	files_dontaudit_search_pids($1_crond_t)
+
+	corecmd_exec_bin($1_crond_t)
+	corecmd_exec_sbin($1_crond_t)
+
+	libs_use_ld_so($1_crond_t)
+	libs_use_shared_libs($1_crond_t)
+	libs_exec_lib_files($1_crond_t)
+	libs_exec_ld_so($1_crond_t)
+
+	files_read_etc_runtime_files($1_crond_t)
+	files_read_var_files($1_crond_t)
+	files_search_spool($1_crond_t)
+
+	logging_search_logs($1_crond_t)
+
+	seutil_read_config($1_crond_t)
+
+	miscfiles_read_localization($1_crond_t)
+
+	userdom_manage_user_tmp_files($1,$1_crond_t)
+	userdom_manage_user_tmp_symlinks($1,$1_crond_t)
+	userdom_manage_user_tmp_pipes($1,$1_crond_t)
+	userdom_manage_user_tmp_sockets($1,$1_crond_t)
+	# Run scripts in user home directory and access shared libs.
+	userdom_exec_user_home_content_files($1,$1_crond_t)
+	# Access user files and dirs.
+#	userdom_manage_user_home_subdir_dirs($1,$1_crond_t)
+	userdom_manage_user_home_content_files($1,$1_crond_t)
+	userdom_manage_user_home_content_symlinks($1,$1_crond_t)
+	userdom_manage_user_home_content_pipes($1,$1_crond_t)
+	userdom_manage_user_home_content_sockets($1,$1_crond_t)
+#	userdom_user_home_dir_filetrans_user_home_content($1,$1_crond_t,notdevfile_class_set)
+
+	tunable_policy(`fcron_crond', `
+		allow crond_t $1_cron_spool_t:file create_file_perms;
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind($1_crond_t)
+	')
+
+	ifdef(`TODO',`
+	optional_policy(`apache',`
+		create_dir_file($1_crond_t, httpd_$1_content_t)
+	')
+	allow $1_crond_t tmp_t:dir rw_dir_perms;
+	type_transition $1_crond_t $1_tmp_t:{ file lnk_file sock_file fifo_file } $1_tmp_t;
+
+	ifdef(`mta.te', `
+		domain_auto_trans($1_crond_t, sendmail_exec_t, $1_mail_t)
+		allow $1_crond_t sendmail_exec_t:lnk_file r_file_perms;
+
+		# $1_mail_t should only be reading from the cron fifo not needing to write
+		dontaudit $1_mail_t crond_t:fifo_file write;
+		allow mta_user_agent $1_crond_t:fd use;
+	')
+	') dnl endif TODO
+
+	##############################
+	#
+	# $1_crontab_t local policy
+	#
+
+	# Transition from the user domain to the derived domain.
+	domain_auto_trans($2, crontab_exec_t, $1_crontab_t)
+	allow $2 $1_crontab_t:fd use;
+	allow $1_crontab_t $2:fd use;
+	allow $1_crontab_t $2:fifo_file rw_file_perms;
+	allow $1_crontab_t $2:process sigchld;
+
+	# crontab shows up in user ps
+	allow $2 $1_crontab_t:dir { search getattr read };
+	allow $2 $1_crontab_t:{ file lnk_file } { read getattr };
+	allow $2 $1_crontab_t:process getattr;
+	dontaudit $2 $1_crontab_t:process ptrace;
+
+	# for ^Z
+	allow $2 $1_crontab_t:process signal;
+
+	# Allow crond to read those crontabs in cron spool.
+	allow crond_t $1_cron_spool_t:file create_file_perms;
+
+	# dac_override is to create the file in the directory under /tmp
+	allow $1_crontab_t self:capability { setuid setgid chown dac_override };
+	allow $1_crontab_t self:process signal_perms;
+
+	# create files in /var/spool/cron
+	allow $1_crontab_t $1_cron_spool_t:file create_file_perms;
+	allow $1_crontab_t cron_spool_t:dir rw_dir_perms;
+	type_transition $1_crontab_t $1_cron_spool_t:file $1_cron_spool_t;
+
+	# crontab signals crond by updating the mtime on the spooldir
+	allow $1_crontab_t cron_spool_t:dir setattr;
+
+	kernel_read_system_state($1_crontab_t)
+
+	# for the checks used by crontab -u
+	selinux_dontaudit_search_fs($1_crontab_t)
+
+	fs_getattr_xattr_fs($1_crontab_t)
+
+	# Run helper programs as the user domain
+	corecmd_bin_domtrans($1_crontab_t,$2)
+	corecmd_sbin_domtrans($1_crontab_t,$2)
+	corecmd_shell_domtrans($1_crontab_t,$2)
+
+	domain_use_interactive_fds($1_crontab_t)
+
+	files_read_etc_files($1_crontab_t)
+	files_dontaudit_search_pids($1_crontab_t)
+
+	libs_use_ld_so($1_crontab_t)
+	libs_use_shared_libs($1_crontab_t)
+
+	logging_send_syslog_msg($1_crontab_t)
+
+	miscfiles_read_localization($1_crontab_t)
+
+	seutil_read_config($1_crontab_t)
+
+	userdom_manage_user_tmp_dirs($1,$1_crontab_t)
+	userdom_manage_user_tmp_files($1,$1_crontab_t)
+	# Access terminals.
+	userdom_use_user_terminals($1,$1_crontab_t)
+	# Read user crontabs
+	userdom_read_user_home_content_files($1,$1_crontab_t)
+
+	tunable_policy(`fcron_crond', `
+		# fcron wants an instant update of a crontab change for the administrator
+		# also crontab does a security check for crontab -u
+		dontaudit $1_crontab_t crond_t:process signal;
+	')
+
+	ifdef(`TODO',`
+	allow $1_crond_t tmp_t:dir rw_dir_perms;
+	type_transition $1_crond_t $1_tmp_t:{ file dir } $1_tmp_t;
+
+	# Read user crontabs
+	dontaudit $1_crontab_t $1_home_dir_t:dir write;
+
+	# Inherit and use descriptors from gnome-pty-helper.
+	ifdef(`gnome-pty-helper.te', `allow $1_crontab_t $1_gph_t:fd use;')
+	') dnl endif TODO
+')
+
+#######################################
+## <summary>
+##	The administrative functions template for the cron module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates rules for administrating the cron service,
+##	allowing the specified user to manage other user crontabs.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+#
+template(`cron_admin_template',`
+	gen_require(`
+		attribute cron_spool_type;
+		type $1_crontab_t, $1_crond_t;
+	')
+
+	# Allow our crontab domain to unlink a user cron spool file.
+	allow $1_crontab_t cron_spool_type:file { getattr read unlink };
+
+	logging_read_generic_logs($1_crond_t)
+
+	# Manipulate other users crontab.
+	selinux_get_fs_mount($1_crontab_t)
+	selinux_validate_context($1_crontab_t)
+	selinux_compute_access_vector($1_crontab_t)
+	selinux_compute_create_context($1_crontab_t)
+	selinux_compute_relabel_context($1_crontab_t)
+	selinux_compute_user_contexts($1_crontab_t)
+
+	tunable_policy(`fcron_crond', `
+		# fcron wants an instant update of a crontab change for the administrator
+		# also crontab does a security check for crontab -u
+		allow $1_crontab_t self:process setfscreate;
+		selinux_get_fs_mount($1_crontab_t)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified program domain accessable
+##	from the system cron jobs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process to transition to.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type of the file used as an entrypoint to this domain.
+##	</summary>
+## </param>
+#
+interface(`cron_system_entry',`
+	gen_require(`
+		type crond_t, system_crond_t;
+	')
+
+	domain_auto_trans(system_crond_t, $2, $1)
+
+	# cjp: perhaps these four rules from the old
+	# domain_auto_trans are not needed?
+	allow system_crond_t $1:fd use;
+	allow $1 system_crond_t:fd use;
+	allow $1 system_crond_t:fifo_file rw_file_perms;
+	allow $1 system_crond_t:process sigchld;
+
+	allow $1 crond_t:fifo_file rw_file_perms;
+	allow $1 crond_t:fd use;
+	allow $1 crond_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Inherit and use a file descriptor
+##	from the cron daemon.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_use_fds',`
+	gen_require(`
+		type crond_t;
+	')
+
+	allow $1 crond_t:fd use;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the cron daemon.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_sigchld',`
+	gen_require(`
+		type crond_t;
+	')
+
+	allow $1 crond_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Read a cron daemon unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_read_pipes',`
+	gen_require(`
+		type crond_t;
+	')
+
+	allow $1 crond_t:fifo_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write cron daemon unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_dontaudit_write_pipes',`
+	gen_require(`
+		type crond_t;
+	')
+
+	dontaudit $1 crond_t:fifo_file write;
+')
+
+########################################
+## <summary>
+##	Read and write a cron daemon unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_rw_pipes',`
+	gen_require(`
+		type crond_t;
+	')
+
+	allow $1 crond_t:fifo_file { getattr read write };
+')
+
+########################################
+## <summary>
+##	Read, and write cron daemon TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_rw_tcp_sockets',`
+	gen_require(`
+		type crond_t;
+	')
+
+	allow $1 crond_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Search the directory containing user cron tables.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process to performing this action.
+##	</summary>
+## </param>
+#
+interface(`cron_search_spool',`
+	gen_require(`
+		type cron_spool_t;
+	')
+
+	files_search_spool($1)
+	allow $1 cron_spool_t:dir search;
+')
+
+########################################
+## <summary>
+##	Execute APM in the apm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_anacron_domtrans_system_job',`
+	gen_require(`
+		type system_crond_t, anacron_exec_t;
+	')
+
+	domain_auto_trans($1,anacron_exec_t,system_crond_t)
+
+	allow $1 system_crond_t:fd use;
+	allow system_crond_t $1:fd use;
+	allow system_crond_t $1:fifo_file rw_file_perms;
+	allow system_crond_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Inherit and use a file descriptor
+##	from system cron jobs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_use_system_job_fds',`
+	gen_require(`
+		type system_crond_t;
+	')
+
+	allow $1 system_crond_t:fd use;
+')
+
+########################################
+## <summary>
+##	Write a system cron job unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_write_system_job_pipes',`
+	gen_require(`
+		type system_crond_t;
+	')
+
+	allow $1 system_crond_t:file write;
+')
+
+########################################
+## <summary>
+##	Read and write a system cron job unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_rw_system_job_pipes',`
+	gen_require(`
+		type system_crond_t;
+	')
+
+	allow $1 system_crond_t:fifo_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read temporary files from the system cron jobs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cron_read_system_job_tmp_files',`
+	gen_require(`
+		type system_crond_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 system_crond_tmp_t:file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to append temporary
+##	files from the system cron jobs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`cron_dontaudit_append_system_job_tmp_files',`
+	gen_require(`
+		type system_crond_tmp_t;
+	')
+
+	dontaudit $1 system_crond_tmp_t:file append;
+')

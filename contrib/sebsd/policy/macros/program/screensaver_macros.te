@@ -1,0 +1,83 @@
+#DESC screensaver - X Windows screensaver needs access to password
+#
+# Macros for xscreensaver 
+#
+#
+# Authors:  Dan Walsh <dwalsh@redhat.com> 
+#
+
+#
+# screensaver_domain(domain_prefix)
+#
+# Define a derived domain for the xscreensaver program when executed by
+# a user domain.  
+#
+# The type declaration for the executable type for this program is
+# provided separately in domains/program/screensaver.te. 
+#
+define(`screensaver_domain',`
+x_client_domain($1, screensaver, `, auth_chkpwd');
+dontaudit $1_screensaver_t shadow_t:file { getattr read };
+allow $1_screensaver_t krb5_conf_t:file { getattr read };
+dontaudit $1_screensaver_t krb5_conf_t:file { write };
+
+# Read system information files in /proc.
+dontaudit $1_screensaver_t proc_t:dir r_dir_perms;
+allow $1_screensaver_t proc_t:file  r_file_perms;
+
+allow $1_screensaver_t devpts_t:dir r_dir_perms;
+base_file_read_access($1_screensaver_t)
+
+dontaudit $1_screensaver_t port_type:tcp_socket name_bind;
+
+allow $1_screensaver_t etc_t:file { getattr read };
+allow $1_screensaver_t self:unix_stream_socket create_socket_perms;
+
+domain_trans($1_screensaver_t, shell_exec_t, $1_t)
+domain_trans($1_screensaver_t, bin_t, $1_t)
+
+allow $1_screensaver_t initrc_var_run_t:file { lock read };
+# 
+# Looking for icons
+dontaudit $1_screensaver_t $1_home_t:dir r_dir_perms;
+dontaudit $1_screensaver_t $1_home_t:file r_file_perms;
+
+# Fortune data
+ifdef(`games.te',`
+dontaudit $1_screensaver_t games_data_t:dir { getattr search };
+')
+
+allow $1_screensaver_t initrc_var_run_t:file { lock read };
+
+#
+# Need to fix the starwars not to read /usr/src dir
+#
+dontaudit $1_screensaver_t src_t:dir { search };
+dontaudit $1_screensaver_t src_t:file { getattr read };
+
+#
+# Worse performance but safer
+#
+dontaudit $1_screensaver_t device_t:dir rw_dir_perms;
+dontaudit $1_screensaver_t dri_device_t:chr_file rw_file_perms;
+allow $1_screensaver_t self:file { getattr read };
+allow $1_screensaver_t self:process { setsched };
+allow $1_screensaver_t urandom_device_t:chr_file { getattr ioctl read };
+
+# Screen savers request the following
+dontaudit $1_screensaver_t $1_t:rawip_socket { create };
+
+ifdef(`xdm.te', `
+allow $1_screensaver_t xdm_tmp_t:dir { search };
+allow $1_screensaver_t xdm_tmp_t:file { getattr read };
+allow $1_screensaver_t xdm_xserver_t:unix_stream_socket { connectto };
+')
+dontaudit $1_screensaver_t var_t:dir { search };
+
+ifdef(`nfs_home_dirs', `
+create_dir_file($1_screensaver_t, nfs_t)
+')dnl end if nfs_home_dirs
+dontaudit $1_screensaver_t $1_screensaver_t:rawip_socket { create };
+
+') dnl screesaver_domain
+

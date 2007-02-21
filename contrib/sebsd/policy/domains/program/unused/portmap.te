@@ -1,0 +1,56 @@
+#DESC Portmap - Maintain RPC program number map
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+#           Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: portmap
+#
+
+
+
+#################################
+#
+# Rules for the portmap_t domain.
+#
+daemon_domain(portmap)
+
+can_network(portmap_t)
+allow portmap_t self:unix_dgram_socket create_socket_perms;
+allow portmap_t self:unix_stream_socket create_stream_socket_perms;
+
+type portmap_port_t, port_type;
+
+tmp_domain(portmap)
+
+allow portmap_t portmap_port_t:{ udp_socket tcp_socket } name_bind;
+
+# portmap binds to arbitary ports
+allow portmap_t port_t:{ udp_socket tcp_socket } name_bind;
+
+allow portmap_t etc_t:file { getattr read };
+
+# Send to ypbind, initrc, rpc.statd, xinetd.
+ifdef(`ypbind.te',
+`can_udp_send(portmap_t, ypbind_t)')
+can_udp_send(portmap_t, { initrc_t init_t })
+can_udp_send(init_t, portmap_t)
+ifdef(`rpcd.te',
+`can_udp_send(portmap_t, rpcd_t)')
+ifdef(`inetd.te',
+`can_udp_send(portmap_t, inetd_t)')
+ifdef(`lpd.te',
+`can_udp_send(portmap_t, lpd_t)')
+ifdef(`tcpd.te', `
+can_udp_send(tcpd_t, portmap_t)
+')
+can_udp_send(portmap_t, kernel_t)
+can_udp_send(kernel_t, portmap_t)
+can_udp_send(sysadm_t, portmap_t)
+can_udp_send(portmap_t, sysadm_t)
+
+# Use capabilities
+allow portmap_t self:capability { net_bind_service setuid setgid };
+
+# do not log when it tries to bind to a port belonging to another domain
+#dontaudit portmap_t port_type:{ tcp_socket udp_socket } name_bind;
+dontaudit portmap_t devpts_t:chr_file { read write };
+

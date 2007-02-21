@@ -1,0 +1,29 @@
+#
+# Author:  Brian Feldman <bfeldman@tislabs.com>
+#
+
+#################################
+#
+# Rules for the cleanvar_t domain.
+#
+type cleanvar_t, domain, privlog;
+type cleanvar_exec_t, file_type, sysadmfile, exec_type;
+
+role system_r types cleanvar_t;
+
+domain_auto_trans(initrc_t, cleanvar_exec_t, cleanvar_t)
+allow cleanvar_t self:fd *;
+allow cleanvar_t init_t:fd use;
+allow cleanvar_t { var_run_t var_spool_t }:dir { rw_dir_perms };
+allow cleanvar_t var_run_t:file create_file_perms;
+allow cleanvar_t var_spool_t:file create_file_perms;
+# We really need /var/{run,spool}/*...
+allow cleanvar_t { pidfile var_spool_t }:file { getattr unlink };
+
+allow cleanvar_t { var_t etc_t bin_t sbin_t root_t device_t } :dir r_dir_perms;
+allow cleanvar_t null_device_t:chr_file r_file_perms;
+allow cleanvar_t self:capability dac_override;
+allow cleanvar_t fs_t:filesystem { getattr };
+can_exec(cleanvar_t, bin_t)
+general_domain_access(cleanvar_t) #!!!
+uses_shlib(cleanvar_t)

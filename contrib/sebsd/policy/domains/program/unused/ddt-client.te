@@ -1,0 +1,38 @@
+#DESC DDT - Dynamic DNS client
+#
+# Author:  Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: ddt-client
+#
+
+# ddt is a dynamic DNS system based on Postgresql for the server.
+
+#################################
+#
+# Rules for the ddt_client_t domain.
+#
+# ddt_client_exec_t is the type of the ddt_client executable.
+#
+daemon_domain(ddt_client)
+
+etc_domain(ddt_client)
+typealias ddt_client_etc_t alias etc_ddt_client_t;
+type var_lib_ddt_client_t, file_type, sysadmfile;
+log_domain(ddt_client)
+typealias ddt_client_log_t alias var_log_ddt_client_t;
+
+file_type_trans(ddt_client_t, var_lib_t, var_lib_ddt_client_t)
+
+# Use the network.
+can_network(ddt_client_t)
+allow ddt_client_t self:unix_stream_socket create_socket_perms;
+allow ddt_client_t self:unix_dgram_socket create_socket_perms;
+
+# Use capabilities
+allow ddt_client_t self:capability { setuid setgid dac_override chown };
+
+allow ddt_client_t etc_t:dir search;
+allow ddt_client_t etc_t:lnk_file read;
+
+allow ddt_client_t sysctl_kernel_t:dir search;
+allow ddt_client_t sysctl_kernel_t:file read;
+

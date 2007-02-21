@@ -1,0 +1,21 @@
+# $FreeBSD: src/lib/libc/compat-43/Symbol.map,v 1.1 2006/03/13 00:53:16 deischen Exp $
+
+FBSD_1.0 {
+	creat;
+	gethostid;
+	getwd;
+	killpg;
+	sethostid;
+	setpgrp;
+	setrgid;
+	setruid;
+	sigblock;
+	sigpause;
+	sigsetmask;
+	sigvec;
+};
+
+FBSDprivate {
+	__creat;
+	_creat;
+};

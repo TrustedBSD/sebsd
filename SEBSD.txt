@@ -1,0 +1,28 @@
+SEBSD - Security-Enhanced BSD
+SPARTA, Inc.
+
+SEBSD is an experimental implementation of NSA's FLASK and Type Enforcement
+technologies, ported from SELinux using the TrustedBSD MAC Framework.  SEBSD
+consists of the following components:
+
+- FreeBSD 7.x source tree.
+
+- SEBSD policy module (src/sys/security/sebsd/)
+	- NSA's FLASK security architecture, including Access Vector Cache
+	  (AVC).
+	- SEBSD wrapper, to sit between the MAC Framework and FLASK
+	- NSA's Type Enforcement policy "security server"
+
+- Modified SELinux sample policy, capable of running (with some limitations)
+  on SEBSD.  (src/contrib/sebsd/policy/)
+
+- Modifications to the FreeBSD 7.x kernel to extend the MAC Framework to
+  support additional labeling and enforcement points required by SEBSD.
+  (src/sys)
+
+- Modifications to the FreeBSD 7.x user space to support transition-based
+  labeling changes as part of user credential events.  (src/)
+
+- SELinux userland components, including libsepol, libselinux, libsemanage,
+  and policy tools.  (src/contrib/sebsd/{checkpolicy,libselinux,libsepol,
+  libsemanage,policycoreutils}/)

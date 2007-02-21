@@ -1,0 +1,109 @@
+# FLASK
+
+#
+# Security contexts for files in filesystems that
+# cannot support persistent label mappings or use one of the
+# fixed labeling schemes specified in fs_use.
+#
+# Each specifications has the form:
+# 	genfscon fstype pathname-prefix [ -type ] context
+#
+# The entry with the longest matching pathname prefix is used.
+# / refers to the root directory of the file system, and
+# everything is specified relative to this root directory.
+# If there is no entry with a matching pathname prefix, then 
+# the unlabeled initial SID is used.
+#
+# The optional type field specifies the file type as shown in the mode
+# field by ls, e.g. use -c to match only character device files, -b
+# to match only block device files.
+#
+# Except for proc, in 2.6 other filesystems are limited to a single entry (/)
+# that covers all entries in the filesystem with a default file context.
+# For proc, a pathname can be reliably generated from the proc_dir_entry
+# tree.  The proc /sys entries are used for both proc inodes and for sysctl(2)
+# calls. /proc/PID entries are automatically labeled based on the associated
+# process.
+#
+# Support for other filesystem types requires corresponding code to be
+# added to the kernel, either as an xattr handler in the filesystem 
+# implementation (preferred, and necessary if you want to access the labels
+# from userspace) or as logic in the SELinux module.
+
+# proc (excluding /proc/PID and /proc/sys)
+genfscon proc /				system_u:object_r:proc_t
+genfscon proc /kmsg			system_u:object_r:proc_kmsg_t
+genfscon proc /kcore			system_u:object_r:proc_kcore_t
+
+# procfs (FreeBSD)
+genfscon procfs /			system_u:object_r:proc_t
+# iso9660
+genfscon iso9660 /			system_u:object_r:iso9660_t
+genfscon udf /				system_u:object_r:iso9660_t
+# cd9660 (Freebsd)
+genfscon cd9660 /			system_u:object_r:iso9660_t
+
+# samba
+genfscon cifs /				system_u:object_r:sambafs_t
+genfscon smbfs /			system_u:object_r:sambafs_t
+
+# nfs
+genfscon nfs /				system_u:object_r:nfs_t
+
+genfscon nfsd / system_u:object_r:nfsd_fs_t
+genfscon rpc_pipefs / system_u:object_r:rpc_pipefs_t
+genfscon binfmt_misc / system_u:object_r:binfmt_misc_fs_t
+
+
+# driverfs
+#genfscon driverfs /			system_u:object_r:driverfs_t
+
+# usbdevfs
+genfscon usbdevfs /			system_u:object_r:usbdevfs_t
+genfscon usbdevfs /0 -- 		system_u:object_r:usbdevfs_device_t
+
+# devfs
+genfscon devfs /			system_u:object_r:device_t
+genfscon devfs /null			system_u:object_r:null_device_t
+genfscon devfs /zero			system_u:object_r:zero_device_t
+genfscon devfs /console		system_u:object_r:console_device_t
+genfscon devfs /kmem			system_u:object_r:memory_device_t
+genfscon devfs /mem			system_u:object_r:memory_device_t
+genfscon devfs /random		system_u:object_r:random_device_t
+genfscon devfs /urandom		system_u:object_r:random_device_t
+genfscon devfs /tty			system_u:object_r:devtty_t
+genfscon devfs /ctty			system_u:object_r:devtty_t
+genfscon devfs /ttyv			system_u:object_r:tty_device_t
+genfscon devfs /pty			system_u:object_r:devpts_t
+genfscon devfs /ttyp			system_u:object_r:devpts_t
+genfscon devfs /ttyq			system_u:object_r:devpts_t
+genfscon devfs /ttyr			system_u:object_r:devpts_t
+genfscon devfs /ttys			system_u:object_r:devpts_t
+genfscon devfs /ttyP			system_u:object_r:devpts_t
+genfscon devfs /ttyQ			system_u:object_r:devpts_t
+genfscon devfs /ttyR			system_u:object_r:devpts_t
+genfscon devfs /ttyS			system_u:object_r:devpts_t
+#genfscon devfs /cua			system_u:object_r:serial_device_t
+#genfscon devfs /ttyd			system_u:object_r:serial_device_t
+#genfscon devfs /ttyid			system_u:object_r:serial_device_t
+#genfscon devfs /ttyld			system_u:object_r:serial_device_t
+genfscon devfs /ad	-c		system_u:object_r:fixed_disk_device_t
+genfscon devfs /acd	-c		system_u:object_r:fixed_disk_device_t
+genfscon devfs /fd 	-c		system_u:object_r:removable_device_t
+genfscon devfs /ppp			system_u:object_r:ppp_device_t
+genfscon devfs /initctl		system_u:object_r:initctl_t
+genfscon devfs /log			system_u:object_r:devlog_t
+genfscon devfs /misc/psaux		system_u:object_r:mouse_device_t
+genfscon devfs /input/mouse		system_u:object_r:mouse_device_t
+genfscon devfs /mse			system_u:object_r:mouse_device_t
+genfscon devfs /psm			system_u:object_r:mouse_device_t
+genfscon devfs /ums			system_u:object_r:mouse_device_t
+#genfscon devfs /sysmouse		system_u:object_r:sysmouse_device_t
+#genfscon devfs /gpmctl		system_u:object_r:gpmctl_t
+genfscon devfs /ptmx			system_u:object_r:ptmx_t
+genfscon devfs /acpi			system_u:object_r:apm_bios_t
+genfscon devfs /sound -c		system_u:object_r:sound_device_t
+genfscon devfs /usb			system_u:object_r:usbdevfs_device_t
+genfscon devfs /bpf -c			system_u:object_r:bpf_device_t
+genfscon devfs /klog			system_u:object_r:klog_device_t
+# FLASK

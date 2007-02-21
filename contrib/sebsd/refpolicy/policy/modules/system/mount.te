@@ -1,0 +1,149 @@
+
+policy_module(mount,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+type mount_t;
+type mount_exec_t;
+init_system_domain(mount_t,mount_exec_t)
+role system_r types mount_t;
+
+type mount_tmp_t;
+files_tmp_file(mount_tmp_t)
+
+########################################
+#
+# mount local policy
+#
+
+allow mount_t self:capability { ipc_lock sys_rawio sys_admin dac_override chown sys_tty_config };
+
+allow mount_t mount_tmp_t:file create_file_perms;
+allow mount_t mount_tmp_t:dir create_dir_perms;
+files_tmp_filetrans(mount_t,mount_tmp_t,{ file dir })
+
+kernel_read_system_state(mount_t)
+
+corenet_dontaudit_tcp_bind_all_reserved_ports(mount_t)
+corenet_dontaudit_udp_bind_all_reserved_ports(mount_t)
+
+dev_getattr_all_blk_files(mount_t)
+dev_list_all_dev_nodes(mount_t)
+dev_rw_lvm_control(mount_t)
+dev_dontaudit_getattr_memory_dev(mount_t)
+dev_getattr_sound_dev(mount_t)
+
+storage_raw_read_fixed_disk(mount_t)
+storage_raw_write_fixed_disk(mount_t)
+storage_raw_read_removable_device(mount_t)
+storage_raw_write_removable_device(mount_t)
+
+fs_getattr_xattr_fs(mount_t)
+fs_mount_all_fs(mount_t)
+fs_unmount_all_fs(mount_t)
+fs_remount_all_fs(mount_t)
+fs_relabelfrom_all_fs(mount_t)
+fs_list_auto_mountpoints(mount_t)
+fs_rw_tmpfs_chr_files(mount_t)
+fs_read_tmpfs_symlinks(mount_t)
+
+term_use_all_terms(mount_t)
+
+# required for mount.smbfs
+corecmd_exec_sbin(mount_t)
+corecmd_exec_bin(mount_t)
+
+domain_use_interactive_fds(mount_t)
+
+files_search_all(mount_t)
+files_read_etc_files(mount_t)
+files_manage_etc_runtime_files(mount_t)
+files_mounton_all_mountpoints(mount_t)
+files_unmount_rootfs(mount_t)
+# These rules need to be generalized.  Only admin, initrc should have it:
+files_relabelto_all_file_type_fs(mount_t)
+files_mount_all_file_type_fs(mount_t)
+files_unmount_all_file_type_fs(mount_t)
+# for when /etc/mtab loses its type
+# cjp: this seems wrong, the type should probably be etc
+files_read_isid_type_files(mount_t)
+
+init_use_fds(mount_t)
+init_use_script_ptys(mount_t)
+
+libs_use_ld_so(mount_t)
+libs_use_shared_libs(mount_t)
+
+logging_send_syslog_msg(mount_t)
+
+miscfiles_read_localization(mount_t)
+
+mls_file_read_up(mount_t)
+mls_file_write_down(mount_t)
+
+sysnet_use_portmap(mount_t)
+
+userdom_use_all_users_fds(mount_t)
+
+ifdef(`distro_redhat',`
+	optional_policy(`authlogin',`
+		auth_read_pam_console_data(mount_t)
+		# mount config by default sets fscontext=removable_t
+		fs_relabelfrom_dos_fs(mount_t)
+	')
+')
+
+optional_policy(`portmap',`
+	# for nfs
+	corenet_non_ipsec_sendrecv(mount_t)
+	corenet_tcp_sendrecv_all_if(mount_t)
+	corenet_raw_sendrecv_all_if(mount_t)
+	corenet_udp_sendrecv_all_if(mount_t)
+	corenet_tcp_sendrecv_all_nodes(mount_t)
+	corenet_raw_sendrecv_all_nodes(mount_t)
+	corenet_udp_sendrecv_all_nodes(mount_t)
+	corenet_tcp_sendrecv_all_ports(mount_t)
+	corenet_udp_sendrecv_all_ports(mount_t)
+	corenet_tcp_bind_all_nodes(mount_t)
+	corenet_udp_bind_all_nodes(mount_t)
+	corenet_tcp_bind_generic_port(mount_t)
+	corenet_udp_bind_generic_port(mount_t)
+	corenet_tcp_bind_reserved_port(mount_t)
+	corenet_udp_bind_reserved_port(mount_t)
+	corenet_tcp_connect_all_ports(mount_t)
+
+	fs_search_rpc(mount_t)
+
+	portmap_udp_chat(mount_t)
+
+	optional_policy(`nis',`
+		nis_use_ypbind(mount_t)
+	')
+')
+
+optional_policy(`apm',`
+	apm_use_fds(mount_t)
+')
+
+# for kernel package installation
+optional_policy(`rpm',`
+	rpm_rw_pipes(mount_t)
+')
+
+optional_policy(`samba',`
+	samba_domtrans_smbmount(mount_t)
+')
+
+ifdef(`TODO',`
+# TODO: Need to examine this further. Not sure how to handle this
+#type sysadm_mount_source_t, file_type, sysadmfile, $1_file_type;
+#allow sysadm_t sysadm_mount_source_t:file create_file_perms;
+#allow sysadm_t sysadm_mount_source_t:file { relabelto relabelfrom };
+#allow mount_t sysadm_mount_source_t:file rw_file_perms;
+
+# for when /etc/mtab loses its type
+allow mount_t file_t:file unlink;
+') dnl endif TODO

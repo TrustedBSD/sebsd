@@ -1,0 +1,33 @@
+#
+# Author:  Brian Feldman <bfeldman@tislabs.com>
+#
+
+#################################
+#
+# Rules for the usbmodules_t domain.
+#
+type usbd_t, domain, privlog;
+type usbd_exec_t, file_type, sysadmfile, exec_type;
+
+role sysadm_r types usbd_t;
+role system_r types usbd_t;
+
+domain_auto_trans(initrc_t, usbd_exec_t, usbd_t)
+allow usbd_t etc_t:dir r_dir_perms;
+allow usbd_t etc_t:file r_file_perms;
+allow usbd_t self:fd *;
+
+dontaudit usbd_t init_t:fd use;
+
+
+uses_shlib(usbd_t)
+can_exec_any(usbd_t)
+
+# allow usb device access
+allow usbd_t usbdevfs_device_t:chr_file { rw_file_perms };
+allow usbd_t mouse_device_t:chr_file { rw_file_perms };
+
+#allow usb devices /var access
+allow usbd_t var_run_t:file { create write getattr };
+allow usbd_t var_run_t:dir { add_name };
+

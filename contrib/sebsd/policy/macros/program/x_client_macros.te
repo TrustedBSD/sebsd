@@ -1,0 +1,194 @@
+#
+# Macros for X client programs ($2 etc)
+#
+
+#
+# Author: Russell Coker <russell@coker.com.au>
+# Based on the work of Stephen Smalley <sds@epoch.ncsc.mil>
+# and Timothy Fraser 
+#
+
+#
+# x_client_domain(domain_prefix)
+#
+# Define a derived domain for an X program when executed by
+# a user domain.  
+#
+# The type declaration for the executable type for this program ($2_exec_t)
+# must be provided separately!
+#
+# The first parameter is the base name for the domain/role (EG user or sysadm)
+# The second parameter is the program name (EG $2)
+# The third parameter is the attributes for the domain (if any)
+#
+define(`x_client_domain',`
+# Derived domain based on the calling user domain and the program.
+ifdef(`single_userdomain', `
+typealias $1_t alias $1_$2_t;
+typealias $1_home_t alias $1_$2_rw_t;
+typealias $1_home_t alias $1_$2_ro_t;
+', `
+type $1_$2_t, domain $3;
+# Type for files that are writeable by this domain.
+type $1_$2_rw_t, file_type, homedirfile, sysadmfile, tmpfile;
+# Type for files that are read-only for this domain
+type $1_$2_ro_t, file_type, homedirfile, sysadmfile;
+')
+
+# Transition from the user domain to the derived domain.
+domain_auto_trans($1_t, $2_exec_t, $1_$2_t)
+can_exec($1_$2_t, $2_exec_t)
+
+# The user role is authorized for this domain.
+role $1_r types $1_$2_t;
+
+# This domain is granted permissions common to most domains (including can_net)
+can_network($1_$2_t)
+can_ypbind($1_$2_t)
+allow $1_$2_t self:process { fork signal_perms getsched };
+allow $1_$2_t self:unix_dgram_socket create_socket_perms;
+allow $1_$2_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow $1_$2_t self:fifo_file rw_file_perms;
+allow $1_$2_t etc_runtime_t:file { getattr read };
+allow $1_$2_t etc_t:lnk_file read;
+allow $1_$2_t fs_t:filesystem getattr;
+read_locale($1_$2_t)
+r_dir_file($1_$2_t, readable_t)
+allow $1_$2_t devtty_t:chr_file { read write };
+allow $1_$2_t proc_t:dir search;
+allow $1_$2_t proc_t:lnk_file read;
+allow $1_$2_t self:dir search;
+allow $1_$2_t self:lnk_file read;
+allow $1_$2_t sysctl_kernel_t:dir search;
+allow $1_$2_t sysctl_kernel_t:file { getattr read };
+
+ifdef(`xauth.te',`
+allow $1_$2_t $1_home_xauth_t:file { getattr read };
+')
+
+# Allow the user domain to relabel to or create files with this type
+# to provide the domain with write access to particular files.
+allow $1_t $1_$2_rw_t:{ dir file lnk_file } { relabelfrom relabelto };
+# allow $1_t to create dirs and files in the rw type (the auto_trans rule above
+# does it for $1_$2_t)
+allow $1_t $1_$2_rw_t:dir create_dir_perms;
+allow $1_t $1_$2_rw_t:{ file lnk_file } create_file_perms;
+
+r_dir_file($1_$2_t, $1_$2_ro_t)
+allow $1_$2_t $1_$2_ro_t:fifo_file { read write };
+create_dir_file($1_t, $1_$2_ro_t)
+allow $1_t $1_$2_ro_t:fifo_file create_file_perms;
+allow $1_t $1_$2_ro_t:{ dir file lnk_file } { relabelto relabelfrom };
+
+ifdef(`slocate.te', `
+allow $1_locate_t { $1_$2_ro_t $1_$2_rw_t }:dir { getattr search };
+allow $1_locate_t { $1_$2_ro_t $1_$2_rw_t }:file { getattr read };
+')
+
+# Allow the user domain to send any signal to the $2 process.
+allow $1_t $1_$2_t:process signal_perms;
+
+# Allow the user domain to read the /proc/PID directory for 
+# the $2 process.
+allow $1_t $1_$2_t:dir r_dir_perms;
+allow $1_t $1_$2_t:notdevfile_class_set r_file_perms;
+
+# Allow use of /dev/zero by ld.so.
+allow $1_$2_t device_t:dir search;
+allow $1_$2_t zero_device_t:chr_file rw_file_perms;
+allow $1_$2_t zero_device_t:chr_file x_file_perms;
+
+# allow using shared libraries and running programs
+uses_shlib($1_$2_t)
+allow $1_$2_t { bin_t sbin_t }:dir search;
+allow $1_$2_t bin_t:lnk_file read;
+can_exec($1_$2_t, { shell_exec_t bin_t })
+allow $1_$2_t etc_t:file { getattr read };
+
+# Inherit and use descriptors from gnome-pty-helper.
+ifdef(`gnome-pty-helper.te', `allow $1_$2_t $1_gph_t:fd use;')
+allow $1_$2_t privfd:fd use;
+
+# Connect to sshd.
+ifdef(`sshd.te', `can_tcp_connect($1_$2_t, sshd_t)')
+
+# Allow connections to X server.
+ifdef(`xserver.te', `
+allow $1_$2_t tmp_t:dir search;
+
+ifdef(`xdm.te', `
+# for when /tmp/.X11-unix is created by the system
+allow $1_$2_t xdm_xserver_tmp_t:dir search;
+allow $1_$2_t xdm_t:fifo_file rw_file_perms;
+')
+
+ifdef(`startx.te', `
+# for when /tmp/.X11-unix is created by the X server
+allow $1_$2_t $1_xserver_tmp_t:dir search;
+
+# for /tmp/.X0-lock
+allow $1_$2_t $1_xserver_tmp_t:file getattr;
+
+allow $1_$2_t $1_xserver_tmp_t:sock_file rw_file_perms;
+can_unix_connect($1_$2_t, $1_xserver_t)
+')dnl end startx
+')dnl end xserver
+
+# for .xsession-errors
+dontaudit $1_$2_t $1_home_t:file write;
+
+# for X over a ssh tunnel
+ifdef(`ssh.te', `
+can_tcp_connect($1_$2_t, sshd_t)
+')
+
+# Access the terminal.
+allow $1_$2_t $1_tty_device_t:chr_file rw_file_perms;
+allow $1_$2_t $1_devpts_t:chr_file rw_file_perms;
+
+# Read the home directory, e.g. for .Xauthority and to get to config files
+allow $1_$2_t home_root_t:dir { search getattr };
+file_type_auto_trans($1_$2_t, $1_home_dir_t, $1_$2_rw_t)
+
+# Use a separate type for tmpfs/shm pseudo files.
+tmpfs_domain($1_$2)
+
+allow $1_$2_t self:shm create_shm_perms;
+
+# Communicate via shared memory.
+ifdef(`startx.te', `
+# Allow the $2 domain to signal the X server.
+allow $1_$2_t $1_xserver_t:process signal;
+# Use descriptors created by each other.
+allow $1_$2_t $1_xserver_t:fd use;
+allow $1_xserver_t $1_$2_t:fd use;
+
+allow $1_xserver_t $1_$2_t:shm rw_shm_perms;
+allow $1_xserver_t $1_$2_tmpfs_t:file rw_file_perms;
+allow $1_$2_t $1_xserver_t:shm r_shm_perms;
+allow $1_$2_t $1_xserver_tmpfs_t:file r_file_perms;
+')dnl end startx.te policy
+
+ifdef(`xdm.te', `
+# Allow the $2 domain to signal the X server.
+allow $1_$2_t xdm_xserver_t:process signal;
+# Use descriptors created by each other.
+allow $1_$2_t xdm_xserver_t:fd use;
+allow xdm_xserver_t $1_$2_t:fd use;
+
+allow xdm_xserver_t $1_$2_t:shm rw_shm_perms;
+allow xdm_xserver_t $1_$2_tmpfs_t:file rw_file_perms;
+allow $1_$2_t xdm_xserver_t:shm r_shm_perms;
+allow $1_$2_t xdm_xserver_tmpfs_t:file r_file_perms;
+
+can_unix_connect($1_$2_t, xdm_xserver_t)
+allow $1_$2_t xdm_xserver_tmp_t:dir search;
+allow $1_$2_t xdm_xserver_tmp_t:sock_file { read write };
+allow $1_$2_t xdm_t:fd use;
+dontaudit $1_$2_t xdm_t:tcp_socket { read write };
+')dnl end xdm.te
+
+# allow X client to read all font files
+r_dir_file($1_$2_t, fonts_t)
+
+')dnl end x_client macro

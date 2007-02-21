@@ -1,0 +1,292 @@
+# Define sensitivities 
+#
+# Each sensitivity has a name and zero or more aliases.
+
+sensitivity unclassified alias u;
+sensitivity confidential alias c;
+sensitivity secret alias s;
+sensitivity top_secret alias ts;
+
+# Define the ordering of the sensitivity levels (least to greatest)
+dominance { u c s ts }
+
+# Define the categories
+#
+# Each category has a name and zero or more aliases.
+#
+
+category nocon;
+category noforn;
+category nato;
+category usuk;
+
+# Identify which categories may be associated with which sensitivities
+#
+# Each MLS level specifies a sensitivity and zero or more categories which may
+# be associated with that sensitivity.
+
+level u; 
+level c;
+level s:nocon, noforn;
+level ts:nocon, noforn, nato, usuk;
+
+#
+# Map each permission to a set of MLS base permissions.
+#
+
+common file
+{
+	ioctl		:	none
+	read		:	read
+	write		:	write
+	create		:	write
+	getattr		:	read
+	setattr		:	write
+	lock		:	none
+	relabelfrom	:	{ read write }
+	relabelto	:	write
+	append		:	write
+	unlink		:	write
+	link		:	write
+	rename		:	write
+	execute		:	read
+	swapon		:	{ read write }
+	quotaon		:	{ read write }
+	mounton		:	{ read write }
+}
+
+common socket
+{
+	ioctl		:	none
+	read		:	read
+	write		:	write
+	create		:	write
+	getattr		:	read
+	setattr		:	write
+	lock		:	none
+	relabelfrom	:	{ read write }
+	relabelto	:	write
+	append		:	write
+	bind		:	write
+	connect		:	write
+	listen		:	read
+	accept		:	read
+	getopt		:	read
+	setopt		:	write
+	shutdown	:	write
+	recvfrom	:	read
+	sendto		:	write
+	recv_msg	:	read
+	send_msg	:	write
+	name_bind	:	none
+}
+
+common ipc
+{
+	create		:	write
+	destroy		:	write
+	getattr		:	read
+	setattr		:	write
+	read		:	read
+	write		:	write
+	associate	:	none
+	unix_read	:	read
+	unix_write	:	write
+}
+
+class filesystem
+{
+	mount		:	write
+	remount		:	write
+	unmount		:	write
+	getattr		:	read
+	relabelfrom	:	{ read write }
+	relabelto	:	write
+	transition	:	write
+	associate	:	none
+	quotamod	:	write
+	quotaget	:	read
+}
+
+class dir
+{
+	add_name	:	write	
+	remove_name	:	write
+	reparent	:	write
+	search		:	read
+	rmdir		:	{ read write }
+}
+
+class file 
+{
+	execute_no_trans	:	read
+	entrypoint		:	read
+}
+class lnk_file
+class chr_file
+class blk_file
+class sock_file
+class fifo_file
+
+class fd
+{
+	use		:	{ read write }
+}
+
+class socket
+
+class tcp_socket
+{
+	connectto 	:	write
+	newconn 	:	write
+        acceptfrom 	:	read
+        node_bind	:	none
+}
+
+class udp_socket
+{
+	node_bind	:	none
+}
+
+class rawip_socket
+{
+	node_bind	:	none
+}
+
+class node 
+{
+	tcp_recv 	:	read	
+	tcp_send	:	write	
+	udp_recv 	:	read
+	udp_send	:	write
+	rawip_recv	:	read
+	rawip_send	:	write
+	enforce_dest	:	none
+}
+
+class netif
+{
+	tcp_recv 	:	read	
+	tcp_send	:	write
+	udp_recv 	:	read
+	udp_send	:	write
+	rawip_recv 	:	read
+	rawip_send	:	write
+}
+
+class netlink_socket
+class packet_socket
+class key_socket
+class unix_dgram_socket
+
+class unix_stream_socket
+{
+	connectto 	:	write
+	newconn 	:	write
+        acceptfrom 	:	read
+}
+
+
+class process
+{
+	fork		:	none
+	transition	:	write
+	sigchld		:	write	
+	sigkill		:	write
+	sigstop		:	write
+	signull		:	none
+	signal		:	write
+	ptrace		:	{ read write }
+	getsched	:	read
+	setsched	:	write
+	getsession	:	read
+	getpgid		:	read
+	setpgid		:	write
+	getcap		:	read
+	setcap		:	write
+	share		:	{ read write }
+	noatsecure	:	none
+	getattr		:	read
+	setexec		:	write
+	setfscreate	:	write
+}
+
+class ipc
+
+class sem
+
+class msgq
+{
+	enqueue		:	write
+}
+
+class msg
+{
+	send		:	write
+	receive		:	read
+}
+
+class shm
+{
+	lock		:	write 
+}
+
+class security
+{
+	compute_av		:	none
+	compute_create		:	none
+	compute_member		:	none
+	check_context		:	none
+	load_policy		:	none
+	compute_relabel		:	none
+	compute_user		:	none
+	setenforce		:	none
+}
+
+class system
+{
+	ipc_info		:	none
+	syslog_read		:	none
+	syslog_mod		:	none
+	syslog_console		:	none
+}
+
+class capability
+{
+	chown           	: 	none
+	dac_override    	: 	none
+	dac_read_search 	: 	none
+	fowner          	: 	none
+	fsetid          	: 	none
+	kill            	: 	none
+	setgid          	: 	none 
+	setuid          	: 	none 
+	setpcap         	: 	none 
+	linux_immutable 	: 	none 
+	net_bind_service	: 	none 
+	net_broadcast   	: 	none 
+	net_admin       	: 	none 
+	net_raw         	: 	none 
+	ipc_lock        	: 	none 
+	ipc_owner       	: 	none 
+	sys_module      	: 	none 
+	sys_rawio       	: 	none 
+	sys_chroot      	: 	none 
+	sys_ptrace      	: 	none 
+	sys_pacct       	: 	none 
+	sys_admin       	: 	none 
+	sys_boot        	: 	none 
+	sys_nice        	: 	none 
+	sys_resource    	: 	none 
+	sys_time        	: 	none 
+	sys_tty_config  	: 	none
+	mknod			:	none
+	lease			:	none
+}
+
+class passwd
+{
+	passwd			:	write
+	chfn			:	write
+	chsh			:	write
+}

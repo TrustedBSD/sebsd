@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# $NetBSD: SERVERS,v 1.9 2002/03/22 04:33:57 thorpej Exp $
+# $FreeBSD: src/etc/rc.d/SERVERS,v 1.6 2006/02/19 08:18:48 dougb Exp $
+#
+
+# PROVIDE: SERVERS
+# REQUIRE: mountcritremote abi
+
+#	This is a dummy dependency, for early-start servers relying on
+#	some basic configuration.

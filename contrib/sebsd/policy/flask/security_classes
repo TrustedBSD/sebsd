@@ -1,0 +1,53 @@
+# FLASK
+
+#
+# Define the security object classes 
+#
+
+class security
+class process
+class system
+class capability
+
+# file-related classes
+class filesystem
+class file
+class dir
+class fd
+class lnk_file
+class chr_file
+class blk_file
+class sock_file
+class fifo_file
+
+# network-related classes
+class socket
+class tcp_socket
+class udp_socket
+class rawip_socket
+class node
+class netif
+class netlink_socket
+class packet_socket
+class key_socket
+class unix_stream_socket
+class unix_dgram_socket
+
+# sysv-ipc-related clases
+class sem
+class msg
+class msgq
+class shm
+class ipc
+
+#Posix.1b-related classes
+class posix_sem
+
+#
+# userspace object manager classes
+#
+
+# passwd/chfn/chsh
+class passwd
+
+# FLASK

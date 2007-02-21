@@ -1,0 +1,145 @@
+This file contains rudimentary release notes about the TrustedBSD MAC
+implementation.
+
+Enabling MAC
+------------
+
+Add the following to your kernel configuration:
+
+options		MAC			# Mandatory Access Control
+#options 	MAC_DEBUG		# Might also be useful
+#options 	MAC_ALWAYS_LABEL_MBUF	# Don't conditionally label mbufs
+#options 	MAC_STATIC		# Optimize out dynamic loading support
+
+Rebuild and reinstall world and kernel.  Make sure that login.conf is
+in sync with that provided in the MAC repository, and that login.conf.db
+is up to date also; this can be done most easily via mergemaster(8).
+
+There are a variety of MAC modules installed in /boot/kernel following
+an installkernel.  Some must be loaded prior to boot in the loader;
+others may be loaded when needed before or after the boot.  The
+following loader.conf lines are currently relevant:
+
+mac_biba_load="NO"              # Biba MAC policy		(boot only)
+mac_bsdextended_load="NO"       # BSD/extended MAC policy
+mac_chkexec_load="NO"		# Trusted execution policy
+mac_ifoff="NO"                  # Interface silencing policy
+mac_lomac_load="NO"		# Low-Watermark Mandatory Access Control
+mac_mls_load="NO"               # MLS MAC policy		(boot only)
+mac_none_load="NO"              # Null MAC policy
+mac_partition_load="NO"		# Partition MAC policy
+mac_portacl_load="NO"		# IP port access control lists
+mac_seeotheruids_load="NO"      # UID visbility MAC policy
+mac_test_load="NO"		# Regression test module
+
+
+Kernel options known not to work with MAC
+-----------------------------------------
+
+options		INET6				# Mostly works
+options		IPSEC				# Sort of works
+options		NCP				# Might work
+options 	NETATALK			# Might work
+options		NETATM				# Also might work
+options		NETGRAPH			# Probably doesn't work
+options		NETSMB				# Could well work
+options		NFSSERVER			# Probably doesn't work
+options 	NWFS				# Probably doesn't work
+options 	SMBFS				# Probably doesn't work
+
+Using those options may result in incorrect security behavior, memory
+corruption, or a kernel panic.  They do not work with MAC at this time.
+They should work correctly using GENERIC.
+
+Kernel SLIP support may not work correctly, as outgoing mbufs are not
+labeled due to lack of a label to apply.  Probably, the label should be
+per-interface, and stored in the sl_softc.
+
+SPPP support in the kernel may not work correctly, as outgoing mbufs
+are not labeled due to a lack of a label to apply.  Possibly, the
+label should be per-sppp instance.
+
+The "tap" interface is currently under-supported; as an ethernet
+interface, it correctly performs labeling and access control on the
+interface side, but on the /dev side the credential is not involved
+in labeling or access control decisions once the device is open.
+However, the system should "work" properly.
+
+The "tun" interface is currently under-supported; it correctly labels
+and checks packets from the perspective of the interface, but not
+from the perspective of the process on the /dev end of the tunnel
+device.  A comment is present in the source indicating that this needs
+to be fixed, but the current MAC support is sufficient to support
+userland PPP actually functioning with MAC networking enabled.
+
+The netatalk code has been patched to support MAC, but this has not
+been tested, and therefore is unlikely to work.
+
+The NFS server code in many places currently ignores MAC protection.
+This may or may not be the best behavior, as in the past NFS could
+always override discretionary access control due to running in the
+kernel as root all the time.  CODA support is probably in the same
+condition.
+
+Client-side NFS locking is known to Do The Wrong Thing, for a variety
+of reasons.  Unlike the other components of the kernel NFS client,
+it doesn't use the mount-time credential to authorize out-going RPC
+delivery, uses an odd selection of kernel credential to act on the
+FIFO, etc.  (This is now largely fixed due to moving VFS protections
+higher in the stack)
+
+Warning: if you have applications that are involved in setting process
+privileges as a result of user login, or act on behalf of a user,
+and they are not base system applications, they may not properly set
+MAC labels for users when they log in.  As such, before assuming that
+these applications will behave properly, you probably want to send
+a query to trustedbsd-discuss@TrustedBSD.org.  At least one base
+system application is known to work improperly: lukemftpd.
+
+Things not to do with MAC
+-------------------------
+
+Don't use netboot without setting the loader.conf setting to indicate
+to Biba which interface is trusted.  Otherwise, the NFS client will
+fail as it cannot send packets via the interface.
+
+Don't expect X11 to work with MLS enabled if you try to run X11 at
+mls/low (the default).  This won't work because XFree86 expects to
+be able to map video memory, and by default video memory is labeled
+as mls/high so as to be conservative.  If you want to get X to
+work, you can run X at mls/high (possibly not recommended based on
+your security policy requirements) you can run X with an mls/equal
+label to have it override all MLS protections (not advised), or you
+can label the necessary devices so that they can be accessed by the
+user running X (not advised).
+
+For now, use the MAC modules and not the kernel options to enable
+particular MAC policies.  This is necessary because the modules
+are built without INVARIANTS; when compiled with INVARIANTS,
+panics may sometimes be experienced when an uninitialized label
+is passed through the system.  Without INVARIANTS, the system will
+ignore these labels unless they are involved in an access control
+check, in the current configuration.
+
+Things that look like they should work but don't
+------------------------------------------------
+
+Under RELENG_4, /etc/security is a file; in the TrustedBSD MAC branch,
+it's a directory.  If you're upgrading from RELENG_4,
+
+  rm -f /etc/security
+
+before running mergemaster, as mergemaster gets confused if a
+file is replaced with a directory.
+
+Things to try if things go wrong
+--------------------------------
+
+- If your filesystems are multilevel and you toast the label data
+  (or get caught up in a label format upgrade), set
+  security.mac.debug_label_fallback (tunable or sysctl) to 1,
+  and on discovery of a corrupted label, the MAC framework will
+  fall backi to the per-mount label.  Boot the system and delete
+  or upgrade the extended attribute backing files to the new
+  format.  Alternatively, boot the system and remove the
+  multilevel flags from /etc/fstab.

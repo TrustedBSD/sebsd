@@ -1,0 +1,236 @@
+
+policy_module(inetd,1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type inetd_t;
+type inetd_exec_t;
+init_daemon_domain(inetd_t,inetd_exec_t)
+
+type inetd_log_t;
+logging_log_file(inetd_log_t)
+
+type inetd_tmp_t;
+files_tmp_file(inetd_tmp_t)
+
+type inetd_var_run_t;
+files_pid_file(inetd_var_run_t)
+
+type inetd_child_t;
+type inetd_child_exec_t;
+inetd_service_domain(inetd_child_t,inetd_child_exec_t)
+role system_r types inetd_child_t;
+
+type inetd_child_tmp_t;
+files_tmp_file(inetd_child_tmp_t)
+
+type inetd_child_var_run_t;
+files_pid_file(inetd_child_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow inetd_t self:capability { setuid setgid };
+dontaudit inetd_t self:capability sys_tty_config;
+allow inetd_t self:process setsched;
+allow inetd_t self:fifo_file rw_file_perms;
+allow inetd_t self:tcp_socket create_stream_socket_perms;
+allow inetd_t self:udp_socket { connect connected_socket_perms };
+
+allow inetd_t inetd_log_t:file create_file_perms;
+logging_log_filetrans(inetd_t,inetd_log_t,file)
+
+allow inetd_t inetd_tmp_t:dir create_dir_perms;
+allow inetd_t inetd_tmp_t:file create_file_perms;
+files_tmp_filetrans(inetd_t, inetd_tmp_t, { file dir })
+
+allow inetd_t inetd_var_run_t:file create_file_perms;
+files_pid_filetrans(inetd_t,inetd_var_run_t,file)
+
+kernel_read_kernel_sysctls(inetd_t)
+kernel_list_proc(inetd_t)
+kernel_read_proc_symlinks(inetd_t)
+kernel_tcp_recvfrom(inetd_t)
+
+# networking:
+corenet_tcp_sendrecv_all_if(inetd_t)
+corenet_udp_sendrecv_all_if(inetd_t)
+corenet_raw_sendrecv_all_if(inetd_t)
+corenet_tcp_sendrecv_all_nodes(inetd_t)
+corenet_udp_sendrecv_all_nodes(inetd_t)
+corenet_raw_sendrecv_all_nodes(inetd_t)
+corenet_tcp_sendrecv_all_ports(inetd_t)
+corenet_udp_sendrecv_all_ports(inetd_t)
+corenet_non_ipsec_sendrecv(inetd_t)
+corenet_tcp_bind_all_nodes(inetd_t)
+corenet_udp_bind_all_nodes(inetd_t)
+corenet_tcp_connect_all_ports(inetd_t)
+
+# listen on service ports:
+corenet_tcp_bind_amanda_port(inetd_t)
+corenet_udp_bind_amanda_port(inetd_t)
+corenet_tcp_bind_auth_port(inetd_t)
+#corenet_udp_bind_comsat_port(inetd_t)
+corenet_tcp_bind_dbskkd_port(inetd_t)
+corenet_udp_bind_dbskkd_port(inetd_t)
+corenet_udp_bind_ftp_port(inetd_t)
+corenet_tcp_bind_inetd_child_port(inetd_t)
+corenet_tcp_bind_inetd_child_port(inetd_t)
+corenet_udp_bind_ktalkd_port(inetd_t)
+corenet_tcp_bind_printer_port(inetd_t)
+corenet_udp_bind_rsh_port(inetd_t)
+corenet_tcp_bind_rsync_port(inetd_t)
+corenet_udp_bind_rsync_port(inetd_t)
+#corenet_tcp_bind_stunnel_port(inetd_t)
+corenet_tcp_bind_swat_port(inetd_t)
+corenet_udp_bind_swat_port(inetd_t)
+corenet_udp_bind_tftp_port(inetd_t)
+
+dev_read_sysfs(inetd_t)
+
+fs_getattr_all_fs(inetd_t)
+fs_search_auto_mountpoints(inetd_t)
+
+term_dontaudit_use_console(inetd_t)
+
+# Run other daemons in the inetd_child_t domain.
+corecmd_search_bin(inetd_t)
+corecmd_read_sbin_symlinks(inetd_t)
+
+domain_use_interactive_fds(inetd_t)
+
+files_read_etc_files(inetd_t)
+
+init_use_fds(inetd_t)
+init_use_script_ptys(inetd_t)
+
+libs_use_ld_so(inetd_t)
+libs_use_shared_libs(inetd_t)
+
+logging_send_syslog_msg(inetd_t)
+
+miscfiles_read_localization(inetd_t)
+
+sysnet_read_config(inetd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(inetd_t)
+userdom_dontaudit_search_sysadm_home_dirs(inetd_t)
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(inetd_t)
+	term_dontaudit_use_generic_ptys(inetd_t)
+	files_dontaudit_read_root_files(inetd_t)
+')
+
+optional_policy(`amanda',`
+	amanda_search_lib(inetd_t)
+')
+
+optional_policy(`mount',`
+	mount_send_nfs_client_request(inetd_t)
+')
+
+# Communicate with the portmapper.
+optional_policy(`portmap',`
+	portmap_udp_send(inetd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(inetd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(inetd_t)
+')
+
+ifdef(`targeted_policy',`
+	unconfined_domain(inetd_t)
+',`
+	optional_policy(`unconfined',`
+		unconfined_domtrans(inetd_t)
+	')
+')
+
+########################################
+#
+# inetd child local_policy
+#
+
+allow inetd_child_t self:process signal_perms;
+allow inetd_child_t self:fifo_file rw_file_perms;
+allow inetd_child_t self:tcp_socket connected_stream_socket_perms;
+allow inetd_child_t self:udp_socket create_socket_perms;
+
+# for identd
+allow inetd_child_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
+allow inetd_child_t self:capability { setuid setgid };
+allow inetd_child_t self:dir search;
+allow inetd_child_t self:{ lnk_file file } { getattr read };
+files_search_home(inetd_child_t)
+
+allow inetd_child_t inetd_child_tmp_t:dir create_dir_perms;
+allow inetd_child_t inetd_child_tmp_t:file create_file_perms;
+files_tmp_filetrans(inetd_child_t, inetd_child_tmp_t, { file dir })
+
+allow inetd_child_t inetd_child_var_run_t:file create_file_perms;
+allow inetd_child_t inetd_child_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(inetd_child_t,inetd_child_var_run_t,file)
+
+kernel_read_kernel_sysctls(inetd_child_t)
+kernel_read_system_state(inetd_child_t)
+kernel_read_network_state(inetd_child_t)
+
+corenet_tcp_sendrecv_all_if(inetd_child_t)
+corenet_udp_sendrecv_all_if(inetd_child_t)
+corenet_raw_sendrecv_all_if(inetd_child_t)
+corenet_tcp_sendrecv_all_nodes(inetd_child_t)
+corenet_udp_sendrecv_all_nodes(inetd_child_t)
+corenet_raw_sendrecv_all_nodes(inetd_child_t)
+corenet_tcp_sendrecv_all_ports(inetd_child_t)
+corenet_udp_sendrecv_all_ports(inetd_child_t)
+corenet_non_ipsec_sendrecv(inetd_child_t)
+corenet_tcp_bind_all_nodes(inetd_child_t)
+corenet_udp_bind_all_nodes(inetd_child_t)
+
+dev_read_urand(inetd_child_t)
+
+fs_getattr_xattr_fs(inetd_child_t)
+
+files_read_etc_files(inetd_child_t)
+
+libs_use_ld_so(inetd_child_t)
+libs_use_shared_libs(inetd_child_t)
+
+logging_send_syslog_msg(inetd_child_t)
+
+miscfiles_read_localization(inetd_child_t)
+
+sysnet_read_config(inetd_child_t)
+
+tunable_policy(`run_ssh_inetd',`
+	corenet_tcp_bind_ssh_port(inetd_t)
+')
+
+optional_policy(`ftp',`
+	tunable_policy(`ftpd_is_daemon',`
+		# Allows it to check exec privs on daemon
+		ftp_check_exec(inetd_t)
+	')
+')
+
+optional_policy(`kerberos',`
+	kerberos_use(inetd_child_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(inetd_child_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(inetd_child_t)
+')

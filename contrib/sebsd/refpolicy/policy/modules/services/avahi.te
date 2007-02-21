@@ -1,0 +1,107 @@
+
+policy_module(avahi,1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+type avahi_t;
+type avahi_exec_t;
+init_daemon_domain(avahi_t,avahi_exec_t)
+
+type avahi_var_run_t;
+files_pid_file(avahi_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow avahi_t self:capability { dac_override setgid chown kill setuid sys_chroot };
+dontaudit avahi_t self:capability sys_tty_config;
+allow avahi_t self:process { setrlimit signal_perms setcap };
+allow avahi_t self:fifo_file { read write };
+allow avahi_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow avahi_t self:unix_dgram_socket create_socket_perms;
+allow avahi_t self:netlink_route_socket r_netlink_socket_perms;
+allow avahi_t self:tcp_socket create_stream_socket_perms;
+allow avahi_t self:udp_socket create_socket_perms;
+
+allow avahi_t avahi_var_run_t:sock_file create_file_perms;
+allow avahi_t avahi_var_run_t:file create_file_perms;
+allow avahi_t avahi_var_run_t:dir { rw_dir_perms setattr };
+files_pid_filetrans(avahi_t,avahi_var_run_t,file)
+
+kernel_read_kernel_sysctls(avahi_t)
+kernel_list_proc(avahi_t)
+kernel_read_proc_symlinks(avahi_t)
+kernel_read_network_state(avahi_t)
+
+corenet_tcp_sendrecv_all_if(avahi_t)
+corenet_raw_sendrecv_all_if(avahi_t)
+corenet_udp_sendrecv_all_if(avahi_t)
+corenet_tcp_sendrecv_all_nodes(avahi_t)
+corenet_raw_sendrecv_all_nodes(avahi_t)
+corenet_udp_sendrecv_all_nodes(avahi_t)
+corenet_tcp_sendrecv_all_ports(avahi_t)
+corenet_udp_sendrecv_all_ports(avahi_t)
+corenet_non_ipsec_sendrecv(avahi_t)
+corenet_tcp_bind_all_nodes(avahi_t)
+corenet_udp_bind_all_nodes(avahi_t)
+corenet_tcp_bind_howl_port(avahi_t)
+corenet_udp_bind_howl_port(avahi_t)
+
+dev_read_sysfs(avahi_t)
+dev_read_urand(avahi_t)
+
+fs_getattr_all_fs(avahi_t)
+fs_search_auto_mountpoints(avahi_t)
+
+term_dontaudit_use_console(avahi_t)
+
+domain_use_interactive_fds(avahi_t)
+
+files_read_etc_files(avahi_t)
+files_read_etc_runtime_files(avahi_t)
+
+init_use_fds(avahi_t)
+init_use_script_ptys(avahi_t)
+init_signal_script(avahi_t)
+init_signull_script(avahi_t)
+
+libs_use_ld_so(avahi_t)
+libs_use_shared_libs(avahi_t)
+
+logging_send_syslog_msg(avahi_t)
+
+miscfiles_read_localization(avahi_t)
+
+sysnet_read_config(avahi_t)
+
+userdom_dontaudit_use_unpriv_user_fds(avahi_t)
+userdom_dontaudit_search_sysadm_home_dirs(avahi_t)
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_unallocated_ttys(avahi_t)
+	term_dontaudit_use_generic_ptys(avahi_t)
+	files_dontaudit_read_root_files(avahi_t)
+')
+
+optional_policy(`dbus',`
+	dbus_system_bus_client_template(avahi,avahi_t)
+	dbus_connect_system_bus(avahi_t)
+	dbus_send_system_bus(avahi_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(avahi_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(avahi_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(avahi_t)
+')

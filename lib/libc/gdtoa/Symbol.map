@@ -1,0 +1,39 @@
+# $FreeBSD: src/lib/libc/gdtoa/Symbol.map,v 1.1 2006/03/13 00:53:17 deischen Exp $
+
+FBSD_1.0 {
+	# Standard functions from contrib/gdtoa
+	dtoa;
+	freedtoa;
+	g_Qfmt;
+	g_ddfmt;
+	g_dfmt;
+	g_ffmt;
+	g_xLfmt;
+	g_xfmt;
+	gdtoa;
+	strtoIQ;
+	strtoId;
+	strtoIdd;
+	strtoIf;
+	strtoIx;
+	strtoIxL;
+	strtod;
+	strtodI;
+	strtodg;
+	strtof;
+	strtopQ;
+	strtopd;
+	strtopdd;
+	strtopf;
+	strtopx;
+	strtopxL;
+	strtorQ;
+	strtord;
+	strtordd;
+	strtorf;
+	strtorx;
+	strtorxL;
+
+	# FreeBSD additions
+	strtold;
+};

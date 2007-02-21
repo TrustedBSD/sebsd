@@ -1,0 +1,15 @@
+define(`dac_override', `{ dac_read_search dac_execute dac_write }')
+
+# FreeBSD doesn't use netlink sockets for administering networks.
+# Instead of using rules directly, those parts of the policy should use macros.
+define(`netlink_route_socket', `netlink_socket')
+define(`netlink_firewall_socket', `netlink_socket')
+define(`netlink_xfrm_socket', `netlink_socket')
+define(`netlink_ip6fw_socket', `netlink_socket')
+define(`netlink_selinux_socket', `netlink_socket')
+define(`netlink_audit_socket', `netlink_socket')
+define(`netlink_tcpdiag_socket', `netlink_socket')
+define(`netlink_nflog_socket', `netlink_socket')
+define(`netlink_dnrt_socket', `netlink_socket')
+define(`nlmsg_read', `read')
+define(`nlmsg_write', `write')

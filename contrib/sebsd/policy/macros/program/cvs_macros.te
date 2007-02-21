@@ -1,0 +1,58 @@
+
+# Usage: cvs_program_domain (base_type)
+# The base type must have _home_dir_t and terminal type instances.
+
+undefine(cvs_extperms)
+define(cvs_extperms,`
+
+general_domain_access($1)
+
+allow $1 self:fd { create use };
+allow $1 etc_t:dir r_dir_perms;
+allow $1 {etc_t etc_runtime_t}:{file lnk_file} r_file_perms;
+allow $1 device_t:dir r_dir_perms;
+allow $1 {zero_device_t null_device_t}:chr_file rw_file_perms;
+allow $1 locale_t:dir r_dir_perms;
+allow $1 locale_t:{file lnk_file} r_file_perms;
+allow $1 getty_t:fd use;
+allow $1 fs_type:filesystem getattr;
+
+uses_shlib($1)
+')
+
+undefine(cvs_program_domain)
+define(cvs_program_domain,`
+
+type $1_cvs_rw_t, domain;     # read/write repository
+type $1_cvs_ro_t, domain;     # read only repository
+type $1_cvsrep_t, file_type, sysadmfile;
+
+allow $1_cvsrep_t fs_t:filesystem associate;
+allow sysadm_t $1_cvsrep_t:file r_file_perms;
+allow sysadm_t $1_cvsrep_t:dir r_dir_perms;
+
+cvs_extperms($1_cvs_ro_t)
+cvs_extperms($1_cvs_rw_t)
+tmp_domain($1_cvs_rw)
+tmp_domain($1_cvs_ro)
+
+# access repository
+allow $1_cvs_rw_t $1_cvsrep_t:dir create_dir_perms;
+allow $1_cvs_rw_t $1_cvsrep_t:file create_file_perms;
+
+allow $1_cvs_ro_t $1_cvsrep_t:dir r_dir_perms;
+allow $1_cvs_ro_t $1_cvsrep_t:file r_file_perms;
+
+# read/write user home directory
+allow { $1_cvs_rw_t $1_cvs_ro_t } home_root_t:dir { getattr search read };
+allow { $1_cvs_rw_t $1_cvs_ro_t } { $2_home_dir_t $2_home_t }:dir create_dir_perms;
+allow { $1_cvs_rw_t $1_cvs_ro_t } $2_home_t:file create_file_perms;
+
+# talk to the terminal
+allow { $1_cvs_rw_t $1_cvs_ro_t } $2_devpts_t:chr_file { write read getattr poll };
+allow { $1_cvs_rw_t $1_cvs_ro_t } $2_tty_device_t:chr_file { write read getattr poll };
+
+# run helpers
+allow { $1_cvs_rw_t $1_cvs_ro_t } bin_t:dir { read search getattr };
+allow { $1_cvs_rw_t $1_cvs_ro_t } bin_t:file { rx_file_perms execute_no_trans };
+')

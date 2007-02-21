@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# $NetBSD: NETWORKING,v 1.2 2002/03/22 04:33:57 thorpej Exp $
+# $FreeBSD: src/etc/rc.d/NETWORKING,v 1.11 2005/12/03 01:33:06 brooks Exp $
+#
+
+# PROVIDE: NETWORKING NETWORK
+# REQUIRE: netif routing network_ipv6 isdnd ppp
+# REQUIRE: routed mrouted route6d mroute6d
+
+#	This is a dummy dependency, for services which require networking
+#	to be operational before starting.

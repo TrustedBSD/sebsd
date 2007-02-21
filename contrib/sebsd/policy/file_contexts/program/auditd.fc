@@ -1,0 +1,2 @@
+# auditd
+/sbin/auditd		--	system_u:object_r:auditd_exec_t

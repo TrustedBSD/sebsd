@@ -1,0 +1,15 @@
+#DESC screensaver - X Windows screensaver needs access to password
+#
+# Authors:  Dan Walsh <dwalsh@redhat.com> 
+#
+
+#################################
+# 
+# Rules for the screensaver_t domain
+#
+
+type screensaver_exec_t, file_type, sysadmfile, exec_type;
+
+# Everything else is in the screensaver_domain macro in
+# macros/program/screensaver_macros.te.
+

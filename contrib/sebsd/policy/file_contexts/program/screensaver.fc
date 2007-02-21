@@ -1,0 +1,7 @@
+# screensaver
+/usr/X11R6/bin/xscreensaver		--	system_u:object_r:screensaver_exec_t
+/usr/X11R6/bin/xscreensaver-demo	--      system_u:object_r:screensaver_exec_t
+/opt/kde3/bin/kdesktop_lock		--	system_u:object_r:screensaver_exec_t
+/usr/bin/kdesktop_lock			--	system_u:object_r:screensaver_exec_t
+/usr/X11R6/lib(64)?/xscreensaver(.*)?	system_u:object_r:bin_t
+HOME_DIR/\.xscreensaver	system_u:object_r:ROLE_screensaver_rw_t

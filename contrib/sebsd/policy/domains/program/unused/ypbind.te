@@ -1,0 +1,38 @@
+#DESC Ypbind - NIS/YP
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+#           Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: nis
+# Depends: portmap.te named.te
+#
+
+#################################
+#
+# Rules for the ypbind_t domain.
+#
+daemon_domain(ypbind)
+
+tmp_domain(ypbind)
+
+# Use capabilities.
+allow ypbind_t ypbind_t:capability net_bind_service;
+
+# Use the network.
+can_network(ypbind_t)
+allow ypbind_t port_t:{ tcp_socket udp_socket } name_bind;
+
+allow ypbind_t ypbind_t:fifo_file rw_file_perms;
+
+allow ypbind_t { sysctl_t sysctl_kernel_t }:dir search;
+allow ypbind_t sysctl_kernel_t:file { getattr read };
+
+# Send to portmap and initrc.
+can_udp_send(ypbind_t, portmap_t)
+can_udp_send(ypbind_t, initrc_t)
+
+# Read and write /var/yp.
+allow ypbind_t var_yp_t:dir rw_dir_perms;
+allow ypbind_t var_yp_t:file create_file_perms;
+allow initrc_t var_yp_t:dir { getattr read };
+allow ypbind_t etc_t:file { getattr read };
+allow ypbind_t self:unix_stream_socket create_socket_perms;

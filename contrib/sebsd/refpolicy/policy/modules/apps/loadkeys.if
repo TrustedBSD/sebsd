@@ -1,0 +1,89 @@
+## <summary>Load keyboard mappings.</summary>
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the loadkeys domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`loadkeys_domtrans',`
+	ifdef(`targeted_policy',`
+		# $0(): disabled in targeted policy as there
+		# is no loadkeys domain.
+	',`
+		gen_require(`
+			type loadkeys_t, loadkeys_exec_t;
+		')
+
+		corecmd_search_bin($1)
+		domain_auto_trans($1, loadkeys_exec_t, loadkeys_t)
+
+		allow $1 loadkeys_t:fd use;
+		allow loadkeys_t $1:fd use;
+		allow loadkeys_t $1:fifo_file rw_file_perms;
+		allow loadkeys_t $1:process sigchld;
+	')
+')
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the loadkeys domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the loadkeys domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the loadkeys domain to use.
+##	</summary>
+## </param>
+#
+interface(`loadkeys_run',`
+	ifdef(`targeted_policy',`
+		# $0(): disabled in targeted policy as there
+		# is no loadkeys domain.
+	',`
+		gen_require(`
+			type loadkeys_t;
+		')
+
+		loadkeys_domtrans($1)
+		role $2 types loadkeys_t;
+		allow loadkeys_t $3:chr_file rw_term_perms;
+	')
+')
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`loadkeys_exec',`
+	ifdef(`targeted_policy',`
+		# $0(): the loadkeys program is an alias
+		# of generic bin programs.
+		corecmd_exec_bin($1)
+	',`
+		gen_require(`
+			type loadkeys_exec_t;
+		')
+
+		can_exec($1,loadkeys_exec_t)
+	')
+')

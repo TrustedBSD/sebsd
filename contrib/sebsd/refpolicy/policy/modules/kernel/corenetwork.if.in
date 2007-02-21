@@ -1,0 +1,1234 @@
+## <summary>Policy controlling access to network objects</summary>
+## <required val="true">
+##	Contains the initial SIDs for network objects.
+## </required>
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on the generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_tcp_sendrecv_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { tcp_send tcp_recv };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif udp_send;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif udp_recv;
+')
+
+########################################
+## <summary>
+##	Send and Receive UDP network traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_generic_if',`
+	corenet_udp_send_generic_if($1)
+	corenet_udp_receive_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif rawip_send;
+
+	# cjp: comment out until raw access is
+	# is fixed for network users
+	#allow $1 self:capability net_raw;
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif rawip_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_generic_if',`
+	corenet_raw_send_generic_if($1)
+	corenet_raw_receive_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { tcp_send tcp_recv };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif udp_send;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif udp_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_if',`
+	corenet_udp_send_all_if($1)
+	corenet_udp_receive_all_if($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif rawip_send;
+
+	# cjp: comment out until raw access is
+	# is fixed for network users
+	#allow $1 self:capability net_raw;
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif rawip_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_all_if',`
+	corenet_raw_send_all_if($1)
+	corenet_raw_receive_all_if($1)
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { tcp_send tcp_recv };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node udp_send;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node udp_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_generic_node',`
+	corenet_udp_send_generic_node($1)
+	corenet_udp_receive_generic_node($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node rawip_send;
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node rawip_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_generic_node',`
+	corenet_raw_send_generic_node($1)
+	corenet_raw_receive_generic_node($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:tcp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:udp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { tcp_send tcp_recv };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node udp_send;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node udp_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_nodes',`
+	corenet_udp_send_all_nodes($1)
+	corenet_udp_receive_all_nodes($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node rawip_send;
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node rawip_recv;
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_all_nodes',`
+	corenet_raw_send_all_nodes($1)
+	corenet_raw_receive_all_nodes($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:tcp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:udp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind raw sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+# rawip_socket node_bind does not make much sense. 
+interface(`corenet_raw_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:rawip_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_generic_port',`
+	corenet_udp_send_generic_port($1)
+	corenet_udp_receive_generic_port($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_generic_port',`
+	gen_require(`
+		type port_t;
+	')
+
+	allow $1 port_t:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_ports',`
+	corenet_udp_send_all_ports($1)
+	corenet_udp_receive_all_ports($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attepts to bind TCP sockets to any ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_reserved_port',`
+	corenet_udp_send_reserved_port($1)
+	corenet_udp_receive_reserved_port($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_reserved_ports',`
+	corenet_udp_send_all_reserved_ports($1)
+	corenet_udp_receive_all_reserved_ports($1)
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind TCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind UDP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##      Connect TCP sockets to reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##      The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect TCP sockets
+##	all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Read and write the TUN/TAP virtual network device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rw_tun_tap_dev',`
+	gen_require(`
+		type tun_tap_device_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 tun_tap_device_t:chr_file { getattr read write ioctl  lock append };
+')
+
+########################################
+## <summary>
+##	Read and write the point-to-point device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rw_ppp_dev',`
+	gen_require(`
+		type ppp_device_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 ppp_device_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Send and receive messages on a
+##	non-encrypted (no IPSEC) network
+##	session.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_non_ipsec_sendrecv',`
+	kernel_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Unconfined access to network objects.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_unconfined',`
+	gen_require(`
+		attribute node_type, netif_type, port_type;
+	')
+
+	allow $1 node_type:node *;
+	allow $1 netif_type:netif *;
+	allow $1 port_type:tcp_socket { send_msg recv_msg name_connect };
+	allow $1 port_type:udp_socket { send_msg recv_msg };
+
+	# Bind to any network address.
+	# cjp: rawip_socket doesnt make any sense
+	allow $1 port_type:{ tcp_socket udp_socket rawip_socket } name_bind;
+	allow $1 node_type:{ tcp_socket udp_socket rawip_socket } node_bind;
+
+	corenet_non_ipsec_sendrecv($1)
+')

@@ -1,0 +1,129 @@
+#DESC Inetd - Internet services daemon
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+# re-written with daemon_domain by Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: netkit-inetd openbsd-inetd xinetd
+#
+
+#################################
+#
+# Rules for the inetd_t domain and
+# the inetd_child_t domain.
+#
+type telnet_port_t, port_type;
+type biff_port_t, port_type;
+type amidxtape_port_t, port_type;
+
+#################################
+#
+# Rules for the inetd_t domain.
+#
+type inetd_port_t, port_type;
+
+daemon_domain(inetd, `ifdef(`unlimitedInetd', `,admin, etc_writer, fs_domain, auth_write, privmem')' )
+
+can_network(inetd_t)
+allow inetd_t self:unix_dgram_socket create_socket_perms;
+allow inetd_t self:unix_stream_socket create_socket_perms;
+allow inetd_t self:fifo_file rw_file_perms;
+allow inetd_t etc_t:file { getattr read ioctl };
+allow inetd_t inetd_t:process setsched;
+
+log_domain(inetd)
+tmp_domain(inetd)
+
+# Use capabilities.
+allow inetd_t self:capability { setuid setgid net_bind_service };
+
+# allow any domain to connect to inetd
+can_tcp_connect(userdomain, inetd_t)
+
+# Run each daemon with a defined domain in its own domain.
+# These rules have been moved to the individual target domain .te files.
+
+# Run other daemons in the inetd_child_t domain.
+allow inetd_t { bin_t sbin_t }:dir search;
+allow inetd_t sbin_t:lnk_file read;
+domain_auto_trans(inetd_t, inetd_child_exec_t, inetd_child_t)
+allow inetd_t inetd_child_t:process sigkill;
+
+# Bind to the telnet, ftp, rlogin and rsh ports.
+allow inetd_t telnet_port_t:tcp_socket name_bind;
+ifdef(`ftpd.te', `allow inetd_t ftp_port_t:tcp_socket name_bind;')
+ifdef(`rlogind.te', `allow inetd_t rlogin_port_t:tcp_socket name_bind;')
+ifdef(`rshd.te', `allow inetd_t rsh_port_t:tcp_socket name_bind;')
+ifdef(`amanda.te', `allow inetd_t amanda_port_t:tcp_socket name_bind;')
+ifdef(`swat.te', `allow inetd_t swat_port_t:tcp_socket name_bind;')
+ifdef(`amanda.te', `
+allow inetd_t biff_port_t:tcp_socket name_bind;
+allow inetd_t biff_port_t:udp_socket name_bind;
+allow inetd_t amidxtape_port_t:tcp_socket name_bind;
+')
+ifdef(`talk.te', `
+allow inetd_t talk_port_t:tcp_socket name_bind;
+allow inetd_t ntalk_port_t:tcp_socket name_bind;
+')
+
+# allow to bind to chargen, echo, etc
+allow inetd_t inetd_port_t:{ tcp_socket udp_socket } name_bind;
+
+# Communicate with the portmapper.
+ifdef(`portmap.te', `can_udp_send(inetd_t, portmap_t)')
+
+
+#################################
+#
+# Rules for the inetd_child_t domain.
+#
+# inetd_child_t is a general domain for daemons started
+# by inetd that do not have their own individual domains yet.
+# inetd_child_exec_t is the type of the corresponding
+# programs.
+#
+type inetd_child_t, domain, privlog;
+role system_r types inetd_child_t;
+
+can_network(inetd_child_t)
+can_ypbind(inetd_child_t)
+uses_shlib(inetd_child_t)
+allow inetd_child_t self:unix_dgram_socket create_socket_perms;
+allow inetd_child_t self:unix_stream_socket create_socket_perms;
+allow inetd_child_t self:fifo_file rw_file_perms;
+type inetd_child_exec_t, file_type, sysadmfile, exec_type;
+read_locale(inetd_child_t)
+allow inetd_child_t device_t:dir search;
+allow inetd_child_t proc_t:dir search;
+allow inetd_child_t proc_t:{ file lnk_file } { getattr read };
+allow inetd_child_t self:process { fork signal_perms };
+allow inetd_child_t fs_t:filesystem getattr;
+
+allow inetd_child_t sysctl_kernel_t:dir search;
+allow inetd_child_t sysctl_kernel_t:file { getattr read };
+
+allow inetd_child_t etc_t:file { getattr read };
+
+tmp_domain(inetd_child)
+allow inetd_child_t var_t:dir search;
+var_run_domain(inetd_child)
+
+# Use sockets inherited from inetd.
+allow inetd_child_t inetd_t:tcp_socket rw_stream_socket_perms;
+
+# for identd
+allow inetd_child_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
+allow inetd_child_t self:capability { setuid setgid };
+allow inetd_child_t home_root_t:dir { search };
+allow inetd_child_t self:dir { search };
+allow inetd_child_t self:file { getattr read };
+allow inetd_child_t krb5_conf_t:file r_file_perms;
+dontaudit inetd_child_t krb5_conf_t:file write;
+allow inetd_child_t urandom_device_t:chr_file { getattr read };
+
+ifdef(`unconfined.te', `
+domain_auto_trans(inetd_t, unconfined_exec_t, unconfined_t)
+')
+
+ifdef(`unlimitedInetd', `
+unconfined_domain(inetd_t) 
+')
+

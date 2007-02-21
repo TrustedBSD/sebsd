@@ -1,0 +1,6 @@
+# atrun and friends
+/usr/libexec/atrun		system_u:object_r:atrun_exec_t
+/usr/bin/(at|atq|atrm|batch)	system_u:object_r:at_exec_t
+/var/at(/.*)?			system_u:object_r:var_at_t
+/var/at/jobs(/.*)?		system_u:object_r:var_at_jobs_t
+/var/at/spool(/.*)?		system_u:object_r:var_at_spool_t

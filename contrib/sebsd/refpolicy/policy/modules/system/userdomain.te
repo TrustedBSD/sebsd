@@ -1,0 +1,408 @@
+
+policy_module(userdomain,1.3.0)
+
+gen_require(`
+	role sysadm_r, staff_r, user_r;
+
+	ifdef(`enable_mls',`
+		role secadm_r;
+	')
+')
+
+########################################
+#
+# Declarations
+#
+
+# admin users terminals (tty and pty)
+attribute admin_terminal;
+
+# users home directory
+attribute home_dir_type;
+
+# users home directory contents
+attribute home_type;
+
+# The privhome attribute identifies every domain that can create files under
+# regular user home directories in the regular context (IE act on behalf of
+# a user in writing regular files)
+attribute privhome;
+
+# all unprivileged users home directories
+attribute user_home_dir_type;
+attribute user_home_type;
+
+# all unprivileged users ptys
+attribute user_ptynode;
+
+# all unprivileged users tmp files
+attribute user_tmpfile;
+
+# all unprivileged users ttys
+attribute user_ttynode;
+
+# all user domains
+attribute userdomain;
+
+# unprivileged user domains
+attribute unpriv_userdomain;
+
+attribute untrusted_content_type;
+attribute untrusted_content_tmp_type;
+
+########################################
+#
+# Local policy
+#
+
+define(`role_change',`
+	allow $1_r $2_r;
+	type_change $2_t $1_devpts_t:chr_file $2_devpts_t;
+	type_change $2_t $1_tty_device_t:chr_file $2_tty_device_t;
+	# avoid annoying messages on terminal hangup
+	dontaudit $1_t { $2_devpts_t $2_tty_device_t }:chr_file ioctl;
+')
+
+ifdef(`targeted_policy',`
+	# Define some type aliases to help with compatibility with
+	# macros and domains from the "strict" policy.
+	unconfined_alias_domain(secadm_t)
+	unconfined_alias_domain(sysadm_t)
+
+	# User home directory type.
+	type user_home_t alias { staff_home_t sysadm_home_t }, home_type, user_home_type;
+	files_type(user_home_t)
+	files_associate_tmp(user_home_t)
+	fs_associate_tmpfs(user_home_t)
+
+	type user_home_dir_t alias { staff_home_dir_t sysadm_home_dir_t }, home_dir_type, home_type, user_home_dir_type;
+	files_type(user_home_dir_t)
+	files_associate_tmp(user_home_dir_t)
+	fs_associate_tmpfs(user_home_dir_t)
+
+	# compatibility for switching from strict
+#	dominance { role secadm_r { role system_r; }}
+#	dominance { role sysadm_r { role system_r; }}
+#	dominance { role user_r { role system_r; }}
+#	dominance { role staff_r { role system_r; }}
+
+	# dont need to use the full role_change()
+	allow sysadm_r system_r;
+	allow sysadm_r user_r;
+	allow user_r system_r;
+	allow user_r sysadm_r;
+	allow system_r sysadm_r;
+	allow system_r sysadm_r;
+
+	allow privhome user_home_t:dir manage_dir_perms;
+	allow privhome user_home_t:file create_file_perms;
+	allow privhome user_home_t:lnk_file create_lnk_perms;
+	allow privhome user_home_t:fifo_file create_file_perms;
+	allow privhome user_home_t:sock_file create_file_perms;
+	allow privhome user_home_dir_t:dir rw_dir_perms;
+	type_transition privhome user_home_dir_t:{ dir file lnk_file fifo_file sock_file } user_home_t;
+	files_search_home(privhome)
+
+	ifdef(`enable_mls',`
+		allow secadm_r system_r;
+		allow secadm_r user_r;
+		allow user_r secadm_r;
+		allow staff_r secadm_r;
+	')
+
+	optional_policy(`samba',`
+		samba_per_userdomain_template(user)
+	')
+',`
+	admin_user_template(sysadm)
+	unpriv_user_template(staff)
+	unpriv_user_template(user)
+
+	# user role change rules:
+	# sysadm_r can change to user roles
+	role_change(sysadm, user)
+	role_change(sysadm, staff)
+
+	# only staff_r can change to sysadm_r
+	role_change(staff, sysadm)
+
+	ifdef(`enable_mls',`
+		admin_user_template(secadm)
+		role_change(staff, secadm)
+	')
+
+	# this should be tunable_policy, but
+	# currently type_change and RBAC allow
+	# do not work in conditionals
+	ifdef(`user_canbe_sysadm',`
+		role_change(user,sysadm)
+	')
+
+	allow privhome home_root_t:dir { getattr search };
+
+	########################################
+	#
+	# Sysadm local policy
+	#
+
+	# for su
+	allow sysadm_t userdomain:fd use;
+
+	# Add/remove user home directories
+	allow sysadm_t user_home_dir_t:dir create_dir_perms;
+	files_home_filetrans(sysadm_t,user_home_dir_t,dir)
+
+	corecmd_exec_shell(sysadm_t)
+
+	mls_process_read_up(sysadm_t)
+
+	init_exec(sysadm_t)
+
+	ifdef(`direct_sysadm_daemon',`
+		optional_policy(`init',`
+			init_run_daemon(sysadm_t,sysadm_r,admin_terminal)
+		')
+	',`
+		ifdef(`distro_gentoo',`
+			optional_policy(`selinuxutil',`
+				seutil_init_script_run_runinit(sysadm_t,sysadm_r,admin_terminal)
+			')
+		')
+	')
+
+	ifdef(`enable_mls',`
+		corecmd_exec_shell(secadm_t)
+		mls_process_read_up(secadm_t)
+		mls_file_write_down(secadm_t)
+		mls_file_upgrade(secadm_t)
+		mls_file_downgrade(secadm_t)
+		logging_read_audit_log(secadm_t)
+		logging_domtrans_auditctl(secadm_t)
+		userdom_dontaudit_append_staff_home_content_files(secadm_t)
+	', `
+		logging_domtrans_auditctl(sysadm_t)
+		logging_read_audit_log(sysadm_t)
+	')
+
+	tunable_policy(`allow_ptrace',`
+		domain_ptrace_all_domains(sysadm_t)
+	')
+
+	optional_policy(`amanda',`
+		amanda_run_recover(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`apache',`
+		apache_run_helper(sysadm_t,sysadm_r,admin_terminal)
+		#apache_run_all_scripts(sysadm_t,sysadm_r)
+		#apache_domtrans_sys_script(sysadm_t)
+	')
+
+	optional_policy(`apm',`
+		# cjp: why is this not apm_run_client
+		apm_domtrans_client(sysadm_t)
+	')
+
+	optional_policy(`bootloader',`
+		bootloader_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`bind',`
+		bind_run_ndc(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`bluetooth',`
+		bluetooth_run_helper(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`clock',`
+		clock_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`certwatch',`
+		certwatach_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`consoletype',`
+		consoletype_exec(sysadm_t)
+
+		ifdef(`enable_mls',`
+			consoletype_exec(secadm_t)
+		')
+	')
+
+	optional_policy(`ddcprobe',`
+		ddcprobe_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`dmesg',`
+		dmesg_exec(sysadm_t)
+
+		ifdef(`enable_mls',`
+			dmesg_exec(secadm_t)
+		')
+	')
+
+	optional_policy(`dmidecode',`
+		dmidecode_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`firstboot',`
+		firstboot_run(sysadm_t,sysadm_r,sysadm_tty_device_t)
+	')
+
+	optional_policy(`fstools',`
+		fstools_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`hostname',`
+		hostname_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`ipsec',`
+		# allow system administrator to use the ipsec script to look
+		# at things (e.g., ipsec auto --status)
+		# probably should create an ipsec_admin role for this kind of thing
+		ipsec_exec_mgmt(sysadm_t)
+		ipsec_stream_connect(sysadm_t)
+		# for lsof
+		ipsec_getattr_key_sockets(sysadm_t)
+	')
+
+	optional_policy(`iptables',`
+		iptables_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`libraries',`
+		libs_run_ldconfig(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`lvm',`
+		lvm_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`logrotate',`
+		logrotate_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`lpd',`
+		lpd_run_checkpc(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`kudzu',`
+		kudzu_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`modutils',`
+		modutils_run_depmod(sysadm_t,sysadm_r,admin_terminal)
+		modutils_run_insmod(sysadm_t,sysadm_r,admin_terminal)
+		modutils_run_update_mods(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`mount',`
+		mount_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`mysql',`
+		mysql_stream_connect(sysadm_t)
+	')
+
+	optional_policy(`netutils',`
+		netutils_run(sysadm_t,sysadm_r,admin_terminal)
+		netutils_run_ping(sysadm_t,sysadm_r,admin_terminal)
+		netutils_run_traceroute(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`rpc',`
+		rpc_domtrans_nfsd(sysadm_t)
+	')
+
+	optional_policy(`ntp',`
+		ntp_stub()
+		corenet_udp_bind_ntp_port(sysadm_t)
+	')
+
+	optional_policy(`pcmcia',`
+		pcmcia_run_cardctl(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`portage',`
+		portage_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`portmap',`
+		portmap_run_helper(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`quota',`
+		quota_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`radius',`
+		radius_use(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`rpm',`
+		rpm_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`samba',`
+		samba_run_net(sysadm_t,sysadm_r,admin_terminal)
+		samba_run_winbind_helper(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`selinuxutil',`
+		seutil_run_restorecon(sysadm_t,sysadm_r,admin_terminal)
+		seutil_run_runinit(sysadm_t,sysadm_r,admin_terminal)
+
+		ifdef(`enable_mls',`
+			selinux_set_enforce_mode(secadm_t)
+			selinux_set_boolean(secadm_t)
+			selinux_set_parameters(secadm_t)
+
+			seutil_manage_bin_policy(secadm_t)
+			seutil_run_checkpolicy(secadm_t,secadm_r,admin_terminal)
+			seutil_run_loadpolicy(secadm_t,secadm_r,admin_terminal)
+			seutil_run_semanage(secadm_t,secadm_r,admin_terminal)
+			seutil_run_setfiles(secadm_t,secadm_r,admin_terminal)
+			seutil_run_restorecon(secadm_t,secadm_r,admin_terminal)
+		', `
+			selinux_set_enforce_mode(sysadm_t)
+			selinux_set_boolean(sysadm_t)
+			selinux_set_parameters(sysadm_t)
+
+			seutil_manage_bin_policy(sysadm_t)
+			seutil_run_checkpolicy(sysadm_t,sysadm_r,admin_terminal)
+			seutil_run_loadpolicy(sysadm_t,sysadm_r,admin_terminal)
+			seutil_run_semanage(sysadm_t,sysadm_r,admin_terminal)
+			seutil_run_setfiles(sysadm_t,sysadm_r,admin_terminal)
+		')
+	')
+
+	optional_policy(`sysnetwork',`
+		sysnet_run_ifconfig(sysadm_t,sysadm_r,admin_terminal)
+		sysnet_run_dhcpc(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`unconfined',`
+		unconfined_domtrans(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`usbmodules',`
+		usbmodules_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`usermanage',`
+		usermanage_run_admin_passwd(sysadm_t,sysadm_r,admin_terminal)
+		usermanage_run_groupadd(sysadm_t,sysadm_r,admin_terminal)
+		usermanage_run_useradd(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`vpn',`
+		vpn_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+
+	optional_policy(`webalizer',`
+		webalizer_run(sysadm_t,sysadm_r,admin_terminal)
+	')
+')

@@ -1,0 +1,36 @@
+* Fix mount point labels - for non-root filesystems, the mount labels
+  would like to have a persistent label, but none is provided.  Instead,
+  we could use the persistent label stored in the vnode corresponding to
+  the root directory within the context of the mountpoint.  However, I
+  don't believe you can call VFS_ROOT() within xxx_create_mount to
+  retrieve the vnode since the filesystem isn't completely mounted yet (I
+  think this is the case at least).
+
+* Implement check_vnode_revoke and check_cred_visible - There are no
+  corresponding SELinux checks for these, so we just need to decide what
+  the right thing to do is and enforce it.
+
+* Fix locking in sebsd/avc/avc.h - Much of the avc locking code is still
+  commented out, this is bad for SMP.  The Linux
+  spin_lock_irqsave/spin_unlock_irqrestore calls need to be converted to
+  some FreeBSD equivalent.
+
+* Re-sync AVC and SS - avc_has_perm_ref_audit has also diverged from
+  SELinux and should be resync'd, probably along with the rest of the AVC
+  and Security Server.
+
+* Provide user-space tools for load_policy, enforcing, etc.
+
+* Port/write newrole application
+
+* Port/write run_init application
+
+* Generate a table comparing SELinux and TrustedBSD hooks and coverage
+
+* Fix policy
+  - Fix existing policy
+  - Remove unused domains and policy components
+  - newsyslog is busted
+  - cron has issues
+	
+

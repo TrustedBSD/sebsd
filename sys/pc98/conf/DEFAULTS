@@ -1,0 +1,19 @@
+#
+# DEFAULTS -- Default kernel configuration file for FreeBSD/pc98
+#
+# $FreeBSD: src/sys/pc98/conf/DEFAULTS,v 1.3 2005/11/27 23:17:00 ru Exp $
+
+machine		pc98 i386
+options 	PC98
+
+# Bus support.
+device		isa
+
+# Floating point support.
+device		npx
+
+# Pseudo devices.
+device		mem		# Memory and kernel memory devices
+device		io		# I/O device
+
+options 	PUC_FASTINTR

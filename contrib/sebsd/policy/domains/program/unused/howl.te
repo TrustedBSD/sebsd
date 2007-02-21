@@ -1,0 +1,13 @@
+daemon_domain(howl)
+allow howl_t proc_t:file { getattr read };
+can_network(howl_t)
+allow howl_t self:capability net_admin;
+
+allow howl_t self:fifo_file rw_file_perms;
+
+type howl_port_t, port_type;
+allow howl_t howl_port_t:tcp_socket name_bind;
+
+allow howl_t etc_t:file { getattr read };
+allow howl_t initrc_var_run_t:file rw_file_perms;
+

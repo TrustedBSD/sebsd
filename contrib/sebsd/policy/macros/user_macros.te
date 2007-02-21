@@ -1,0 +1,265 @@
+#
+# Macros for all user login domains.
+#
+
+#
+# user_domain(domain_prefix)
+#
+# Define derived types and rules for an ordinary user domain.
+#
+# The type declaration and role authorization for the domain must be
+# provided separately.  Likewise, domain transitions into this domain
+# must be specified separately.  
+#
+
+# user_domain() is also called by the admin_domain() macro
+undefine(`user_domain')
+define(`user_domain', `
+# Use capabilities
+ifdef(`single_userdomain', `
+# if we have a single user domain then gpg needs SETUID access.  Also lots of
+# other things will have similar issues.
+allow $1_t self:capability setuid;
+')dnl end single_userdomain
+
+#
+# kdeinit wants this access
+#
+allow $1_t device_t:dir { getattr };
+
+# Type for home directory.
+type $1_home_dir_t, file_type, sysadmfile, home_dir_type, home_type, user_home_dir_type, user_home_type;
+type $1_home_t, file_type, sysadmfile, home_type, user_home_type;
+
+tmp_domain($1, `, user_tmpfile')
+
+# Type and access for pty devices.
+can_create_pty($1, `, userpty_type, user_tty_type')
+
+#Type for tty devices.
+type $1_tty_device_t, file_type, sysadmfile, ttyfile, user_tty_type;
+ 
+base_user_domain($1)
+allow $1_tty_device_t device_t:filesystem associate;
+
+# do not allow privhome access to sysadm_home_dir_t
+file_type_auto_trans(privhome, $1_home_dir_t, $1_home_t)
+
+# for ifconfig which is run all the time
+dontaudit $1_t sysctl_t:dir search;
+
+# for ls -l /proc
+dontaudit $1_t { sysctl_irq_t sysctl_t }:dir getattr;
+dontaudit $1_t { mtrr_device_t proc_kcore_t proc_kmsg_t }:file getattr;
+
+allow $1_t boot_t:dir { getattr search };
+dontaudit $1_t boot_t:dir read;
+dontaudit $1_t boot_t:lnk_file { getattr read };
+dontaudit $1_t boot_t:file { getattr read };
+allow $1_t system_map_t:file { getattr read };
+
+dontaudit $1_t security_t:dir getattr;
+
+# Instantiate derived domains for a number of programs.
+# These derived domains encode both information about the calling
+# user domain and the program, and allow us to maintain separation
+# between different instances of the program being run by different
+# user domains.
+ifdef(`apache.te', `apache_domain($1)')
+ifdef(`slocate.te', `locate_domain($1)')
+
+allow $1_t krb5_conf_t:file { getattr read };
+# allow port_t name binding for UDP because it is not very usable otherwise
+allow $1_t port_t:udp_socket name_bind;
+
+#
+# Need the following rule to allow users to run vpnc
+#
+ifdef(`xserver.te', `
+allow $1_t xserver_port_t:tcp_socket { name_bind };
+')
+
+# Allow users to run TCP servers (bind to ports and accept connection from
+# the same domain and outside users)  disabling this forces FTP passive mode
+# and may change other protocols 
+if (user_tcp_server) {
+can_tcp_connect($1_t, $1_t)
+allow $1_t port_t:tcp_socket name_bind;
+
+# Connect data port to ftpd.
+ifdef(`ftpd.te', `can_tcp_connect(ftpd_t, $1_t)')
+
+# Connect second port to rshd.
+ifdef(`rshd.te', `can_tcp_connect(rshd_t, $1_t)')
+}
+
+# Allow system log read
+if (user_dmesg) {
+allow $1_t kernel_t:system syslog_read;
+} else {
+# else do not log it
+dontaudit $1_t kernel_t:system syslog_read;
+}
+
+# Allow read access to utmp.
+allow $1_t initrc_var_run_t:file { getattr read lock };
+# The library functions always try to open read-write first,
+# then fall back to read-only if it fails. 
+# Do not audit write denials to utmp to avoid the noise.
+dontaudit $1_t initrc_var_run_t:file write;
+
+
+# do not audit getattr on tmpfile, otherwise ls -l /tmp fills the logs
+dontaudit $1_t tmpfile:dir_file_class_set getattr;
+
+# do not audit getattr on disk devices, otherwise KDE fills the logs
+dontaudit $1_t { removable_device_t fixed_disk_device_t }:blk_file {getattr read};
+
+ifdef(`xdm.te', `
+ifdef(`single_userdomain', `
+file_type_auto_trans(xdm_t, $1_home_dir_t, $1_home_t, file)
+', `
+allow xdm_t $1_home_t:lnk_file read;
+allow xdm_t $1_home_t:dir search;
+#
+# Changing this to dontaudit should cause the .xsession-errors file to be written to /tmp
+# 
+dontaudit xdm_t $1_home_t:file rw_file_perms;
+')dnl end else single_userdomain
+')dnl end ifdef xdm.te
+
+ifdef(`ftpd.te', `
+if (ftp_home_dir) {
+file_type_auto_trans(ftpd_t, $1_home_dir_t, $1_home_t)
+}
+')dnl end ifdef ftpd
+
+
+')dnl end user_domain macro
+
+
+###########################################################################
+#
+# Domains for ordinary users.
+#
+undefine(`full_user_role')
+define(`full_user_role', `
+
+# user_t/$1_t is an unprivileged users domain.
+type $1_t, domain, userdomain, unpriv_userdomain, web_client_domain, privfd
+ifdef(`unlimitedUsers', `,privhome, etc_writer, privmodule, privlog, privowner, admin, fs_domain, privmem, privowner, sysctl_kernel_writer, auth, auth_write')
+;
+
+# Grant read/search permissions to some of /proc.
+allow $1_t proc_t:dir r_dir_perms;
+allow $1_t proc_t:{ file lnk_file } r_file_perms;
+
+base_file_read_access($1_t)
+
+can_exec($1_t, usr_t)
+
+# Read directories and files with the readable_t type.
+# This type is a general type for "world"-readable files.
+allow $1_t readable_t:dir r_dir_perms;
+allow $1_t readable_t:notdevfile_class_set r_file_perms;
+
+# Stat lost+found.
+allow $1_t lost_found_t:dir getattr;
+
+# Read the /tmp directory and any /tmp files with the base type.
+# Temporary files created at runtime will typically use derived types.
+allow $1_t tmp_t:dir r_dir_perms;
+allow $1_t tmp_t:{ file lnk_file } r_file_perms;
+
+# Read /var, /var/spool, /var/run.
+allow $1_t var_t:dir r_dir_perms;
+allow $1_t var_t:notdevfile_class_set r_file_perms;
+allow $1_t var_spool_t:dir r_dir_perms;
+allow $1_t var_spool_t:notdevfile_class_set r_file_perms;
+allow $1_t var_run_t:dir r_dir_perms;
+allow $1_t var_run_t:{ file lnk_file } r_file_perms;
+allow $1_t var_lib_t:dir r_dir_perms;
+allow $1_t var_lib_t:file { getattr read };
+
+allow $1_t sysctl_kernel_t:dir search;
+allow $1_t sysctl_kernel_t:file { getattr read };
+
+# Read /etc.
+allow $1_t etc_t:dir r_dir_perms;
+allow $1_t etc_t:notdevfile_class_set r_file_perms;
+allow $1_t etc_runtime_t:{ file lnk_file } r_file_perms;
+
+# for running depmod as part of the kernel packaging process
+allow $1_t modules_conf_t:file { getattr read };
+
+# Read man directories and files.
+allow $1_t man_t:dir r_dir_perms;
+allow $1_t man_t:notdevfile_class_set r_file_perms;
+
+# GNOME checks for usb and other devices
+r_dir_file($1_t,usbfs_t)
+
+# Allow users to rw usb devices
+if (user_rw_usb) {
+rw_dir_create_file($1_t,usbdevfs_t)
+} else {
+r_dir_file($1_t,usbdevfs_t)
+}
+
+r_dir_file($1_t,sysfs_t)
+
+# Read /dev directories and any symbolic links.
+allow $1_t device_t:dir r_dir_perms;
+allow $1_t device_t:lnk_file r_file_perms;
+
+# Do not audit write denials to /etc/ld.so.cache.
+dontaudit $1_t ld_so_cache_t:file write;
+
+# Execute from the system shared libraries.
+uses_shlib($1_t);
+
+# $1_t is also granted permissions specific to user domains.
+user_domain($1)
+
+dontaudit $1_t sysadm_home_t:dir { read search getattr };
+dontaudit $1_t sysadm_home_t:file { read getattr append };
+
+ifdef(`syslogd.te', `
+# Some programs that are left in $1_t will try to connect
+# to syslogd, but we do not want to let them generate log messages.
+# Do not audit.
+dontaudit $1_t devlog_t:sock_file { read write };
+dontaudit $1_t syslogd_t:unix_dgram_socket sendto;
+')
+
+# stop warnings about "ls -l" on directories with unlabelled files
+dontaudit $1_t default_t:{ dir file lnk_file } getattr;
+# Stop warnings about access to /dev/console
+dontaudit $1_t init_t:fd { use };
+dontaudit $1_t initrc_t:fd { use };
+allow $1_t initrc_t:fifo_file { write };
+ifdef(`user_can_mount', `
+#
+#  Allow users to mount file systems like floppies and cdrom
+#
+mount_domain($1, $1_mount, `, fs_domain')
+role $1_r types $1_mount_t;
+r_dir_file($1_t, mnt_t)
+')
+
+#
+# Rules used to associate a homedir as a mountpoint
+#
+allow $1_home_t $1_home_t:filesystem associate;
+allow homedirfile $1_home_t:filesystem associate;
+ifdef(`unlimitedUsers', `
+unconfined_domain($1_t) 
+')
+')
+
+undefine(`in_user_role')
+define(`in_user_role', `
+role user_r types $1;
+role staff_r types $1;
+')
+

@@ -1,0 +1,61 @@
+#
+# Author:  Andrew Reisse <areisse@nailabs.com>
+#
+
+#################################
+#
+# Rules for building ports.
+#
+
+type portmake_t, domain;
+type portmake_exec_t, file_type, exec_type, sysadmfile;
+type port_work_t, file_type, sysadmfile;
+role sysadm_r types portmake_t;
+
+domain_auto_trans(sysadm_t, portmake_exec_t, portmake_t);
+
+# Read useful areas of the system.
+allow portmake_t fs_type:filesystem getattr;
+allow portmake_t {usr_t man_t locale_t}:{file lnk_file} r_file_perms;
+allow portmake_t {usr_t man_t locale_t device_t}:dir r_dir_perms;
+
+dontaudit portmake_t {staff_home_dir_t mail_spool_t}:dir { search getattr };
+
+allow portmake_t port_work_t:{lnk_file file} { create_file_perms poll };
+allow portmake_t port_work_t:dir create_dir_perms;
+allow portmake_t usr_t:dir { add_name remove_name };
+type_transition portmake_t usr_t:file port_work_t;
+type_transition portmake_t usr_t:dir port_work_t;
+type_transition portmake_t usr_t:lnk_file port_work_t;
+
+tmp_domain(portmake);
+allow portmake_t self:capability { fowner dac_override };
+
+# Use subprocesses
+allow portmake_t self:fd { create use };
+allow portmake_t self:fifo_file { read write getattr ioctl poll };
+allow portmake_t self:process signal_perms;
+
+# Run various build programs
+can_exec_any(portmake_t);
+can_exec(portmake_t, port_work_t);
+
+# Use the sysadm terminal.
+allow portmake_t privfd:fd use;
+allow portmake_t {sysadm_devpts_t sysadm_tty_device_t}:chr_file rw_file_perms;
+
+allow portmake_t unlabeled_t:dir search;
+
+# Use various system features with ourself, so that configure scripts will
+# detect them.
+allow portmake_t self:sem *;
+allow portmake_t self:shm *;
+allow portmake_t self:msg *;
+allow portmake_t self:msgq *;
+allow portmake_t self:capability { setuid setgid };
+
+# Read some parts of var (used in configure checks)
+allow portmake_t var_t:dir {search getattr};
+
+# Download sources from the network
+can_network(portmake_t);

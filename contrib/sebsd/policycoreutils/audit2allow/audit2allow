@@ -1,0 +1,226 @@
+#! /usr/bin/python -E
+# Copyright (C) 2005 Red Hat 
+# see file 'COPYING' for use and warranty information
+#
+# Audit2allow is a rewrite of prior perl script.
+#
+# Based off original audit2allow perl script: which credits
+#    newrules.pl, Copyright (C) 2001 Justin R. Smith (jsmith@mcs.drexel.edu)
+#    2003 Oct 11: Add -l option by Yuichi Nakamura(ynakam@users.sourceforge.jp)
+#
+#    This program is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU General Public License as
+#    published by the Free Software Foundation; either version 2 of
+#    the License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA     
+#                                        02111-1307  USA
+#
+#  
+from avc import *
+
+if __name__ == '__main__':
+	import commands, sys, os, getopt, selinux
+        import gettext
+	import re
+        try:
+                gettext.install('policycoreutils')
+        except:
+                pass
+	def get_mls_flag():
+		if selinux.is_selinux_mls_enabled():
+			return "-M"
+		else:
+			return ""
+
+	def usage(msg = ""):
+		print _('audit2allow [-adhilrv] [-t file ] [ -f fcfile ] [-i <inputfile> ] [[-m|-M] <modulename> ] [-o <outputfile>]\n\
+		-a, --all        read input from audit and message log, conflicts with -i\n\
+		-d, --dmesg      read input from output of /bin/dmesg\n\
+		-h, --help       display this message\n\
+		-i, --input      read input from <inputfile> conflicts with -a\n\
+		-l, --lastreload read input only after last \"load_policy\"\n\
+		-m, --module     generate module/require output <modulename> \n\
+		-M               generate loadable module package, conflicts with -o\n\
+		-o, --output     append output to <outputfile>, conflicts with -M\n\
+		-r, --requires   generate require output \n\
+		-t, --tefile     Add input from Existing Type Enforcement file\n\
+		-f, --fcfile     Existing Type Enforcement file, requires -M\n\
+		-v, --verbose    verbose output\n\
+                -A, --analyze    Analyze output\n\
+                ')
+		if msg != "":
+			print msg
+		sys.exit(1)
+		
+	def verify_module(module):
+		m = re.findall("[^a-zA-Z0-9]", module)
+		if len(m) != 0:
+			usage(_("Alphanumeric Charaters Only"))
+		
+	def errorExit(error):
+		sys.stderr.write("%s: " % sys.argv[0])
+		sys.stderr.write("%s\n" % error)
+		sys.stderr.flush()
+		sys.exit(1)
+
+	#
+	# 
+	#
+	try:
+		last_reload = 0
+		inputfd = sys.stdin
+		output = sys.stdout
+		module = ""
+		requires = 0
+		verbose = 0
+		auditlogs = 0
+		buildPP = 0
+		input_ind = 0
+		output_ind = 0
+		ref_ind = False
+		analyze = False
+		te_inputs = []
+
+		fc_file = ""
+		gopts, cmds = getopt.getopt(sys.argv[1:],
+					    'Aadf:hi:lm:M:o:rt:vR',
+					    ['all',
+                                             'analyze',
+                                             'dmesg',
+					     'fcfile=',
+					     'help',
+					     'input=',
+					     'lastreload',
+					     'module=',
+					     'output=',
+					     'requires',
+					     'reference',
+					     'tefile=',
+					     'verbose'
+					     ])
+		for o,a in gopts:
+			if o == "-a" or o == "--all":
+				if input_ind:
+					usage()
+				inputfd = open("/var/log/messages", "r")
+				auditlogs = 1
+			if o == "-d"  or o == "--dmesg":
+				inputfd = os.popen("/bin/dmesg", "r")
+			if o == "-f" or o == "--fcfile":
+				if a[0] == "-":
+					usage()
+				fc_file = a
+			if o == "-h" or o == "--help":
+				usage()
+			if o == "-i"or o == "--input":
+				if auditlogs  or a[0] == "-":
+					usage()
+				input_ind = 1
+				inputfd = open(a, "r")
+			if o == '--lastreload' or o == "-l":
+				last_reload = 1
+			if o == "-m" or o == "--module":
+				if module != "" or a[0] == "-":
+					usage()
+				module = a
+				verify_module(module)
+			if o == "-M":
+				if module != "" or output_ind  or a[0] == "-":
+					usage()
+				module = a
+				verify_module(module)
+				outfile = a+".te"
+				buildPP = 1
+				if not os.path.exists("/usr/bin/checkmodule"):
+					errorExit("-M Requires the checkmodule command, you need to install the checkpolicy rpm package")
+				output = open(outfile, "w")
+			if o == "-r" or o == "--requires":
+				requires = 1
+			if o == "-t" or o == "--tefile":
+				te_inputs.append(open(a, "r"))
+                                
+			if o == "-R" or o == "--reference":
+				ref_ind = True
+				
+			if o == "-o" or o == "--output":
+				if module != ""  or a[0] == "-":
+					usage()
+				output = open(a, "a")
+				output_ind = 1
+			if o == "-v" or o == "--verbose":
+				verbose = 1
+				
+			if o == "-A" or o == "--analyze":
+				analyze = True
+				
+		if len(cmds) != 0:
+			usage()
+
+		if fc_file != "" and not buildPP:
+			usage("Error %s: Option -fc requires -M" % sys.argv[0])
+			
+                serules = SERules(last_reload, verbose)
+
+                for i in te_inputs:
+                    te = TERules(serules)
+                    te.load(i)
+
+                serules.load(inputfd)
+
+
+		if ref_ind:
+			serules.gen_reference_policy()
+
+		if analyze:
+			serules.analyze()
+			sys.exit(0)
+
+		if auditlogs and os.path.exists("/var/log/audit/audit.log"):
+			inputfd = os.popen("ausearch -m avc,MAC_POLICY_LOAD")
+			serules.load(inputfd)
+
+		if buildPP:
+			print (_("Generating type enforcment file: %s.te") % module)
+		output.write(serules.out(requires, module))
+		output.flush()
+		if buildPP:
+			if ref_ind:
+				rc, type = selinux.selinux_getpolicytype()
+				cmd = "make -f /usr/share/selinux/%s/include/Makefile %s.pp" % (type, module)
+				print _("Compiling policy")
+				print cmd
+				rc = commands.getstatusoutput(cmd)
+			else:
+				cmd = "checkmodule %s -m -o %s.mod %s.te" % (get_mls_flag(), module, module)
+				print _("Compiling policy")
+				print cmd
+				rc = commands.getstatusoutput(cmd)
+				if rc[0] == 0:
+					cmd = "semodule_package -o %s.pp -m %s.mod" % (module, module)
+					if fc_file != "":
+						cmd = "%s -f %s" % (cmd, fc_file)
+					
+					print cmd
+					rc = commands.getstatusoutput(cmd)
+			if rc[0] == 0:
+				print _("\n******************** IMPORTANT ***********************\n")
+				print (_("In order to load this newly created policy package into the kernel,\nyou are required to execute \n\nsemodule -i %s.pp\n\n") % module)
+			else:
+				errorExit(rc[1])
+
+	except getopt.error, error:
+		errorExit(_("Options Error: %s ") % error.msg)
+	except ValueError, error:
+		errorExit(error.args[0])
+	except IOError, error:
+		errorExit(error)
+	except KeyboardInterrupt, error:
+		sys.exit(0)

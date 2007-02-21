@@ -1,0 +1,53 @@
+# rpm
+/var/lib/rpm(/.*)?		system_u:object_r:rpm_var_lib_t
+/var/lib/alternatives(/.*)?	system_u:object_r:rpm_var_lib_t
+/bin/rpm 		--	system_u:object_r:rpm_exec_t
+/usr/bin/yum 		--	system_u:object_r:rpm_exec_t
+/usr/sbin/up2date	--	system_u:object_r:rpm_exec_t
+/usr/sbin/rhn_check	--	system_u:object_r:rpm_exec_t
+/usr/bin/apt-get 	--	system_u:object_r:rpm_exec_t
+/usr/bin/apt-shell    	-- 	system_u:object_r:rpm_exec_t
+/usr/bin/synaptic   --    	system_u:object_r:rpm_exec_t 
+/usr/lib(64)?/rpm/rpmd	-- 	system_u:object_r:bin_t
+/usr/lib(64)?/rpm/rpmq	-- 	system_u:object_r:bin_t
+/usr/lib(64)?/rpm/rpmk	-- 	system_u:object_r:bin_t
+/usr/lib(64)?/rpm/rpmv	-- 	system_u:object_r:bin_t
+/var/log/rpmpkgs.*	--	system_u:object_r:rpm_log_t
+/var/log/yum.log	--	system_u:object_r:rpm_log_t
+ifdef(`redhat', `
+/usr/share/system-config-network(/netconfig)?/[^/]+.py -- system_u:object_r:bin_t
+/etc/sysconfig/networking/profiles/.*/resolv.conf -- system_u:object_r:net_conf_t
+/etc/sysconfig/network-scripts/.*resolv.conf -- system_u:object_r:net_conf_t
+/usr/share/rhn/rhn_applet/applet.py -- system_u:object_r:bin_t
+/usr/share/rhn/rhn_applet/eggtrayiconmodule.so -- system_u:object_r:shlib_t
+/usr/share/rhn/rhn_applet/needed-packages.py	--	system_u:object_r:bin_t
+/usr/share/authconfig/authconfig-gtk.py -- system_u:object_r:bin_t
+/usr/share/hwbrowser/hwbrowser -- system_u:object_r:bin_t
+/usr/share/system-config-httpd/system-config-httpd -- system_u:object_r:bin_t
+/usr/share/system-config-services/system-config-services -- system_u:object_r:bin_t
+/usr/share/system-logviewer/system-logviewer.py -- system_u:object_r:bin_t
+/usr/share/system-config-date/system-config-date.py -- system_u:object_r:bin_t
+/usr/share/system-config-display/system-config-display -- system_u:object_r:bin_t
+/usr/share/system-config-keyboard/system-config-keyboard -- system_u:object_r:bin_t
+/usr/share/system-config-language/system-config-language -- system_u:object_r:bin_t
+/usr/share/system-config-mouse/system-config-mouse -- system_u:object_r:bin_t
+/usr/share/system-config-netboot/system-config-netboot.py -- system_u:object_r:bin_t
+/usr/share/system-config-nfs/system-config-nfs.py -- system_u:object_r:bin_t
+/usr/share/system-config-rootpassword/system-config-rootpassword -- system_u:object_r:bin_t
+/usr/share/system-config-samba/system-config-samba.py -- system_u:object_r:bin_t
+/usr/share/system-config-securitylevel/system-config-securitylevel.py -- system_u:object_r:bin_t
+/usr/share/system-config-services/serviceconf.py -- system_u:object_r:bin_t
+/usr/share/system-config-soundcard/system-config-soundcard -- system_u:object_r:bin_t
+/usr/share/system-config-users/system-config-users -- system_u:object_r:bin_t
+/usr/share/switchdesk/switchdesk-gui.py	--	system_u:object_r:bin_t
+/usr/share/system-config-network/neat-control.py	--	system_u:object_r:bin_t
+/usr/share/system-config-nfs/nfs-export.py	--	system_u:object_r:bin_t
+/usr/share/pydict/pydict.py	--	system_u:object_r:bin_t
+/usr/share/cvs/contrib/rcs2log	--	system_u:object_r:bin_t
+')
+# SuSE
+ifdef(`suse', `
+/usr/bin/online_update		--	system_u:object_r:rpm_exec_t
+/sbin/yast2			--	system_u:object_r:rpm_exec_t
+/var/lib/YaST2(/.*)?			system_u:object_r:rpm_var_lib_t
+')

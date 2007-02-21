@@ -1,0 +1,4 @@
+# User Mode Linux
+/usr/bin/uml_switch	--	system_u:object_r:uml_switch_exec_t
+/var/run/uml-utilities(/.*)?	system_u:object_r:uml_switch_var_run_t
+/home/[^/]+/.uml(/.*)?		system_u:object_r:user_uml_rw_t

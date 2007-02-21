@@ -1,0 +1,31 @@
+.TH "matchpathcon" "8" "21 April 2005" "dwalsh@redhat.com" "SE Linux Command Line documentation"
+.SH "NAME"
+matchpathcon \- get the default SELinux security context for the specified path from the file contexts configuration.
+
+.SH "SYNOPSIS"
+.B matchpathcon [-V] [-N] [-n] [-f file_contexts_file ] [-p prefix ] filepath...
+.SH "DESCRIPTION"
+.B matchpathcon
+Prints the file path and the default security context associated with it.
+.SH OPTIONS
+.B \-n
+Do not display path.
+.br
+.B \-N
+Do not use translations.
+.br
+.B \-f file_context_file
+Use alternate file_context file
+.br
+.B \-p prefix
+Use prefix to speed translations
+.br
+.B \-V
+Verify file context on disk matches defaults
+
+.SH AUTHOR	
+This manual page was written by Dan Walsh <dwalsh@redhat.com>.
+
+.SH "SEE ALSO"
+.BR selinux "(8), "
+.BR mathpathcon "(3), " 

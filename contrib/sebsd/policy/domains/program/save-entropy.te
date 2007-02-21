@@ -1,0 +1,28 @@
+#
+# Author: Brian Feldman <bfeldman@tislabs.com>
+#
+
+#################################
+#
+# Rules for the save_entropy_t domain.
+#
+# save_entropy_t is the domain for the save-entropy program.
+# save_entropy_exec_t is the type of the corresponding program.
+#
+type save_entropy_exec_t, file_type, sysadmfile, exec_type;
+type save_entropy_t, domain, privowner, privlog;
+role system_r types save_entropy_t;
+role sysadm_r types save_entropy_t;
+uses_shlib(save_entropy_t)
+domain_auto_trans({ system_crond_t crond_t sysadm_t }, save_entropy_exec_t, save_entropy_t)
+
+can_exec_any(save_entropy_t)
+
+allow save_entropy_t var_db_t:dir create_dir_perms;
+file_type_auto_trans(save_entropy_t, var_db_t, var_db_entropy_t)
+allow save_entropy_t var_db_entropy_t:dir rw_dir_perms;
+allow save_entropy_t var_db_entropy_t:file create_file_perms;
+allow save_entropy_t self:fd *;
+allow save_entropy_t self:fifo_file { read write getattr };
+
+allow save_entropy_t self:capability { dac_write };

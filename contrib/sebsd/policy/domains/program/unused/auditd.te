@@ -1,0 +1,9 @@
+#DESC auditd - System auditing daemon
+#
+# Authors: Colin Walters <walters@verbum.org>
+#
+
+daemon_domain(auditd)
+allow auditd_t self:netlink_audit_socket { bind create getattr nlmsg_read nlmsg_write read write };
+allow auditd_t self:capability { net_admin sys_admin };
+allow auditd_t sysadm_tty_device_t:chr_file rw_file_perms;

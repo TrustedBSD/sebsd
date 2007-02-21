@@ -1,0 +1,131 @@
+#DESC DHCPC - DHCP client
+#
+# Authors:  Wayne Salamon (NAI Labs) <wsalamon@tislabs.com>
+#           Russell Coker <russell@coker.com.au>
+# X-Debian-Packages: pump dhcp-client udhcpc
+#
+
+#################################
+#
+# Rules for the dhcpc_t domain.
+#
+# dhcpc_t is the domain for the client side of DHCP. dhcpcd, the DHCP 
+# network configurator daemon started by /etc/sysconfig/network-scripts 
+# rc scripts, runs in this domain.
+# dhcpc_exec_t is the type of the dhcpcd executable.
+# The dhcpc_t can be used for other DHCPC related files as well.
+#
+type dhcpc_port_t, port_type;
+
+daemon_domain(dhcpc)
+
+# for SSP
+allow dhcpc_t urandom_device_t:chr_file read;
+
+can_network(dhcpc_t)
+allow dhcpc_t self:unix_dgram_socket create_socket_perms;
+allow dhcpc_t self:unix_stream_socket create_socket_perms;
+allow dhcpc_t self:fifo_file rw_file_perms;
+allow dhcpc_t self:fd { create use };
+allow dhcpc_t devpts_t:dir search;
+
+# for localization
+allow dhcpc_t lib_t:file { getattr read };
+
+ifdef(`consoletype.te', `
+domain_auto_trans(dhcpc_t, consoletype_exec_t, consoletype_t)
+')
+
+ifdef(`cardmgr.te', `
+domain_auto_trans(cardmgr_t, dhcpc_exec_t, dhcpc_t)
+allow cardmgr_t dhcpc_var_run_t:file { getattr read };
+allow cardmgr_t dhcpc_t:process signal_perms;
+')
+ifdef(`hotplug.te', `
+domain_auto_trans(hotplug_t, dhcpc_exec_t, dhcpc_t)
+allow hotplug_t dhcpc_t:process signal_perms;
+allow hotplug_t dhcpc_var_run_t:file { getattr read };
+allow hotplug_t dhcp_etc_t:file rw_file_perms;
+allow dhcpc_t hotplug_etc_t:dir { getattr search };
+')
+
+# for the dhcp client to run ping to check IP addresses
+ifdef(`ping.te', `
+domain_auto_trans(dhcpc_t, ping_exec_t, ping_t)
+# because dhcpc is buggy and leaves file handles open...
+dontaudit ping_t dhcpc_state_t:file read;
+dontaudit ping_t dhcpc_t:packet_socket { read write };
+dontaudit ping_t dhcpc_t:udp_socket { read write };
+ifdef(`hotplug.te', `
+allow ping_t hotplug_t:fd use;
+') dnl end if hotplug
+ifdef(`cardmgr.te', `
+allow ping_t cardmgr_t:fd use;
+') dnl end if cardmgr
+') dnl end if ping
+
+ifdef(`dhcpd.te', `', `
+type dhcp_state_t, file_type, sysadmfile;
+type dhcp_etc_t, file_type, sysadmfile, usercanread; 
+typealias dhcp_etc_t alias { etc_dhcp_t etc_dhcpc_t etc_dhcpd_t };
+')
+type dhcpc_state_t, file_type, sysadmfile;
+
+allow dhcpc_t etc_t:lnk_file read;
+allow dhcpc_t { etc_t etc_runtime_t }:file { getattr read };
+allow dhcpc_t proc_t:file { getattr read };
+allow dhcpc_t self:file { getattr read };
+allow dhcpc_t sysctl_kernel_t:dir search;
+allow dhcpc_t sysctl_kernel_t:file read;
+allow dhcpc_t { userdomain run_init_t }:fd use;
+
+# Use capabilities
+allow dhcpc_t self:capability { dac_override fsetid net_admin net_raw net_bind_service sys_resource sys_tty_config sys_admin };
+
+# for access("/etc/bashrc", X_OK) on Red Hat
+dontaudit dhcpc_t self:capability { dac_read_search sys_module };
+
+# for udp port 68
+allow dhcpc_t dhcpc_port_t:udp_socket name_bind;
+
+# Allow read/write to /etc/resolv.conf and /etc/ntp.conf. Note that any files
+# in /etc created by dhcpcd will be labelled net_conf_t.
+file_type_auto_trans(dhcpc_t, etc_t, net_conf_t, file)
+
+# Allow access to the dhcpc file types
+r_dir_file(dhcpc_t, dhcp_etc_t)
+allow dhcpc_t sbin_t:dir search;
+can_exec(dhcpc_t, { dhcpc_exec_t dhcp_etc_t sbin_t })
+ifdef(`redhat', `
+can_exec(dhcpc_t, etc_t)
+allow initrc_t dhcp_etc_t:file rw_file_perms;
+')
+ifdef(`ifconfig.te', `
+domain_auto_trans(dhcpc_t, ifconfig_exec_t, ifconfig_t)
+# because dhclient is buggy and does not close file handles
+ifdef(`hide_broken_symptoms', `
+dontaudit ifconfig_t dhcpc_t:{ packet_socket udp_socket } { read write };
+dontaudit ifconfig_t dhcpc_state_t:file { read write };
+')dnl end broken symptoms
+')dnl end if def ifconfig
+
+
+tmp_domain(dhcpc)
+
+# Allow dhcpc_t to use packet sockets
+allow dhcpc_t self:packet_socket create_socket_perms;
+allow dhcpc_t var_lib_t:dir search;
+file_type_auto_trans(dhcpc_t, dhcp_state_t, dhcpc_state_t, file)
+file_type_auto_trans(dhcpc_t, var_db_t, dhcpc_state_t)
+
+allow dhcpc_t bin_t:dir search;
+allow dhcpc_t bin_t:lnk_file read;
+can_exec(dhcpc_t, { bin_t shell_exec_t })
+
+domain_auto_trans(dhcpc_t, hostname_exec_t, hostname_t)
+dontaudit dhcpc_t { ttyfile ptyfile tty_device_t }:chr_file { read write };
+allow dhcpc_t { userdomain kernel_t }:fd { use };
+
+allow dhcpc_t home_root_t:dir { search };
+allow initrc_t dhcpc_state_t:file { getattr read };
+allow dhcpc_t bpf_device_t:chr_file { poll rw_file_perms };

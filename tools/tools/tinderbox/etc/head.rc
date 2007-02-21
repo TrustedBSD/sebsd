@@ -1,0 +1,12 @@
+#
+# HEAD tinderbox setup
+#
+# $FreeBSD: src/tools/tools/tinderbox/etc/head.rc,v 1.2 2005/11/14 13:33:17 des Exp $
+#
+
+branches	= HEAD
+platforms	= alpha, amd64, i386/i386, i386/pc98, sparc64
+cflags		= -O2 -pipe
+coptflags	= %%CFLAGS%%
+targets		+= kernel:PAE
+recipient	= %%SENDER%%,<current@freebsd.org>,<%%arch%%@freebsd.org>

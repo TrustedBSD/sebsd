@@ -1,0 +1,76 @@
+#DESC Rlogind - Remote login daemon
+#
+# Authors:  Stephen Smalley <sds@epoch.ncsc.mil> and Timothy Fraser  
+# X-Debian-Packages: rsh-client rsh-redone-client
+# Depends: inetd.te
+#
+
+#################################
+#
+# Rules for the rlogind_t domain.
+#
+type rlogin_port_t, port_type;
+type rlogind_t, domain, privlog, auth_chkpwd, privfd;
+role system_r types rlogind_t;
+uses_shlib(rlogind_t)
+can_network(rlogind_t)
+type rlogind_exec_t, file_type, sysadmfile, exec_type;
+domain_auto_trans(inetd_t, rlogind_exec_t, rlogind_t)
+ifdef(`tcpd.te', `
+domain_auto_trans(tcpd_t, rlogind_exec_t, rlogind_t)
+')
+
+# for /usr/lib/telnetlogin
+can_exec(rlogind_t, rlogind_exec_t)
+
+tmp_domain(rlogind)
+
+# Inherit and use descriptors from inetd.
+allow rlogind_t inetd_t:fd use;
+
+# Use sockets inherited from inetd.
+allow rlogind_t inetd_t:tcp_socket rw_stream_socket_perms;
+
+# Use capabilities.
+allow rlogind_t rlogind_t:capability { net_bind_service setuid setgid fowner fsetid chown dac_override };
+
+# so telnetd can start a child process for the login
+allow rlogind_t self:process { fork signal_perms };
+
+allow rlogind_t self:unix_dgram_socket create_socket_perms;
+allow rlogind_t self:unix_stream_socket create_socket_perms;
+
+# Run login in remote_login_t.
+allow rlogind_t bin_t:dir search;
+allow remote_login_t inetd_t:fd use;
+allow remote_login_t inetd_t:tcp_socket rw_file_perms;
+
+# Send SIGCHLD to inetd on death.
+allow rlogind_t inetd_t:process sigchld;
+
+domain_auto_trans(rlogind_t, login_exec_t, remote_login_t)
+
+allow rlogind_t proc_t:dir search;
+allow rlogind_t proc_t:lnk_file read;
+allow rlogind_t self:dir search;
+allow rlogind_t self:lnk_file read;
+
+# Create ptys.
+can_create_pty(rlogind, `, server_pty')
+allow rlogind_t userpty_type:chr_file setattr;
+allow rlogind_t devtty_t:chr_file rw_file_perms;
+
+read_locale(rlogind_t)
+
+# for /etc/issue
+allow rlogind_t etc_runtime_t:file { getattr read };
+
+allow rlogind_t etc_t:file { getattr read };
+
+# Modify /var/run/utmp.
+allow rlogind_t { var_t var_run_t }:dir search;
+allow rlogind_t initrc_var_run_t:file rw_file_perms;
+
+# Modify /var/log/wtmp.
+allow rlogind_t var_log_t:dir search;
+allow rlogind_t wtmp_t:file rw_file_perms;

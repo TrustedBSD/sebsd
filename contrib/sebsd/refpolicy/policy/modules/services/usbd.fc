@@ -1,0 +1,2 @@
+/usr/sbin/usbd		--	gen_context(system_u:object_r:usbd_exec_t)
+/etc/usbd.conf		--	gen_context(system_u:object_r:usbd_etc_t)

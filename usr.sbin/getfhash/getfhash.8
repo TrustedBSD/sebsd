@@ -1,0 +1,84 @@
+.\"- Copyright (c) 2005 Tom Rhodes
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd May 21, 2005
+.Os
+.Dt GETFHASH 8
+.Sh NAME
+.Nm getfhash
+.Nd "retrieve object hash information"
+.Sh SYNOPSIS
+.Nm
+.Op Fl dfW
+.Ar file
+.Sh DESCRIPTION
+The
+.Nm
+utility retrieves hash information on system objects in
+the file system.
+When invoked on an object,
+.Nm
+will print the stored hash
+listed in
+.Ar file .
+.Pp
+.Bl -tag -width indent
+.It Fl d
+List all hash dependencies
+.It Fl f
+If a checksum has not been registered for an object, trigger the
+calculation and storage of the checksum in the kernel so the
+checksum can be processed.
+.It Fl W
+Produce a warning if the checksum registered with the object
+conflicts with the object's current checksum. This option may
+be useful when trying to figure out which object in a dependency
+chain resulted in an execution failure.
+.El
+.Sh EXAMPLES
+To get the hash on
+.Pa /bin/ls
+one would issue:
+.Dl Nm Pa /bin/ls
+.Pp
+To see dependencies for
+.Xr ipfw 8 ,
+the following command would be issued :
+.Dl Nm Fl d Pa /sbin/ipfw
+.Sh SEE ALSO
+.Xr mac 4 ,
+.Xr mac_chkexec 4 ,
+.Xr ipfw 8 ,
+.Xr setfhash 8
+.Sh AUTHORS
+The
+.Xr mac_chkexec 4
+security policy and
+.Nm
+utility was written by
+.An Christian S.J. Peron Aq csjp@FreeBSD.org .
+This manual page was written by
+.An Tom Rhodes Aq trhodes@FreeBSD.org .

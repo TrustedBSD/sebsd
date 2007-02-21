@@ -1,0 +1,2 @@
+# load_policy
+/usr/sbin/sebsd_loadpolicy			system_u:object_r:load_policy_exec_t

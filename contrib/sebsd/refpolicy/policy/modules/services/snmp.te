@@ -1,0 +1,163 @@
+
+policy_module(snmp,1.1.0)
+
+########################################
+#
+# Declarations
+#
+type snmpd_t;
+type snmpd_exec_t;
+init_daemon_domain(snmpd_t,snmpd_exec_t)
+
+type snmpd_etc_t;
+files_config_file(snmpd_etc_t)
+
+type snmpd_log_t;
+logging_log_file(snmpd_log_t)
+
+type snmpd_var_run_t;
+files_pid_file(snmpd_var_run_t)
+
+type snmpd_var_lib_t;
+files_type(snmpd_var_lib_t)
+
+########################################
+#
+# Local policy
+#
+allow snmpd_t self:capability { dac_override kill net_admin sys_nice sys_tty_config };
+dontaudit snmpd_t self:capability sys_tty_config;
+allow snmpd_t self:fifo_file rw_file_perms;
+allow snmpd_t self:unix_dgram_socket create_socket_perms;
+allow snmpd_t self:unix_stream_socket create_stream_socket_perms;
+allow snmpd_t self:tcp_socket create_stream_socket_perms;
+allow snmpd_t self:udp_socket connected_stream_socket_perms;
+
+allow snmpd_t snmpd_etc_t:file { getattr read };
+
+allow snmpd_t snmpd_log_t:file create_file_perms;
+logging_log_filetrans(snmpd_t,snmpd_log_t,file)
+
+allow snmpd_t snmpd_var_lib_t:file create_file_perms;
+allow snmpd_t snmpd_var_lib_t:sock_file create_file_perms;
+allow snmpd_t snmpd_var_lib_t:dir create_dir_perms;
+files_usr_filetrans(snmpd_t,snmpd_var_lib_t,file)
+files_var_filetrans(snmpd_t,snmpd_var_lib_t,{ file dir sock_file })
+files_var_lib_filetrans(snmpd_t,snmpd_var_lib_t,file)
+
+allow snmpd_t snmpd_var_run_t:file create_file_perms;
+allow snmpd_t snmpd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(snmpd_t,snmpd_var_run_t,file)
+
+kernel_read_kernel_sysctls(snmpd_t)
+kernel_read_net_sysctls(snmpd_t)
+kernel_read_proc_symlinks(snmpd_t)
+kernel_read_system_state(snmpd_t)
+kernel_read_network_state(snmpd_t)
+kernel_tcp_recvfrom(snmpd_t)
+
+corecmd_exec_bin(snmpd_t)
+corecmd_exec_sbin(snmpd_t)
+corecmd_exec_shell(snmpd_t)
+
+corenet_tcp_sendrecv_all_if(snmpd_t)
+corenet_udp_sendrecv_all_if(snmpd_t)
+corenet_raw_sendrecv_all_if(snmpd_t)
+corenet_tcp_sendrecv_all_nodes(snmpd_t)
+corenet_udp_sendrecv_all_nodes(snmpd_t)
+corenet_raw_sendrecv_all_nodes(snmpd_t)
+corenet_tcp_sendrecv_all_ports(snmpd_t)
+corenet_udp_sendrecv_all_ports(snmpd_t)
+corenet_non_ipsec_sendrecv(snmpd_t)
+corenet_tcp_bind_all_nodes(snmpd_t)
+corenet_udp_bind_all_nodes(snmpd_t)
+corenet_tcp_bind_snmp_port(snmpd_t)
+corenet_udp_bind_snmp_port(snmpd_t)
+
+dev_list_sysfs(snmpd_t)
+dev_read_sysfs(snmpd_t)
+dev_read_urand(snmpd_t)
+dev_read_rand(snmpd_t)
+
+domain_use_interactive_fds(snmpd_t)
+domain_signull_all_domains(snmpd_t)
+domain_read_all_domains_state(snmpd_t)
+
+files_read_etc_files(snmpd_t)
+files_read_usr_files(snmpd_t)
+files_read_etc_runtime_files(snmpd_t)
+files_search_home(snmpd_t)
+
+fs_getattr_all_fs(snmpd_t)
+fs_getattr_rpc_dirs(snmpd_t)
+fs_search_auto_mountpoints(snmpd_t)
+
+storage_dontaudit_read_fixed_disk(snmpd_t)
+storage_dontaudit_read_removable_device(snmpd_t)
+
+term_dontaudit_use_console(snmpd_t)
+
+init_read_utmp(snmpd_t)
+init_use_fds(snmpd_t)
+init_use_script_ptys(snmpd_t)
+init_dontaudit_write_utmp(snmpd_t)
+
+libs_use_ld_so(snmpd_t)
+libs_use_shared_libs(snmpd_t)
+
+logging_send_syslog_msg(snmpd_t)
+
+miscfiles_read_localization(snmpd_t)
+
+seutil_dontaudit_search_config(snmpd_t)
+
+sysnet_read_config(snmpd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(snmpd_t)
+userdom_dontaudit_search_sysadm_home_dirs(snmpd_t)
+
+ifdef(`distro_redhat', `
+	optional_policy(`rpm',`
+		rpm_read_db(snmpd_t)
+		rpm_dontaudit_manage_db(snmpd_t)
+	')
+')
+
+ifdef(`targeted_policy', `
+	term_dontaudit_use_unallocated_ttys(snmpd_t)
+	term_dontaudit_use_generic_ptys(snmpd_t)
+	files_dontaudit_read_root_files(snmpd_t)
+')
+
+optional_policy(`amanda',`
+	amanda_dontaudit_read_dumpdates(snmpd_t)
+')
+
+optional_policy(`cups',`
+	cups_read_rw_config(snmpd_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(snmpd_t)
+')
+
+optional_policy(`nscd',`
+	nscd_socket_use(snmpd_t)
+')
+
+optional_policy(`rpc',`
+	rpc_search_nfs_state_data(snmpd_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(snmpd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(snmpd_t)
+')
+
+ifdef(`TODO',`
+can_udp_send(sysadm_t, snmpd_t)
+can_udp_send(snmpd_t, sysadm_t)
+') dnl end TODO

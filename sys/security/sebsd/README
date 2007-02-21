@@ -1,0 +1,22 @@
+SEBSD is a on-going port of the SELinux FLASK and Type Enforcement
+implementations to run on top of the TrustedBSD MAC framework.  This
+work is occurring as part of an extension to the DARPA CBOSS contract
+at NAI Labs, and will provide access to NSA FLASK and the Type
+Enforcement implementations as pluggable modules on FreeBSD 5.0.
+
+The Flask operating system security architecture provides flexible
+support for a wide range of access control policies by cleanly
+separating the policy enforcement mechanisms from the policy
+decision-making logic.  The Security-Enhanced Linux (SELinux) project
+has implemented this architecture and an example security server that
+supports Role-Based Access Controls and Type Enforcement in the Linux
+kernel.  SELinux was implemented originally as its own custom kernel
+patch and was subsequently adapted as a loadable kernel module that
+uses the general security hooks provided by the Linux Security Modules
+(LSM) kernel patch.
+
+For more information on SELinux and the FLASK architecture, please see:
+	http://www.nsa.gov/selinux/
+
+Or send email to:
+	cboss@nailabs.com

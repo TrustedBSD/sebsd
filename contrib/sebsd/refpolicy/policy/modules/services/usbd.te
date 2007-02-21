@@ -1,0 +1,31 @@
+policy_module(usbd,1.0.0)
+
+########################################
+#
+# Declarations
+#
+    
+type usbd_t;
+type usbd_exec_t;
+#kernel_domtrans_to(usbd_t, usbd_exec_t)
+init_daemon_domain(usbd_t, usbd_exec_t)
+
+
+type usbd_etc_t;
+files_config_file(usbd_etc_t)
+init_daemon_domain(usbd_t,usbd_etc_t)
+
+########################################
+#
+# Local policy
+#   
+
+
+allow usbd_t usbd_etc_t:file r_file_perms;
+allow usbd_t usbd_etc_t:dir r_dir_perms;
+allow usbd_t usbd_etc_t:lnk_file r_file_perms;
+can_exec(usbd_t,usbd_etc_t)  
+
+can_exec(usbd_t, usbd_exec_t)
+
+

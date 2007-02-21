@@ -1,0 +1,140 @@
+	  Instructions for installing Security-Enhanced BSD
+
+SEBSD ships as a kernel loadable module that loads into a FreeBSD 5.x
+kernel supporting the TrustedBSD MAC framework.  The SEBSD
+installation CD contains a FreeBSD 5.0 distribution and a MAC kernel.
+The installation process completely installs the FreeBSD operating
+system, including full source code.  TrustedBSD MAC-aware programs are
+installed by default, as well as an unmodified FreeBSD 5.0
+kernel. However, the installation process will also install the a MAC
+kernel and security modules.  For more detailed instructions for
+installing FreeBSD, please refer to the FreeBSD Handbook, available on
+the FreeBSD project web site (http://www.freebsd.org/).
+
+Quick Installation
+------------------
+1.  Install FreeBSD 5.0-SEBSD
+    a. Use standard install
+    b. Disk partition, select 'A', use entire disk (erases entire disk)
+    c. Disk label:  select 'A', use default disk label
+    d. Packages: select 'Developer' configuration
+    e. Media: CDROM
+    f. Commit
+2.  Boot system and verify basic functionality
+3.  Add 'sebsd_load="YES"' to /boot/loader.conf
+4.  Install policy: 
+	cd /etc/security/sebsd/policy && make install
+5.  Boot MAC kernel in single-user mode and enable multilabel support
+	tunefs -l enable {/,/usr,/var,/tmp}
+6.  Boot MAC kernel and perform an initial file system label
+	cd /etc/security/sebsd/policy && make relabel
+7.  Boot MAC kernel
+
+
+Detailed Installation Instructions
+----------------------------------
+
+These instructions assume some familiarity with the FreeBSD operating
+system installation, boot loader, kernel configuration, etc.  The
+sysinstall installation application used by SEBSD is nearly identical
+to the one used by the FreeBSD project.  A custom release was built to
+install the SEBSD policy source files and to build a kernel with
+TrustedBSD MAC Framework support.  For more detailed information on
+the FreeBSD operating system or the installation process, refer to the
+FreeBSD handbook available at the project website: www.freebsd.org.
+
+1.  Boot the FreeBSD 5.0-SEBSD installation CD; this CD will install
+    the complete operating system, including kernels, user space
+    applications, and complete source code.  A series of menus will
+    prompt the user how to proceed.
+
+    a.  At the main menu, select an installation method, typically,
+        the standard installation is adequate.
+
+    b.  Assuming the standard installation option was chosen, the next
+        menu will display the disk partition manager.  As long as the
+        installation machine will be dedicated to SEBSD, allow the
+        partition manager to use the entire disk by selecting 'A'.
+        Select 'Q' to exit the partition manager.  The installation
+        program may print a warning that this creates a dedicated
+        machine.  That's fine, it's exactly what is desired.  It will
+        proceed to ask which boot manager to install; select 'BootMgr'
+        to install the normal FreeBSD boot manager on this hard disk.
+
+    c.  The next menu will label the disk to create swap space and
+        individual file systems.  Selecting 'A' will use the default
+        values.  Select 'Q' to proceed to the next menu.
+
+    d.  At this point, choose the distributions to install.  The
+        'Developer' option is recommended.  X Window support is not
+        included on this installation CD, and may be installed later.
+        Likewise, the optional ports collection is not include on the
+        SEBSD installation CD, do not include it when prompted.  The
+        ports collection may be added to the system later.
+
+    e.  Select CD/DVD from the 'Choose Installation Media' menu.
+
+    f.  Confirm installation, with the configuration recommended in
+        these instructions, all existing data on the hard disk will be
+        destroyed.  The installation program may warn that the
+        packages/INDEX file was not available.  This message may be
+	ignored.
+
+2.  Reboot the system when prompted.  The boot kernel will be the
+    generic FreeBSD kernel, this step just verifies that everything
+    was installed correctly and that the system boots.
+
+3.  To enable the sebsd module on future boots, add the following line
+    to /boot/loader.conf:
+		sebsd_load="YES"
+
+4.  Install the SEBSD policy.  The policy is located in the
+    /etc/security/sebsd/policy directory.  Since SEBSD uses the same
+    policy language and compiler as SELinux, the SELinux report
+    titled, "Configuring the SELinux Policy", (available at the
+    SELinux project web site: http://www.nsa.gov/selinux/) can provide
+    additional information.  To compile and install the sample policy:
+	cd /etc/security/sebsd/policy && make install
+
+5.  Make the MAC kernel the system default.  The simplest way to
+    change the default kernel is by adding the following line to
+    /boot/loader.conf: 
+	kernel="MAC"
+
+6.  At this point, the policy has been installed, but the file systems
+    have not yet been labeled.  To do this, the extended attribute
+    support must be turned on for each file system. This operation only
+    needs to be done once, but must be done while the system in in
+    single user mode.  Reboot the machine, but interrupt the boot
+    process at the FreeBSD boot manager (when prompted).  To boot the
+    MAC kernel in single user mode, enter the following instruction:
+	boot -s
+
+    While in single user mode, enable file system multilabel support:
+	tunefs -l enable /
+	tunefs -l enable /usr
+	tunefs -l enable /var
+	tunefs -l enable /tmp
+	...
+
+    Do not exit from the shell and allow the kernel to finish booting,
+    completely reboot the machine instead (use the reboot command).
+
+7.  Label the file system.  Boot the machine with the MAC kernel
+    (having made it the default, or by selecting it at the boot
+    manager) and perform an initial file system labeling.  Login as
+    root and run the following command: 
+	cd /etc/security/sebsd/policy && make relabel
+
+8.  Reboot the machine with the MAC kernel one final time, so that
+    applications can use the file labels and will be started in the
+    correct domains.
+
+At this point, the machine should be running SEBSD with the default
+policy. The default policy is only an example and must be customized.
+Furthermore, the sample policy is not complete, so the system will
+print some access control warnings.  By default, the system is
+configured in the development mode; in this mode, access control
+failures are logged but not enforced.  To toggle between enforcing
+mode and development mode, use the security.mac.sebsd.enforcing
+sysctl.

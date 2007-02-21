@@ -1,0 +1,16 @@
+# apache
+/usr/local/www/data(/.*)?	system_u:object_r:httpd_sys_content_t
+/usr/local/www/cgi-bin(/.*)?	system_u:object_r:httpd_sys_script_t
+/usr/local/www/icons(/.*)?	system_u:object_r:httpd_sys_content_t
+#/var/cache/httpd(/.*)?		system_u:object_r:httpd_cache_t
+/usr/local/etc/apache(/.*)?	system_u:object_r:httpd_config_t
+/usr/local/libexec/apache(/.*)?	system_u:object_r:httpd_modules_t
+/usr/local/sbin/httpd		system_u:object_r:httpd_exec_t
+#/usr/sbin/suexec		system_u:object_r:httpd_suexec_exec_t
+#/usr/lib/cgi-bin/(nph-)?cgiwrap(d)? system_u:object_r:httpd_suexec_exec_t
+#/usr/lib/apache(2)?/suexec(2)?	system_u:object_r:httpd_suexec_exec_t
+/var/log/httpd-.*		system_u:object_r:httpd_log_t
+#/var/log/apache(2)?(/.*)?	system_u:object_r:httpd_log_t
+#/var/log/cgiwrap\.log.*	system_u:object_r:httpd_log_t
+#/var/cache/ssl.*\.sem		system_u:object_r:httpd_cache_t
+/var/run/apache(2)?.pid.*	system_u:object_r:httpd_var_run_t

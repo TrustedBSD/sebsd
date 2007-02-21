@@ -1,0 +1,270 @@
+## <summary>Run shells with substitute user and group</summary>
+
+template(`su_restricted_domain_template', `
+	gen_require(`
+		type su_exec_t;
+	')
+
+	type $1_su_t;
+	domain_entry_file($1_su_t,su_exec_t)
+	domain_type($1_su_t)
+	domain_interactive_fd($1_su_t)
+	role $3 types $1_su_t;
+
+	allow $2 $1_su_t:process signal;
+
+	allow $1_su_t self:capability { audit_control audit_write setuid setgid net_bind_service chown dac_override fowner sys_nice sys_resource };
+	dontaudit $1_su_t self:capability sys_tty_config;
+	allow $1_su_t self:process { setexec setsched setrlimit };
+	allow $1_su_t self:fifo_file rw_file_perms;
+	allow $1_su_t self:netlink_audit_socket { nlmsg_relay create_netlink_socket_perms };
+	allow $1_su_t self:unix_stream_socket create_stream_socket_perms;
+
+	# Transition from the user domain to this domain.
+	domain_auto_trans($2, su_exec_t, $1_su_t)
+	allow $1_su_t $2:fd use;
+	allow $1_su_t $2:fifo_file rw_file_perms;
+	allow $1_su_t $2:process sigchld;
+
+	# By default, revert to the calling domain when a shell is executed.
+	corecmd_shell_domtrans($1_su_t,$2)
+	allow $2 $1_su_t:fd use;
+	allow $2 $1_su_t:fifo_file rw_file_perms;
+	allow $2 $1_su_t:process sigchld;
+
+	kernel_read_system_state($1_su_t)
+	kernel_read_kernel_sysctls($1_su_t)
+
+	# for SSP
+	dev_read_urand($1_su_t)
+
+	files_read_etc_files($1_su_t)
+	files_read_etc_runtime_files($1_su_t)
+	files_search_var_lib($1_su_t)
+	files_dontaudit_getattr_tmp_dirs($1_su_t)
+
+	auth_domtrans_chk_passwd($1_su_t)
+	auth_dontaudit_read_shadow($1_su_t)
+	auth_use_nsswitch($1_su_t)
+
+	domain_use_interactive_fds($1_su_t)
+
+	init_dontaudit_use_fds($1_su_t)
+	init_dontaudit_use_script_ptys($1_su_t)
+	# Write to utmp.
+	init_rw_utmp($1_su_t)
+
+	libs_use_ld_so($1_su_t)
+	libs_use_shared_libs($1_su_t)
+
+	logging_send_syslog_msg($1_su_t)
+
+	miscfiles_read_localization($1_su_t)
+
+	optional_policy(`cron',`
+		cron_read_pipes($1_su_t)
+	')
+
+	optional_policy(`kerberos',`
+		kerberos_use($1_su_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_su_t)
+	')
+
+	ifdef(`TODO',`
+	# Caused by su - init scripts
+	dontaudit $1_su_t initrc_devpts_t:chr_file { getattr ioctl };
+	') dnl end TODO
+')
+
+#######################################
+## <summary>
+##	The per user domain template for the su module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domain which is allowed
+##	to change the linux user id, to run shells as a different
+##	user.
+##	</p>
+##	<p>
+##	This template is invoked automatically for each user, and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+#
+template(`su_per_userdomain_template',`
+	gen_require(`
+		type su_exec_t;
+		bool secure_mode;
+	')
+
+	type $1_su_t;
+	domain_entry_file($1_su_t,su_exec_t)
+	domain_type($1_su_t)
+	domain_interactive_fd($1_su_t)
+	role $3 types $1_su_t;
+
+	allow $2 $1_su_t:process signal;
+
+	allow $1_su_t self:capability { audit_control audit_write setuid setgid net_bind_service chown dac_override fowner sys_nice sys_resource };
+	dontaudit $1_su_t self:capability sys_tty_config;
+	allow $1_su_t self:process { setexec setsched setrlimit };
+	allow $1_su_t self:fifo_file rw_file_perms;
+	allow $1_su_t self:netlink_audit_socket { nlmsg_relay create_netlink_socket_perms };
+
+	# Transition from the user domain to this domain.
+	domain_auto_trans($2, su_exec_t, $1_su_t)
+	allow $2 $1_su_t:fd use;
+	allow $1_su_t $2:fd use;
+	allow $1_su_t $2:fifo_file rw_file_perms;
+	allow $1_su_t $2:process sigchld;
+
+	# By default, revert to the calling domain when a shell is executed.
+	corecmd_shell_domtrans($1_su_t,$2)
+	allow $2 $1_su_t:fd use;
+	allow $1_su_t $2:fd use;
+	allow $1_su_t $2:fifo_file rw_file_perms;
+	allow $1_su_t $2:process sigchld;
+
+	kernel_read_system_state($1_su_t)
+	kernel_read_kernel_sysctls($1_su_t)
+
+	# for SSP
+	dev_read_urand($1_su_t)
+
+	fs_search_auto_mountpoints($1_su_t)
+
+	auth_domtrans_user_chk_passwd($1,$1_su_t)
+	auth_dontaudit_read_shadow($1_su_t)
+	auth_use_nsswitch($1_su_t)
+
+	corecmd_search_bin($1_su_t)
+	corecmd_search_sbin($1_su_t)
+
+	domain_use_interactive_fds($1_su_t)
+
+	files_read_etc_files($1_su_t)
+	files_read_etc_runtime_files($1_su_t)
+	files_search_var_lib($1_su_t)
+	files_dontaudit_getattr_tmp_dirs($1_su_t)
+
+	init_dontaudit_use_fds($1_su_t)
+	# Write to utmp.
+	init_rw_utmp($1_su_t)
+
+	libs_use_ld_so($1_su_t)
+	libs_use_shared_libs($1_su_t)
+
+	logging_send_syslog_msg($1_su_t)
+
+	miscfiles_read_localization($1_su_t)
+
+	userdom_use_user_terminals($1,$1_su_t)
+	userdom_search_user_home_dirs($1,$1_su_t)
+
+	ifdef(`enable_polyinstantiation',`
+		fs_mount_xattr_fs($1_su_t)
+		fs_unmount_xattr_fs($1_su_t)
+	')
+
+	ifdef(`targeted_policy',`
+		# allow user to suspend terminal.
+		# does not work in strict since the
+		# parent may not be able to use
+		# the terminal if we newrole,
+		# which relabels the terminal.
+		allow $1_su_t self:process sigstop;
+
+		corecmd_exec_bin($1_su_t)
+		userdom_manage_all_users_home_content_files($1_su_t)
+		userdom_manage_all_users_home_content_symlinks($1_su_t)
+	')
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_search_nfs($1_su_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_search_cifs($1_su_t)
+	')
+
+	optional_policy(`cron',`
+		cron_read_pipes($1_su_t)
+	')
+
+	optional_policy(`kerberos',`
+		kerberos_use($1_su_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_su_t)
+	')
+
+	# Modify .Xauthority file (via xauth program).
+	optional_policy(`xserver',`
+#		file_type_auto_trans($1_su_t, staff_home_dir_t, staff_xauth_home_t, file)
+#		file_type_auto_trans($1_su_t, user_home_dir_t, user_xauth_home_t, file)
+#		file_type_auto_trans($1_su_t, sysadm_home_dir_t, sysadm_xauth_home_t, file)
+		xserver_domtrans_user_xauth($1, $1_su_t)
+	')
+
+	ifdef(`TODO',`
+	# Caused by su - init scripts
+	dontaudit $1_su_t initrc_devpts_t:chr_file { getattr ioctl };
+
+	# Inherit and use descriptors from gnome-pty-helper.
+	ifdef(`gnome-pty-helper.te', `allow $1_su_t $1_gph_t:fd use;')
+
+	allow $1_su_t $1_home_t:file create_file_perms;
+
+	ifdef(`user_canbe_sysadm', `
+	allow $1_su_t home_dir_type:dir { search write };
+	', `
+	dontaudit $1_su_t home_dir_type:dir { search write };
+	')
+
+	ifdef(`ssh.te', `
+	# Access sshd cookie files.
+	allow $1_su_t sshd_tmp_t:file rw_file_perms;
+	file_type_auto_trans($1_su_t, sshd_tmp_t, $1_tmp_t)
+	')
+	') dnl end TODO
+')
+
+#######################################
+## <summary>
+##	Execute su in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`su_exec',`
+	gen_require(`
+		type su_exec_t;
+	')
+
+	can_exec($1,su_exec_t)
+')

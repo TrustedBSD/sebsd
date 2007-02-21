@@ -1,0 +1,5 @@
+# checkpolicy
+/usr/bin/checkpolicy		--	system_u:object_r:checkpolicy_exec_t
+/etc/selinux/policy/policy.* -- system_u:object_r:policy_config_t
+/etc/selinux/.*/src/policy/policy.* -- system_u:object_r:policy_config_t	
+/sbin/sebsd_checkpolicy		system_u:object_r:checkpolicy_exec_t

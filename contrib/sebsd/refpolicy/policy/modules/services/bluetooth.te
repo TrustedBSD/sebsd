@@ -1,0 +1,230 @@
+
+policy_module(bluetooth,1.2.0)
+
+########################################
+#
+# Declarations
+#
+type bluetooth_t;
+type bluetooth_exec_t;
+init_daemon_domain(bluetooth_t,bluetooth_exec_t)
+
+type bluetooth_conf_t;
+files_type(bluetooth_conf_t)
+
+type bluetooth_conf_rw_t;
+files_type(bluetooth_conf_rw_t)
+
+type bluetooth_helper_t;
+type bluetooth_helper_exec_t;
+domain_type(bluetooth_helper_t)
+domain_entry_file(bluetooth_helper_t,bluetooth_helper_exec_t)
+role system_r types bluetooth_helper_t;
+
+type bluetooth_helper_tmp_t;
+files_tmp_file(bluetooth_helper_tmp_t)
+
+type bluetooth_lock_t;
+files_lock_file(bluetooth_lock_t)
+
+type bluetooth_tmp_t;
+files_tmp_file(bluetooth_tmp_t)
+
+type bluetooth_var_lib_t;
+files_type(bluetooth_var_lib_t)
+
+type bluetooth_var_run_t;
+files_pid_file(bluetooth_var_run_t)
+
+########################################
+#
+# Bluetooth services local policy
+#
+
+allow bluetooth_t self:capability { net_admin net_raw sys_tty_config };
+dontaudit bluetooth_t self:capability sys_tty_config;
+allow bluetooth_t self:process { getsched signal_perms };
+allow bluetooth_t self:fifo_file rw_file_perms;
+allow bluetooth_t self:shm create_shm_perms;
+allow bluetooth_t self:socket create_stream_socket_perms;
+allow bluetooth_t self:unix_dgram_socket create_socket_perms;
+allow bluetooth_t self:unix_stream_socket create_stream_socket_perms;
+allow bluetooth_t self:tcp_socket { create_stream_socket_perms connect };
+allow bluetooth_t self:udp_socket create_socket_perms;
+
+allow bluetooth_t bluetooth_conf_t:dir rw_dir_perms;
+allow bluetooth_t bluetooth_conf_t:file { getattr read ioctl };
+
+allow bluetooth_t bluetooth_conf_rw_t:dir create_dir_perms;
+allow bluetooth_t bluetooth_conf_rw_t:file create_file_perms;
+allow bluetooth_t bluetooth_conf_rw_t:lnk_file create_lnk_perms;
+allow bluetooth_t bluetooth_conf_rw_t:sock_file create_file_perms;
+allow bluetooth_t bluetooth_conf_rw_t:fifo_file create_file_perms;
+type_transition bluetooth_t bluetooth_conf_t:{ dir file lnk_file sock_file fifo_file } bluetooth_conf_rw_t;
+
+domain_auto_trans(bluetooth_t, bluetooth_helper_exec_t, bluetooth_helper_t)
+allow bluetooth_t bluetooth_helper_t:fd use;
+allow bluetooth_helper_t bluetooth_t:fd use;
+allow bluetooth_helper_t bluetooth_t:fifo_file rw_file_perms;
+allow bluetooth_helper_t bluetooth_t:process sigchld;
+
+allow bluetooth_t bluetooth_lock_t:file create_file_perms;
+files_lock_filetrans(bluetooth_t,bluetooth_lock_t,file)
+
+allow bluetooth_t bluetooth_tmp_t:dir create_dir_perms;
+allow bluetooth_t bluetooth_tmp_t:file create_file_perms;
+files_tmp_filetrans(bluetooth_t, bluetooth_tmp_t, { file dir })
+
+allow bluetooth_t bluetooth_var_lib_t:file create_file_perms;
+allow bluetooth_t bluetooth_var_lib_t:dir create_dir_perms;
+files_var_lib_filetrans(bluetooth_t,bluetooth_var_lib_t,file)
+
+allow bluetooth_t bluetooth_var_run_t:dir rw_dir_perms;
+allow bluetooth_t bluetooth_var_run_t:file create_file_perms;
+allow bluetooth_t bluetooth_var_run_t:sock_file create_file_perms;
+files_pid_filetrans(bluetooth_t, bluetooth_var_run_t, { file sock_file })
+
+kernel_read_kernel_sysctls(bluetooth_t)
+kernel_read_system_state(bluetooth_t)
+
+corenet_tcp_sendrecv_all_if(bluetooth_t)
+corenet_udp_sendrecv_all_if(bluetooth_t)
+corenet_raw_sendrecv_all_if(bluetooth_t)
+corenet_tcp_sendrecv_all_nodes(bluetooth_t)
+corenet_udp_sendrecv_all_nodes(bluetooth_t)
+corenet_raw_sendrecv_all_nodes(bluetooth_t)
+corenet_tcp_sendrecv_all_ports(bluetooth_t)
+corenet_udp_sendrecv_all_ports(bluetooth_t)
+corenet_non_ipsec_sendrecv(bluetooth_t)
+corenet_tcp_bind_all_nodes(bluetooth_t)
+corenet_udp_bind_all_nodes(bluetooth_t)
+
+dev_read_sysfs(bluetooth_t)
+dev_rw_usbfs(bluetooth_t)
+dev_rw_generic_usb_dev(bluetooth_t)
+dev_read_urand(bluetooth_t)
+
+fs_getattr_all_fs(bluetooth_t)
+fs_search_auto_mountpoints(bluetooth_t)
+
+term_dontaudit_use_console(bluetooth_t)
+#Handle bluetooth serial devices
+term_use_unallocated_ttys(bluetooth_t)
+
+corecmd_exec_bin(bluetooth_t)
+corecmd_exec_shell(bluetooth_t)
+
+domain_use_interactive_fds(bluetooth_t)
+
+files_read_etc_files(bluetooth_t)
+files_read_etc_runtime_files(bluetooth_t)
+files_read_usr_files(bluetooth_t)
+
+init_use_fds(bluetooth_t)
+init_use_script_ptys(bluetooth_t)
+
+libs_use_ld_so(bluetooth_t)
+libs_use_shared_libs(bluetooth_t)
+
+logging_send_syslog_msg(bluetooth_t)
+
+miscfiles_read_localization(bluetooth_t)
+miscfiles_read_fonts(bluetooth_t)
+
+sysnet_read_config(bluetooth_t)
+
+userdom_dontaudit_use_unpriv_user_fds(bluetooth_t)
+userdom_dontaudit_use_sysadm_ptys(bluetooth_t)
+userdom_dontaudit_search_sysadm_home_dirs(bluetooth_t)
+
+ifdef(`targeted_policy',`
+	term_dontaudit_use_unallocated_ttys(bluetooth_t)
+	term_dontaudit_use_generic_ptys(bluetooth_t)
+	files_dontaudit_read_root_files(bluetooth_t)
+')
+
+optional_policy(`dbus',`
+	dbus_system_bus_client_template(bluetooth,bluetooth_t)
+	dbus_send_system_bus(bluetooth_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(bluetooth_t)
+')
+
+optional_policy(`selinuxutil',`
+	seutil_sigchld_newrole(bluetooth_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(bluetooth_t)
+')
+
+########################################
+#
+# Bluetooth helper local policy
+#
+
+allow bluetooth_helper_t self:capability sys_nice;
+allow bluetooth_helper_t self:process getsched;
+allow bluetooth_helper_t self:fifo_file rw_file_perms;
+allow bluetooth_helper_t self:shm create_shm_perms;
+allow bluetooth_helper_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+allow bluetooth_helper_t bluetooth_t:socket { read write };
+
+allow bluetooth_helper_t bluetooth_helper_tmp_t:dir create_dir_perms;
+allow bluetooth_helper_t bluetooth_helper_tmp_t:file create_file_perms;
+files_tmp_filetrans(bluetooth_helper_t, bluetooth_helper_tmp_t, { file dir })
+
+kernel_read_system_state(bluetooth_helper_t)
+kernel_read_kernel_sysctls(bluetooth_helper_t)
+
+dev_read_urand(bluetooth_helper_t)
+
+term_dontaudit_use_all_user_ttys(bluetooth_helper_t)
+
+corecmd_exec_bin(bluetooth_helper_t)
+corecmd_exec_shell(bluetooth_helper_t)
+
+domain_read_all_domains_state(bluetooth_helper_t)
+
+files_read_etc_files(bluetooth_helper_t)
+files_read_etc_runtime_files(bluetooth_helper_t)
+files_read_usr_files(bluetooth_helper_t)
+files_dontaudit_list_default(bluetooth_helper_t)
+
+libs_use_ld_so(bluetooth_helper_t)
+libs_use_shared_libs(bluetooth_helper_t)
+
+logging_send_syslog_msg(bluetooth_helper_t)
+
+miscfiles_read_localization(bluetooth_helper_t) 
+miscfiles_read_fonts(bluetooth_helper_t)
+
+userdom_search_all_users_home_content(bluetooth_helper_t)
+
+optional_policy(`nscd',`
+	nscd_socket_use(bluetooth_helper_t)
+')
+
+ifdef(`TODO',`
+allow bluetooth_helper_t tmp_t:dir search;
+
+ifdef(`xserver.te', `
+	allow bluetooth_helper_t xserver_log_t:dir search;
+	allow bluetooth_helper_t xserver_log_t:file { getattr read };
+')
+
+ifdef(`strict_policy',`
+	ifdef(`xdm.te',`
+		allow bluetooth_helper_t xdm_xserver_tmp_t:sock_file { read write };
+	')
+')
+') dnl end TODO
+
+ifdef(`targeted_policy',`
+	files_rw_generic_tmp_sockets(bluetooth_helper_t)
+	allow bluetooth_helper_t tmpfs_t:file { read write };
+	allow bluetooth_helper_t unconfined_t:unix_stream_socket connectto;
+')

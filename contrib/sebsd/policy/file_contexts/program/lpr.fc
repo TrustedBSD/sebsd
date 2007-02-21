@@ -1,0 +1,4 @@
+# lp utilities.
+/usr/bin/lpr		--	system_u:object_r:lpr_exec_t
+/usr/bin/lpq		--	system_u:object_r:lpr_exec_t
+/usr/bin/lprm		--	system_u:object_r:lpr_exec_t

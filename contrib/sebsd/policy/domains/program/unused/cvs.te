@@ -1,0 +1,7 @@
+
+type cvs_exec_t, exec_type, file_type, sysadmfile;
+
+cvs_program_domain(user,user)
+#domain_auto_trans(user_t,cvs_exec_t,user_cvs_rw_t)
+role user_r types user_cvs_rw_t;
+role user_r types user_cvs_ro_t;

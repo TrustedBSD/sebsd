@@ -1,0 +1,8 @@
+$FreeBSD: src/contrib/tcsh/FREEBSD-Xlist,v 1.3 2006/03/16 04:01:27 ume Exp $
+*/BUGS
+*/config/a*
+*/config/bs2000
+*/config/bsd
+*/config/bsdreno
+*/config/[c-z]*
+*/win32

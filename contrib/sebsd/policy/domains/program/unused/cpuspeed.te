@@ -1,0 +1,10 @@
+#DESC cpuspeed - domain for microcode_ctl and other programs to speed CPU
+#
+# Author:  Russell Coker <russell@coker.com.au>
+#
+
+daemon_base_domain(cpuspeed)
+allow cpuspeed_t sysfs_t:dir { search };
+allow cpuspeed_t sysfs_t:file rw_file_perms;
+allow cpuspeed_t proc_t:dir r_dir_perms;
+allow cpuspeed_t proc_t:file { getattr read };

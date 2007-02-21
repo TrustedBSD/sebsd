@@ -1,0 +1,830 @@
+## <summary>X Windows Server</summary>
+
+#######################################
+## <summary>
+##	Template to create types and rules common to
+##	all X server domains.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+#
+template(`xserver_common_domain_template',`
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_xserver_t;
+	domain_type($1_xserver_t)
+
+	type $1_xserver_tmp_t;
+	files_tmp_file($1_xserver_tmp_t)
+
+	type $1_xserver_tmpfs_t;
+	files_tmpfs_file($1_xserver_tmpfs_t)
+
+	##############################
+	#
+	# $1_xserver_t local policy
+	#
+
+	# setuid/setgid for the wrapper program to change UID
+	# sys_rawio is for iopl access - should not be needed for frame-buffer
+	# sys_admin, locking shared mem?  chowning IPC message queues or semaphores?
+	# admin of APM bios?
+	# sys_nice is so that the X server can set a negative nice value
+	# execheap needed until the X module loader is fixed.
+	# NVIDIA Needs execstack
+
+	allow $1_xserver_t self:capability { dac_override fsetid setgid setuid ipc_owner sys_rawio sys_admin sys_nice sys_tty_config mknod net_bind_service };
+	dontaudit $1_xserver_t self:capability chown;
+	allow $1_xserver_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1_xserver_t self:process { execmem execheap execstack setsched };
+	allow $1_xserver_t self:fd use;
+	allow $1_xserver_t self:fifo_file rw_file_perms;
+	allow $1_xserver_t self:sock_file r_file_perms;
+	allow $1_xserver_t self:shm create_shm_perms;
+	allow $1_xserver_t self:sem create_sem_perms;
+	allow $1_xserver_t self:msgq create_msgq_perms;
+	allow $1_xserver_t self:msg { send receive };
+	allow $1_xserver_t self:unix_dgram_socket { create_socket_perms sendto };
+	allow $1_xserver_t self:unix_stream_socket { create_stream_socket_perms connectto };
+	allow $1_xserver_t self:netlink_route_socket r_netlink_socket_perms;
+	allow $1_xserver_t self:tcp_socket create_stream_socket_perms;
+	allow $1_xserver_t self:udp_socket create_socket_perms;
+
+	allow $1_xserver_t $1_xserver_tmp_t:dir manage_dir_perms;
+	allow $1_xserver_t $1_xserver_tmp_t:file manage_file_perms;
+	allow $1_xserver_t $1_xserver_tmp_t:sock_file manage_file_perms;
+	files_tmp_filetrans($1_xserver_t, $1_xserver_tmp_t, { file dir sock_file })
+
+	allow $1_xserver_t xdm_xserver_tmp_t:dir rw_dir_perms;
+	type_transition $1_xserver_t xdm_xserver_tmp_t:sock_file $1_xserver_tmp_t;
+
+	allow $1_xserver_t $1_xserver_tmpfs_t:dir manage_dir_perms;
+	allow $1_xserver_t $1_xserver_tmpfs_t:file manage_file_perms;
+	allow $1_xserver_t $1_xserver_tmpfs_t:lnk_file create_lnk_perms;
+	allow $1_xserver_t $1_xserver_tmpfs_t:sock_file manage_file_perms;
+	allow $1_xserver_t $1_xserver_tmpfs_t:fifo_file manage_file_perms;
+	fs_tmpfs_filetrans($1_xserver_t,$1_xserver_tmpfs_t,{ dir file lnk_file sock_file fifo_file })
+
+	allow $1_xserver_t xkb_var_lib_t:dir rw_dir_perms;
+	allow $1_xserver_t xkb_var_lib_t:file manage_file_perms;
+	allow $1_xserver_t xkb_var_lib_t:lnk_file create_lnk_perms;
+	files_search_var_lib($1_xserver_t)
+
+	# Create files in /var/log with the xserver_log_t type.
+	allow $1_xserver_t xserver_log_t:file manage_file_perms;
+	allow $1_xserver_t xserver_log_t:dir r_dir_perms;
+	logging_log_filetrans($1_xserver_t,xserver_log_t,file)
+
+	kernel_read_system_state($1_xserver_t)
+	kernel_read_device_sysctls($1_xserver_t)
+	kernel_read_modprobe_sysctls($1_xserver_t)
+	# Xorg wants to check if kernel is tainted
+	kernel_read_kernel_sysctls($1_xserver_t)
+	kernel_write_proc_files($1_xserver_t)
+
+	# Run helper programs in $1_xserver_t.
+	corecmd_search_sbin($1_xserver_t)
+	corecmd_exec_bin($1_xserver_t)
+	corecmd_exec_shell($1_xserver_t)
+
+	corenet_non_ipsec_sendrecv($1_xserver_t)
+	corenet_tcp_sendrecv_generic_if($1_xserver_t)
+	corenet_udp_sendrecv_generic_if($1_xserver_t)
+	corenet_raw_sendrecv_generic_if($1_xserver_t)
+	corenet_tcp_sendrecv_all_nodes($1_xserver_t)
+	corenet_udp_sendrecv_all_nodes($1_xserver_t)
+	corenet_raw_sendrecv_all_nodes($1_xserver_t)
+	corenet_tcp_sendrecv_all_ports($1_xserver_t)
+	corenet_udp_sendrecv_all_ports($1_xserver_t)
+	corenet_tcp_bind_all_nodes($1_xserver_t)
+	corenet_udp_bind_all_nodes($1_xserver_t)
+	corenet_tcp_bind_xserver_port($1_xserver_t)
+	corenet_tcp_connect_all_ports($1_xserver_t)
+
+	dev_read_sysfs($1_xserver_t)
+	dev_rw_mouse($1_xserver_t)
+	dev_rw_mtrr($1_xserver_t)
+	dev_rw_apm_bios($1_xserver_t)
+	dev_rw_agp($1_xserver_t)
+	dev_rw_framebuffer($1_xserver_t)
+	dev_manage_dri_dev($1_xserver_t)
+	dev_create_generic_dirs($1_xserver_t)
+	dev_setattr_generic_dirs($1_xserver_t)
+	# raw memory access is needed if not using the frame buffer
+	dev_read_raw_memory($1_xserver_t)
+	dev_write_raw_memory($1_xserver_t)
+	# for other device nodes such as the NVidia binary-only driver
+	dev_rw_xserver_misc($1_xserver_t)
+	# read events - the synaptics touchpad driver reads raw events
+	dev_rw_input_dev($1_xserver_t)
+	dev_rwx_zero($1_xserver_t)
+
+	files_read_etc_files($1_xserver_t)
+	files_read_etc_runtime_files($1_xserver_t)
+	files_read_usr_files($1_xserver_t)
+
+	# brought on by rhgb
+	files_search_mnt($1_xserver_t)
+	# for nscd
+	files_dontaudit_search_pids($1_xserver_t)
+
+	fs_getattr_xattr_fs($1_xserver_t)
+	fs_search_nfs($1_xserver_t)
+	fs_search_auto_mountpoints($1_xserver_t)
+
+	init_getpgid($1_xserver_t)
+
+	term_setattr_unallocated_ttys($1_xserver_t)
+	term_use_unallocated_ttys($1_xserver_t)
+
+	libs_use_ld_so($1_xserver_t)
+	libs_use_shared_libs($1_xserver_t)
+
+	logging_send_syslog_msg($1_xserver_t)
+
+	miscfiles_read_localization($1_xserver_t)
+	miscfiles_read_fonts($1_xserver_t)
+
+	modutils_domtrans_insmod($1_xserver_t)
+
+	seutil_dontaudit_search_config($1_xserver_t)
+
+	sysnet_read_config($1_xserver_t)
+
+	optional_policy(`authlogin',`
+		auth_search_pam_console_data($1_xserver_t)
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind($1_xserver_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_xserver_t)
+	')
+
+	optional_policy(`xfs',`
+		xfs_stream_connect($1_xserver_t)
+	')
+
+	ifdef(`TODO',`
+	ifdef(`distro_redhat',`
+		ifdef(`rpm.te', `
+			allow $1_xserver_t rpm_t:shm { unix_read unix_write read write associate getattr };
+			allow $1_xserver_t rpm_tmpfs_t:file { read write };
+			rpm_use_fds($1_xserver_t)
+		')
+	')
+	') dnl end TODO
+')
+
+#######################################
+## <summary>
+##	The per user domain template for the xserver module.
+## </summary>
+## <desc>
+##	<p>
+##	Define a derived domain for the X server when executed
+##	by a user domain (e.g. via startx).  See the xdm module
+##	if using an X Display Manager.
+##	</p>
+##	<p>
+##	This is invoked automatically for each user and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+#
+template(`xserver_per_userdomain_template',`
+
+	##############################
+	#
+	# Declarations
+	#
+
+	xserver_common_domain_template($1)
+	role $3 types $1_xserver_t;
+
+	type $1_iceauth_t;
+	domain_type($1_iceauth_t)
+	role $3 types $1_iceauth_t;
+
+	type $1_iceauth_home_t alias $1_iceauth_rw_t;
+	files_poly_member($1_iceauth_home_t)
+	userdom_user_home_content($1,$1_iceauth_home_t)
+
+	type $1_xauth_t;
+	domain_type($1_xauth_t)
+	role $3 types $1_xauth_t;
+
+	type $1_xauth_home_t alias $1_xauth_rw_t;
+	files_poly_member($1_xauth_home_t)
+	userdom_user_home_content($1,$1_xauth_home_t)
+
+	type $1_xauth_tmp_t;
+	files_tmp_file($1_xauth_tmp_t)
+
+	##############################
+	#
+	# $1_xserver_t Local policy
+	#
+
+	domain_auto_trans($1_xserver_t, xauth_exec_t, $1_xauth_t)
+	allow $1_xserver_t $1_xauth_t:fd use;
+	allow $1_xauth_t $1_xserver_t:fd use;
+	allow $1_xauth_t $1_xserver_t:fifo_file rw_file_perms;
+	allow $1_xauth_t $1_xserver_t:process sigchld;
+
+	allow $1_xserver_t $1_xauth_home_t:file { getattr read };
+
+	domain_auto_trans($2, xserver_exec_t, $1_xserver_t)
+	allow $2 $1_xserver_t:fd use;
+	allow $1_xserver_t $2:fd use;
+	allow $1_xserver_t $2:fifo_file rw_file_perms;
+	allow $1_xserver_t $2:process { signal sigchld };
+
+	allow $1_xserver_t $2:shm rw_shm_perms;
+
+	allow $2 $1_xserver_tmp_t:dir r_dir_perms;
+	allow $2 $1_xserver_tmp_t:sock_file rw_file_perms;
+	allow $2 $1_xserver_t:unix_stream_socket connectto;
+
+	allow $2 $1_xserver_tmpfs_t:file rw_file_perms;
+
+	# Communicate via System V shared memory.
+	allow $1_xserver_t $2:shm rw_shm_perms;
+	allow $2 $1_xserver_t:shm rw_shm_perms;
+
+	getty_use_fds($1_xserver_t)
+
+	locallogin_use_fds($1_xserver_t)
+
+	userdom_search_user_home_dirs($1,$1_xserver_t)
+	userdom_use_user_ttys($1,$1_xserver_t)
+	userdom_setattr_user_ttys($1,$1_xserver_t)
+	userdom_rw_user_tmpfs_files($1,$1_xserver_t)
+
+	optional_policy(`userhelper',`
+		userhelper_search_config($1_xserver_t)
+	')
+
+	ifdef(`TODO',`
+	# Read fonts
+	read_fonts($1_xserver_t, $1)
+
+	allow $1_t xdm_xserver_tmp_t:dir r_dir_perms;
+	allow $1_t xdm_xserver_t:unix_stream_socket connectto;
+
+	ifdef(`xdm.te', `
+		allow $1_t xdm_tmp_t:sock_file unlink;
+		allow $1_xserver_t xdm_var_run_t:dir search;
+	')
+	') dnl end TODO
+
+	##############################
+	#
+	# $1_xauth_t Local policy
+	#
+
+	allow $1_xauth_t self:process signal;
+	allow $1_xauth_t self:unix_stream_socket create_stream_socket_perms;
+
+	allow $1_xauth_t $1_xauth_home_t:file manage_file_perms;
+	userdom_user_home_dir_filetrans($1,$1_xauth_t,$1_xauth_home_t,file)
+
+	allow $1_xauth_t $1_xauth_tmp_t:dir create_dir_perms;
+	allow $1_xauth_t $1_xauth_tmp_t:file create_file_perms;
+	files_tmp_filetrans($1_xauth_t, $1_xauth_tmp_t, { file dir })
+
+	domain_auto_trans($2, xauth_exec_t, $1_xauth_t)
+	allow $2 $1_xauth_t:fd use;
+	allow $1_xauth_t $2:fd use;
+	allow $1_xauth_t $2:fifo_file rw_file_perms;
+	allow $1_xauth_t $2:process sigchld;
+
+	allow $2 $1_xauth_t:process signal;
+
+	# allow ps to show xauth
+	allow $2 $1_xauth_t:dir { search getattr read };
+	allow $2 $1_xauth_t:{ file lnk_file } { read getattr };
+	allow $2 $1_xauth_t:process getattr;
+	# We need to suppress this denial because procps tries to access
+	# /proc/pid/environ and this now triggers a ptrace check in recent kernels
+	# (2.4 and 2.6).  Might want to change procps to not do this, or only if
+	# running in a privileged domain.
+	dontaudit $2 $1_xauth_t:process ptrace;
+
+	allow $2 $1_xauth_home_t:file manage_file_perms;
+	allow $2 $1_xauth_home_t:file { relabelfrom relabelto };
+
+	allow xdm_t $1_xauth_home_t:file manage_file_perms;
+	userdom_user_home_dir_filetrans($1,xdm_t,$1_xauth_home_t,file)
+
+	domain_use_interactive_fds($1_xauth_t)
+
+	files_read_etc_files($1_xauth_t)
+	files_search_pids($1_xauth_t)
+
+	fs_getattr_xattr_fs($1_xauth_t)
+	fs_search_auto_mountpoints($1_xauth_t)
+
+	# cjp: why?
+	term_use_ptmx($1_xauth_t)
+
+	libs_use_ld_so($1_xauth_t)
+	libs_use_shared_libs($1_xauth_t)
+
+	sysnet_dns_name_resolve($1_xauth_t)
+
+	userdom_use_user_terminals($1,$1_xauth_t)
+	userdom_read_user_tmp_files($1,$1_xauth_t)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_files($1_xauth_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_files($1_xauth_t)
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind($1_xauth_t)
+	')
+
+	optional_policy(`ssh',`
+		ssh_sigchld($1_xauth_t)
+		ssh_read_pipes($1_xauth_t)
+		ssh_dontaudit_rw_tcp_sockets($1_xauth_t)
+	')
+
+	##############################
+	#
+	# $1_iceauth_t Local policy
+	#
+
+	domain_auto_trans($2, iceauth_exec_t, $1_iceauth_t)
+	allow $2 $1_iceauth_t:fd use;
+	allow $1_iceauth_t $2:fd use;
+	allow $1_iceauth_t $2:fifo_file rw_file_perms;
+	allow $1_iceauth_t $2:process sigchld;
+
+	allow $1_iceauth_t $1_iceauth_home_t:file manage_file_perms;
+	userdom_user_home_dir_filetrans($1,$1_iceauth_t,$1_iceauth_home_t,file)
+
+	# allow ps to show iceauth
+	allow $2 $1_iceauth_t:dir { search getattr read };
+	allow $2 $1_iceauth_t:{ file lnk_file } { read getattr };
+	allow $2 $1_iceauth_t:process getattr;
+	# We need to suppress this denial because procps tries to access
+	# /proc/pid/environ and this now triggers a ptrace check in recent kernels
+	# (2.4 and 2.6).  Might want to change procps to not do this, or only if
+	# running in a privileged domain.
+	dontaudit $2 $1_iceauth_t:process ptrace;
+
+	allow $2 $1_iceauth_home_t:file manage_file_perms;
+	allow $2 $1_iceauth_home_t:file { relabelfrom relabelto };
+
+	fs_search_auto_mountpoints($1_iceauth_t)
+
+	libs_use_ld_so($1_iceauth_t)
+	libs_use_shared_libs($1_iceauth_t)
+
+	userdom_use_user_terminals($1,$1_iceauth_t)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_files($1_iceauth_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_files($1_iceauth_t)
+	')
+')
+
+#######################################
+## <summary>
+##	Template for creating sessions on a
+##	prefix X server, with read-only
+##	access to the X server shared
+##	memory segments.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+template(`xserver_ro_session_template',`
+	gen_require(`
+		type $1_xserver_t, $1_xserver_tmp_t, $1_xserver_tmpfs_t;
+	')
+
+	# Xserver read/write client shm
+	allow $1_xserver_t $2:fd use;
+	allow $1_xserver_t $2:shm rw_shm_perms;
+	allow $1_xserver_t $3:file rw_file_perms;
+
+	# Connect to xserver
+	allow $2 $1_xserver_t:unix_stream_socket connectto;
+	allow $2 $1_xserver_t:process signal;
+
+	# Read /tmp/.X0-lock
+	allow $2 $1_xserver_tmp_t:file { getattr read };
+
+	# Client read xserver shm
+	allow $2 $1_xserver_t:fd use;
+	allow $2 $1_xserver_t:shm r_shm_perms;
+	allow $2 $1_xserver_tmpfs_t:file r_file_perms;
+')
+
+#######################################
+## <summary>
+##	Template for creating sessions on a
+##	prefix X server, with read and write
+##	access to the X server shared
+##	memory segments.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+template(`xserver_rw_session_template',`
+	gen_require(`
+		type $1_xserver_t, $1_xserver_tmpfs_t;
+	')
+
+	xserver_ro_session_template($1,$2,$3)
+	allow $2 $1_xserver_t:shm rw_shm_perms;
+	allow $2 $1_xserver_tmpfs_t:file rw_file_perms;
+')
+
+#######################################
+## <summary>
+##	Template for creating full client sessions
+##	on a user X server.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+template(`xserver_user_client_template',`
+
+	gen_require(`
+		type xdm_t, xdm_tmp_t;
+		type $1_xauth_home_t, $1_xserver_t, $1_xserver_tmpfs_t;
+	')
+
+	allow $2 self:shm create_shm_perms;
+	allow $2 self:unix_dgram_socket create_socket_perms;
+	allow $2 self:unix_stream_socket { connectto create_stream_socket_perms };
+
+	# Read .Xauthority file
+	allow $2 $1_xauth_home_t:file { getattr read };
+
+	# for when /tmp/.X11-unix is created by the system
+	allow $2 xdm_t:fd use;
+	allow $2 xdm_t:fifo_file { getattr read write ioctl };
+	allow $2 xdm_tmp_t:dir search;
+	allow $2 xdm_tmp_t:sock_file { read write };
+	dontaudit $2 xdm_t:tcp_socket { read write };
+
+	# Allow connections to X server.
+	files_search_tmp($2)
+
+	miscfiles_read_fonts($2)
+
+	userdom_search_user_home_dirs($1,$2)
+	# for .xsession-errors
+	userdom_dontaudit_write_user_home_content_files($1,$2)
+
+	xserver_ro_session_template(xdm,$2,$3)
+	xserver_rw_session_template($1,$2,$3)
+
+	# Client write xserver shm
+	tunable_policy(`allow_write_xshm',`
+		allow $2 $1_xserver_t:shm rw_shm_perms;
+		allow $2 $1_xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	# for X over a ssh tunnel
+	optional_policy(`ssh',`
+		kernel_tcp_recvfrom($2)
+		ssh_tcp_connect($2)
+	')
+
+	ifdef(`TODO',`
+	# cjp: need to implement the user-specific fonts part
+	read_fonts($2, $1)
+	')
+')
+
+########################################
+## <summary>
+##	Transition to a user Xauthority domain.
+## </summary>
+## <desc>
+##	<p>
+##	Transition to a user Xauthority domain.
+##	</p>
+##	<p>
+##	This is a templated interface, and should only
+##	be called from a per-userdomain template.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`xserver_domtrans_user_xauth',`
+	gen_require(`
+		type $1_xauth_t, xauth_exec_t;
+	')
+
+	domain_auto_trans($2, xauth_exec_t, $1_xauth_t)
+	allow $2 $1_xauth_t:fd use;
+	allow $1_xauth_t $2:fd use;
+	allow $1_xauth_t $2:fifo_file rw_file_perms;
+	allow $1_xauth_t $2:process sigchld;
+')
+
+########################################
+## <summary>
+##	Connect to XDM over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_stream_connect_xdm',`
+	gen_require(`
+		type xdm_t;
+	')
+
+	allow $1 xdm_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Read xdm-writable configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_rw_config',`
+	gen_require(`
+		type xdm_rw_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 xdm_rw_etc_t:dir { getattr read };
+')
+
+########################################
+## <summary>
+##	Set the attributes of XDM temporary directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_setattr_xdm_tmp_dirs',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	allow $1 xdm_tmp_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Create a named socket in a XDM
+##	temporary directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_create_xdm_tmp_sockets',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 xdm_tmp_t:dir ra_dir_perms;
+	allow $1 xdm_tmp_t:sock_file create;
+')
+
+########################################
+## <summary>
+##	Read XDM pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_pid',`
+	gen_require(`
+		type xdm_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 xdm_var_run_t:file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute the X server in the XDM X server domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_domtrans_xdm_xserver',`
+	gen_require(`
+		type xdm_xserver_t, xserver_exec_t;
+	')
+
+	domain_auto_trans($1,xserver_exec_t,xdm_xserver_t)
+
+	allow $1 xdm_xserver_t:fd use;
+	allow xdm_xserver_t $1:fd use;
+	allow xdm_xserver_t $1:fifo_file rw_file_perms;
+	allow xdm_xserver_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Make an X session script an entrypoint for the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which the shell is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`xserver_xsession_entry_type',`
+	gen_require(`
+		type xsession_exec_t;
+	')
+
+	domain_entry_file($1,xsession_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute an X session in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+## </summary>
+## <desc>
+##	<p>
+##	Execute an Xsession in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the shell process.
+##	</summary>
+## </param>
+#
+interface(`xserver_xsession_spec_domtrans',`
+	gen_require(`
+		type xsession_exec_t;
+	')
+
+	domain_trans($1,xsession_exec_t,$2)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the X server
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_write_log',`
+	gen_require(`
+		type xserver_log_t;
+	')
+
+	dontaudit $1 xserver_log_t:file { append write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the X server
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_delete_log',`
+	gen_require(`
+		type xserver_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 xserver_log_t:dir rw_dir_perms;
+	allow $1 xserver_log_t:file unlink;
+')

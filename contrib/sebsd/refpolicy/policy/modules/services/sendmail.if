@@ -1,0 +1,114 @@
+## <summary>Policy for sendmail.</summary>
+
+########################################
+## <summary>
+##	Sendmail stub interface.  No access allowed.
+## </summary>
+## <param name="domain" optional="true">
+##	<summary>
+##	N/A
+##	</summary>
+## </param>
+#
+interface(`sendmail_stub',`
+	gen_require(`
+		type sendmail_t;
+	')
+')
+
+########################################
+## <summary>
+##	Domain transition to sendmail.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_domtrans',`
+	gen_require(`
+		type sendmail_exec_t, sendmail_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_sbin($1)
+	domain_auto_trans($1,sendmail_exec_t,sendmail_t)
+
+	allow $1 sendmail_t:fd use;
+	allow sendmail_t $1:fd use;
+	allow sendmail_t $1:fifo_file rw_file_perms;
+	allow sendmail_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Read and write sendmail TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_rw_tcp_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:tcp_socket { read write };
+')
+########################################
+## <summary>
+##	Read and write sendmail unix_stream_sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_rw_unix_stream_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete sendmail logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_manage_log',`
+	gen_require(`
+		type sendmail_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 sendmail_log_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Create sendmail logs with the correct type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_create_log',`
+	gen_require(`
+		type sendmail_log_t;
+	')
+
+	logging_log_filetrans($1,sendmail_log_t,file)
+')

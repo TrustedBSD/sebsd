@@ -1,0 +1,34 @@
+#DESC dbus-daemon-1 server for dbus desktop bus protocol
+#
+# Author:  Russell Coker <russell@coker.com.au>
+
+daemon_domain(dbusd, `, userspace_objmgr')
+type etc_dbusd_t, file_type, sysadmfile;
+
+allow dbusd_t dbusd_var_run_t:sock_file { create getattr setattr unlink };
+
+r_dir_file(dbusd_t, pam_var_console_t)
+
+r_dir_file(dbusd_t, etc_dbusd_t)
+allow dbusd_t self:unix_stream_socket create_stream_socket_perms;
+allow dbusd_t self:unix_dgram_socket create_socket_perms;
+
+allow dbusd_t etc_t:file { getattr read };
+# dac_override: /var/run/dbus is owned by messagebus on Debian
+allow dbusd_t self:capability { dac_override setgid setuid };
+allow dbusd_t self:file { getattr read };
+allow dbusd_t proc_t:file { read };
+can_ypbind(dbusd_t)
+
+# I expect we need more than this
+allow { dbus_client_domain userdomain } dbusd_var_run_t:dir search;
+allow { dbus_client_domain userdomain } dbusd_var_run_t:sock_file { write };
+allow { dbus_client_domain userdomain } dbusd_t:unix_stream_socket { connectto };
+
+# Permissions for SE-DBus operation
+r_dir_file(dbusd_t,selinux_config_t)
+
+# SE-DBus specific permissions
+allow { dbus_client_domain userdomain } dbusd_t:dbus { send_msg };
+allow userdomain self:dbus { send_msg };
+

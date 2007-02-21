@@ -1,0 +1,3 @@
+/usr/libexec/save-entropy		system_u:object_r:save_entropy_exec_t
+/var/db/entropy(/.*)?			system_u:object_r:var_db_entropy_t
+/entropy				system_u:object_r:var_db_entropy_t

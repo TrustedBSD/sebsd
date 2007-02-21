@@ -1,0 +1,135 @@
+
+policy_module(nscd,1.2.0)
+
+gen_require(`
+	class nscd all_nscd_perms;
+')
+
+########################################
+#
+# Declarations
+#
+
+# cjp: this is out of order because of an
+# ordering problem with loadable modules
+type nscd_var_run_t;
+files_pid_file(nscd_var_run_t)
+
+# nscd is both the client program and the daemon.
+type nscd_t;
+type nscd_exec_t;
+init_daemon_domain(nscd_t,nscd_exec_t)
+
+type nscd_log_t;
+logging_log_file(nscd_log_t)
+
+########################################
+#
+# Local policy
+#
+
+allow nscd_t self:capability { kill setgid setuid };
+dontaudit nscd_t self:capability sys_tty_config;
+allow nscd_t self:process { getattr setsched signal_perms };
+allow nscd_t self:fifo_file { read write };
+allow nscd_t self:unix_stream_socket create_stream_socket_perms;
+allow nscd_t self:unix_dgram_socket create_socket_perms;
+allow nscd_t self:netlink_selinux_socket create_socket_perms;
+allow nscd_t self:netlink_route_socket r_netlink_socket_perms;
+allow nscd_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+allow nscd_t self:tcp_socket create_socket_perms;
+allow nscd_t self:udp_socket create_socket_perms;
+
+# For client program operation, invoked from sysadm_t.
+# Transition occurs to nscd_t due to direct_sysadm_daemon. 
+allow nscd_t self:nscd { admin getstat };
+
+allow nscd_t nscd_log_t:file create_file_perms;
+logging_log_filetrans(nscd_t,nscd_log_t,file)
+
+allow nscd_t nscd_var_run_t:file create_file_perms;
+allow nscd_t nscd_var_run_t:sock_file create_file_perms;
+allow nscd_t nscd_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(nscd_t,nscd_var_run_t,{ file sock_file })
+
+kernel_read_kernel_sysctls(nscd_t)
+kernel_list_proc(nscd_t)
+kernel_read_proc_symlinks(nscd_t)
+
+dev_read_sysfs(nscd_t)
+dev_read_rand(nscd_t)
+dev_read_urand(nscd_t)
+
+fs_getattr_all_fs(nscd_t)
+fs_search_auto_mountpoints(nscd_t)
+
+term_dontaudit_use_console(nscd_t)
+
+# for when /etc/passwd has just been updated and has the wrong type
+auth_getattr_shadow(nscd_t)
+
+corenet_tcp_sendrecv_all_if(nscd_t)
+corenet_udp_sendrecv_all_if(nscd_t)
+corenet_raw_sendrecv_all_if(nscd_t)
+corenet_tcp_sendrecv_all_nodes(nscd_t)
+corenet_udp_sendrecv_all_nodes(nscd_t)
+corenet_raw_sendrecv_all_nodes(nscd_t)
+corenet_tcp_sendrecv_all_ports(nscd_t)
+corenet_udp_sendrecv_all_ports(nscd_t)
+corenet_non_ipsec_sendrecv(nscd_t)
+corenet_tcp_bind_all_nodes(nscd_t)
+corenet_udp_bind_all_nodes(nscd_t)
+corenet_tcp_connect_all_ports(nscd_t)
+corenet_rw_tun_tap_dev(nscd_t)
+
+selinux_get_fs_mount(nscd_t)
+selinux_validate_context(nscd_t)
+selinux_compute_access_vector(nscd_t)
+selinux_compute_create_context(nscd_t)
+selinux_compute_relabel_context(nscd_t)
+selinux_compute_user_contexts(nscd_t)
+domain_use_interactive_fds(nscd_t)
+
+files_read_etc_files(nscd_t)
+files_read_generic_tmp_symlinks(nscd_t)
+
+init_use_fds(nscd_t)
+init_use_script_ptys(nscd_t)
+
+libs_use_ld_so(nscd_t)
+libs_use_shared_libs(nscd_t)
+
+logging_send_syslog_msg(nscd_t)
+
+miscfiles_read_certs(nscd_t)
+miscfiles_read_localization(nscd_t)
+
+seutil_read_config(nscd_t)
+seutil_read_default_contexts(nscd_t)
+seutil_sigchld_newrole(nscd_t)
+
+sysnet_read_config(nscd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(nscd_t)
+userdom_dontaudit_search_sysadm_home_dirs(nscd_t)
+
+ifdef(`targeted_policy',`
+	term_use_unallocated_ttys(nscd_t)
+	term_use_generic_ptys(nscd_t)
+
+	term_dontaudit_use_unallocated_ttys(nscd_t)
+	term_dontaudit_use_generic_ptys(nscd_t)
+	files_dontaudit_read_root_files(nscd_t)
+')
+
+optional_policy(`nis',`
+	nis_use_ypbind(nscd_t)
+')
+
+optional_policy(`samba',`
+	samba_stream_connect_winbind(nscd_t)
+')
+
+optional_policy(`udev',`
+	udev_read_db(nscd_t)
+')

@@ -1,0 +1,654 @@
+## <summary>Secure shell client and server policy.</summary>
+
+#######################################
+## <summary>
+##	The per user domain template for the ssh module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for ssh client sessions and user ssh agents.  A derived
+##	type is also created to protect the user ssh keys.
+##	</p>
+##	<p>
+##	This template is invoked automatically for each user, and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+#
+template(`ssh_per_userdomain_template',`
+	gen_require(`
+		attribute ssh_server;
+		type ssh_exec_t, ssh_agent_exec_t;
+		type sshd_key_t, ssh_keysign_exec_t;
+		type sshd_tmp_t, sshd_t;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_home_ssh_t;
+	userdom_user_home_content($1,$1_home_ssh_t)
+	role $3 types $1_ssh_t;
+
+	type $1_ssh_t;
+	domain_type($1_ssh_t)
+	domain_entry_file($1_ssh_t,ssh_exec_t)
+
+	type $1_ssh_agent_t;
+	domain_type($1_ssh_agent_t)
+	domain_entry_file($1_ssh_agent_t,ssh_agent_exec_t)
+	role $3 types $1_ssh_agent_t;
+
+	type $1_ssh_keysign_t;
+	domain_type($1_ssh_keysign_t)
+	domain_entry_file($1_ssh_keysign_t,ssh_keysign_exec_t)
+	role $3 types $1_ssh_keysign_t;
+
+	type $1_ssh_tmpfs_t;
+	files_tmpfs_file($1_ssh_tmpfs_t)
+
+	##############################
+	#
+	# $1_ssh_t local policy
+	#
+	allow $1_ssh_t self:capability { setuid setgid dac_override dac_read_search };
+	allow $1_ssh_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1_ssh_t self:fd use;
+	allow $1_ssh_t self:fifo_file { read getattr lock ioctl write append };
+	allow $1_ssh_t self:unix_dgram_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown };
+	allow $1_ssh_t self:unix_stream_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown listen accept };
+	allow $1_ssh_t self:unix_dgram_socket sendto;
+	allow $1_ssh_t self:unix_stream_socket connectto;
+	allow $1_ssh_t self:shm { associate getattr setattr create destroy read write lock unix_read unix_write };
+	allow $1_ssh_t self:sem { associate getattr setattr create destroy read write unix_read unix_write };
+	allow $1_ssh_t self:msgq { associate getattr setattr create destroy read write enqueue unix_read unix_write };
+	allow $1_ssh_t self:msg { send receive };
+	allow $1_ssh_t self:tcp_socket { create connect ioctl read getattr write setattr append bind getopt setopt shutdown };
+
+	allow $1_ssh_t $1_ssh_tmpfs_t:dir rw_dir_perms;
+	allow $1_ssh_t $1_ssh_tmpfs_t:file manage_file_perms;
+	allow $1_ssh_t $1_ssh_tmpfs_t:lnk_file create_lnk_perms;
+	allow $1_ssh_t $1_ssh_tmpfs_t:sock_file manage_file_perms;
+	allow $1_ssh_t $1_ssh_tmpfs_t:fifo_file manage_file_perms;
+	fs_tmpfs_filetrans($1_ssh_t,$1_ssh_tmpfs_t,{ dir file lnk_file sock_file fifo_file })
+
+	# Transition from the user domain to the derived domain.
+	domain_auto_trans($2, ssh_exec_t, $1_ssh_t)
+	allow $2 $1_ssh_t:fd use;
+	allow $1_ssh_t $2:fd use;
+	allow $1_ssh_t $2:fifo_file rw_file_perms;
+	allow $1_ssh_t $2:process sigchld;
+
+	# Read the ssh key file.
+	allow $1_ssh_t sshd_key_t:file r_file_perms;
+
+	# Access the ssh temporary files.
+	allow $1_ssh_t sshd_tmp_t:dir create_dir_perms;
+	allow $1_ssh_t sshd_tmp_t:file create_file_perms;
+	files_tmp_filetrans($1_ssh_t, sshd_tmp_t, { file dir })
+
+	# for rsync
+	allow $1_ssh_t $2:unix_stream_socket rw_socket_perms;
+	allow $1_ssh_t $2:unix_stream_socket connectto;
+
+	# user can manage the keys and config
+	allow $2 $1_home_ssh_t:dir rw_dir_perms;
+	allow $2 $1_home_ssh_t:file create_file_perms;
+	allow $2 $1_home_ssh_t:lnk_file create_lnk_perms;
+	allow $2 $1_home_ssh_t:sock_file create_file_perms;
+
+	# inheriting stream sockets is needed for "ssh host command" as no pty
+	# is allocated
+	# cjp: should probably fix target to be an attribute for ssh servers
+	# or "regular" (not special like sshd_extern_t) servers
+	allow $2 sshd_t:unix_stream_socket rw_stream_socket_perms;
+
+	# ssh client can manage the keys and config
+	userdom_search_user_home_dirs($1,$1_ssh_t)
+	allow $1_ssh_t $1_home_ssh_t:dir r_dir_perms;
+	allow $1_ssh_t $1_home_ssh_t:file create_file_perms;
+	allow $1_ssh_t $1_home_ssh_t:lnk_file { getattr read };
+
+	# ssh servers can read the user keys and config
+	allow ssh_server $1_home_ssh_t:dir r_dir_perms;
+	allow ssh_server $1_home_ssh_t:lnk_file r_file_perms;
+	allow ssh_server $1_home_ssh_t:file r_file_perms;
+
+	kernel_read_kernel_sysctls($1_ssh_t)
+
+	corenet_tcp_sendrecv_all_if($1_ssh_t)
+	corenet_raw_sendrecv_all_if($1_ssh_t)
+	corenet_tcp_sendrecv_all_nodes($1_ssh_t)
+	corenet_raw_sendrecv_all_nodes($1_ssh_t)
+	corenet_tcp_sendrecv_all_ports($1_ssh_t)
+	corenet_non_ipsec_sendrecv($1_ssh_t)
+	corenet_tcp_bind_all_nodes($1_ssh_t)
+	corenet_tcp_connect_ssh_port($1_ssh_t)
+
+	dev_read_urand($1_ssh_t)
+
+	fs_getattr_all_fs($1_ssh_t)
+	fs_search_auto_mountpoints($1_ssh_t)
+
+	# run helper programs - needed eg for x11-ssh-askpass
+	corecmd_exec_shell($1_ssh_t)
+	corecmd_exec_bin($1_ssh_t)
+	corecmd_list_sbin($1_ssh_t)
+	corecmd_read_sbin_symlinks($1_ssh_t)
+	# cjp: these are probably not needed:
+	corecmd_read_sbin_files($1_ssh_t)
+	corecmd_read_sbin_pipes($1_ssh_t)
+	corecmd_read_sbin_sockets($1_ssh_t)
+
+	domain_use_interactive_fds($1_ssh_t)
+
+	files_list_home($1_ssh_t)
+	files_read_usr_files($1_ssh_t)
+	files_read_etc_runtime_files($1_ssh_t)
+	files_read_etc_files($1_ssh_t)
+	files_read_var_files($1_ssh_t)
+
+	libs_use_ld_so($1_ssh_t)
+	libs_use_shared_libs($1_ssh_t)
+
+	logging_send_syslog_msg($1_ssh_t)
+	logging_read_generic_logs($1_ssh_t)
+
+	miscfiles_read_localization($1_ssh_t)
+
+	seutil_read_config($1_ssh_t)
+
+	sysnet_read_config($1_ssh_t)
+	sysnet_dns_name_resolve($1_ssh_t)
+
+	userdom_use_unpriv_users_fds($1_ssh_t)
+	# Write to the user domain tty.
+	userdom_use_user_terminals($1,$1_ssh_t)
+
+	tunable_policy(`read_default_t',`
+		files_list_default($1_ssh_t)
+		files_read_default_files($1_ssh_t)
+		files_read_default_symlinks($1_ssh_t)
+		files_read_default_sockets($1_ssh_t)
+		files_read_default_pipes($1_ssh_t)
+	')
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_dirs($1_ssh_t)
+		fs_manage_nfs_files($1_ssh_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_dirs($1_ssh_t)
+		fs_manage_cifs_files($1_ssh_t)
+	')
+
+	# for port forwarding
+	tunable_policy(`user_tcp_server',`
+		corenet_tcp_bind_ssh_port($1_ssh_t)
+	')
+
+	optional_policy(`kerberos',`
+		kerberos_use($1_ssh_t)
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind($1_ssh_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_ssh_t)
+	')
+
+	optional_policy(`xserver',`
+		xserver_user_client_template($1,$1_ssh_t,$1_ssh_tmpfs_t)
+		xserver_domtrans_user_xauth($1,$1_ssh_t)
+	')
+
+	ifdef(`TODO',`
+
+	# Read /var/run, /var/log.
+	allow $1_ssh_t var_run_t:dir r_dir_perms;
+	allow $1_ssh_t var_run_t:{ file lnk_file } r_file_perms;
+
+	allow $1_ssh_t $1_tmp_t:dir r_dir_perms;
+
+	# Access the users .ssh directory.
+	file_type_auto_trans({ sysadm_ssh_t $1_ssh_t }, $1_home_dir_t, $1_home_ssh_t, dir)
+	file_type_auto_trans($1_ssh_t, $1_home_dir_t, $1_home_ssh_t, sock_file)
+	allow sysadm_ssh_t $1_home_ssh_t:file create_file_perms;
+	allow sysadm_ssh_t $1_home_ssh_t:lnk_file { getattr read };
+	dontaudit $1_ssh_t $1_home_t:dir { getattr search };
+
+	# for /bin/sh used to execute xauth
+	dontaudit $1_ssh_t proc_t:{ lnk_file file } { getattr read };
+
+	# allow ps to show ssh
+	can_ps($1_t, $1_ssh_t)
+
+	#allow ssh to access keys stored on removable media
+	# Should we have a boolean around this?
+	files_search_mnt($1_ssh_t)
+	r_dir_file($1_ssh_t, removable_t) 
+
+	if (allow_ssh_keysign) {
+	domain_auto_trans($1_ssh_t, ssh_keysign_exec_t, $1_ssh_keysign_t)
+	allow $1_ssh_keysign_t sshd_key_t:file { getattr read };
+	allow $1_ssh_keysign_t self:capability { setgid setuid };
+	allow $1_ssh_keysign_t urandom_device_t:chr_file r_file_perms;
+	uses_shlib($1_ssh_keysign_t)
+	dontaudit $1_ssh_keysign_t selinux_config_t:dir search;
+	dontaudit $1_ssh_keysign_t proc_t:dir search;
+	dontaudit $1_ssh_keysign_t proc_t:{ lnk_file file } { getattr read };
+	allow $1_ssh_keysign_t usr_t:dir search;
+	allow $1_ssh_keysign_t etc_t:file { getattr read };
+	allow $1_ssh_keysign_t self:dir search;
+	allow $1_ssh_keysign_t self:file { getattr read };
+	allow $1_ssh_keysign_t self:unix_stream_socket create_socket_perms;
+	}
+
+	') dnl endif TODO
+
+	##############################
+	#
+	# $1_ssh_agent_t local policy
+	#
+
+	allow $1_ssh_agent_t self:process setrlimit;
+	allow $1_ssh_agent_t self:capability setgid;
+
+	allow $1_ssh_agent_t { $1_ssh_agent_t $2 }:process signull;
+
+	allow $1_ssh_agent_t self:unix_stream_socket { connectto rw_socket_perms };
+
+	allow $1_ssh_t $1_ssh_agent_t:unix_stream_socket connectto;
+
+	# for ssh-add
+	allow $2 $1_ssh_agent_t:unix_stream_socket connectto;
+
+	# Allow the user shell to signal the ssh program.
+	allow $2 $1_ssh_agent_t:process signal;
+
+	# for the transition back to normal privs upon exec
+	allow $1_ssh_agent_t $2:fd use;
+	allow $2 $1_ssh_agent_t:fd use;
+	allow $2 $1_ssh_agent_t:fifo_file rw_file_perms;
+	allow $2 $1_ssh_agent_t:process sigchld;
+
+	# Allow the ssh program to communicate with ssh-agent.
+	allow $1_ssh_t sshd_t:unix_stream_socket connectto;
+
+	domain_auto_trans($2, ssh_agent_exec_t, $1_ssh_agent_t)
+	allow $2 $1_ssh_agent_t:fd use;
+	allow $1_ssh_agent_t $2:fd use;
+	allow $1_ssh_agent_t $2:fifo_file rw_file_perms;
+	allow $1_ssh_agent_t $2:process sigchld;
+
+	kernel_read_kernel_sysctls($1_ssh_agent_t)
+
+	dev_read_urand($1_ssh_agent_t)
+	dev_read_rand($1_ssh_agent_t)
+
+	fs_search_auto_mountpoints($1_ssh_agent_t)
+
+	# transition back to normal privs upon exec
+	corecmd_shell_domtrans($1_ssh_agent_t,$1_t)
+	corecmd_bin_domtrans($1_ssh_agent_t, $1_t)
+
+	domain_use_interactive_fds($1_ssh_agent_t)
+
+	files_read_etc_files($1_ssh_agent_t)
+	files_read_etc_runtime_files($1_ssh_agent_t)
+	files_search_home($1_ssh_agent_t)
+
+	libs_read_lib_files($1_ssh_agent_t)
+	libs_use_ld_so($1_ssh_agent_t)
+	libs_use_shared_libs($1_ssh_agent_t)
+
+	logging_send_syslog_msg($1_ssh_agent_t)
+
+	miscfiles_read_localization($1_ssh_agent_t)
+
+	seutil_dontaudit_read_config($1_ssh_agent_t)
+
+	# Write to the user domain tty.
+	userdom_use_user_terminals($1,$1_ssh_agent_t)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_files($1_ssh_agent_t)
+
+		# transition back to normal privs upon exec
+		fs_nfs_domtrans($1_ssh_agent_t, $1_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_files($1_ssh_agent_t)
+
+		# transition back to normal privs upon exec
+		fs_cifs_domtrans($1_ssh_agent_t, $1_t)
+	')
+
+	optional_policy(`nis',`
+		nis_use_ypbind($1_ssh_agent_t)
+	')
+
+#	optional_policy(`xdm',`
+#		# KDM:
+#		xdm_sigchld($1_ssh_agent_t)
+#	')
+
+	ifdef(`TODO',`
+	ifdef(`xdm.te',`
+	can_pipe_xdm($1_ssh_agent_t)
+	')
+
+	# allow ps to show ssh
+	can_ps($1_t, $1_ssh_agent_t)
+
+	dontaudit $1_ssh_agent_t proc_t:{ lnk_file file } { getattr read };
+
+	# Access the ssh temporary files. Should we have an own type here
+	# to which only ssh, ssh-agent and ssh-add have access?
+	allow $1_ssh_agent_t $1_tmp_t:dir r_dir_perms;
+	file_type_auto_trans($1_ssh_agent_t, tmp_t, $1_tmp_t)
+
+	# transition back to normal privs upon exec
+	domain_auto_trans($1_ssh_agent_t, $1_home_t, $1_t)
+	allow $1_ssh_agent_t $1_home_dir_t:dir search;
+
+	allow $1_ssh_t $1_tmp_t:sock_file write;
+
+	#
+	# Allow command to ssh-agent > ~/.ssh_agent
+	#
+	allow $1_ssh_agent_t $1_home_t:file rw_file_perms;
+	allow $1_ssh_agent_t $1_tmp_t:file rw_file_perms;
+
+	# Allow the ssh program to communicate with ssh-agent.
+	allow $1_ssh_t $1_tmp_t:sock_file write;
+	allow $1_ssh_t $2:unix_stream_socket connectto;
+	') dnl endif TODO
+
+	##############################
+	#
+	# $1_ssh_keysign_t local policy
+	#
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_ssh_keysign_t)
+	')
+')
+
+#######################################
+## <summary>
+##	The template to define a ssh server.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a domains to be used for
+##	creating a ssh server.  This is typically done
+##	to have multiple ssh servers of different sensitivities,
+##	such as for an internal network-facing ssh server, and
+##	a external network-facing ssh server.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the server domain (e.g., sshd
+##	is the prefix for sshd_t).
+##	</summary>
+## </param>
+#
+template(`ssh_server_template', `
+	type $1_t, ssh_server;
+
+	domain_type($1_t)
+	role system_r types $1_t;
+
+	type $1_devpts_t;
+	term_login_pty($1_devpts_t)
+
+	type $1_var_run_t;
+	files_pid_file($1_var_run_t)
+
+	allow $1_t self:capability { kill sys_chroot sys_resource chown dac_override fowner fsetid setgid setuid sys_tty_config };
+	allow $1_t self:fifo_file rw_file_perms;
+	allow $1_t self:process { signal setsched setrlimit setexec };
+
+	allow $1_t self:tcp_socket { listen accept create connect ioctl read getattr write setattr append bind getopt setopt shutdown };
+	allow $1_t self:udp_socket { connect create ioctl read getattr write setattr append bind getopt setopt shutdown };
+
+	allow $1_t $1_devpts_t:chr_file { rw_file_perms setattr getattr relabelfrom };
+	term_create_pty($1_t,$1_devpts_t)
+
+	allow $1_t $1_var_run_t:file create_file_perms;
+	files_pid_filetrans($1_t,$1_var_run_t,file)
+
+	can_exec($1_t, sshd_exec_t)
+
+	# Access key files
+	allow $1_t sshd_key_t:file { getattr read };
+
+	kernel_read_kernel_sysctls($1_t)
+
+	corenet_tcp_sendrecv_all_if($1_t)
+	corenet_udp_sendrecv_all_if($1_t)
+	corenet_raw_sendrecv_all_if($1_t)
+	corenet_tcp_sendrecv_all_nodes($1_t)
+	corenet_udp_sendrecv_all_nodes($1_t)
+	corenet_raw_sendrecv_all_nodes($1_t)
+	corenet_udp_sendrecv_all_ports($1_t)
+	corenet_tcp_sendrecv_all_ports($1_t)
+	corenet_non_ipsec_sendrecv($1_t)
+	corenet_tcp_bind_all_nodes($1_t)
+	corenet_udp_bind_all_nodes($1_t)
+	corenet_tcp_connect_all_ports($1_t)
+
+	dev_read_urand($1_t)
+
+	fs_dontaudit_getattr_all_fs($1_t)
+
+	selinux_get_fs_mount($1_t)
+	selinux_validate_context($1_t)
+	selinux_compute_access_vector($1_t)
+	selinux_compute_create_context($1_t)
+	selinux_compute_relabel_context($1_t)
+	selinux_compute_user_contexts($1_t)
+
+	auth_dontaudit_read_shadow($1_t)
+	auth_domtrans_chk_passwd($1_t)
+	auth_rw_login_records($1_t)
+	auth_rw_lastlog($1_t)
+	auth_append_faillog($1_t)
+
+	corecmd_read_bin_symlinks($1_t)
+	corecmd_getattr_bin_files($1_t)
+	# for sshd subsystems, such as sftp-server.
+	corecmd_getattr_bin_files($1_t)
+
+	domain_interactive_fd($1_t)
+	domain_subj_id_change_exemption($1_t)
+	domain_role_change_exemption($1_t)
+	domain_obj_id_change_exemption($1_t)
+
+	files_read_etc_files($1_t)
+	files_read_etc_runtime_files($1_t)
+
+	init_rw_utmp($1_t)
+
+	libs_use_ld_so($1_t)
+	libs_use_shared_libs($1_t)
+
+	logging_search_logs($1_t)
+	logging_send_syslog_msg($1_t)
+
+	miscfiles_read_localization($1_t)
+
+	mls_file_read_up($1_t)
+	mls_file_write_down($1_t)
+	mls_file_upgrade($1_t)
+	mls_file_downgrade($1_t)
+	mls_process_set_level($1_t)
+
+	seutil_read_default_contexts($1_t)
+
+	sysnet_read_config($1_t)
+
+	userdom_dontaudit_relabelfrom_unpriv_users_ptys($1_t)
+	userdom_search_all_users_home_content($1_t)
+
+	# Allow checking users mail at login
+	mta_getattr_spool($1_t)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_read_nfs_files($1_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_read_cifs_files($1_t)
+	')
+
+	# cjp: commenting out until typeattribute works in conditional
+	# and require block in optional else is resolved
+	#optional_policy(`inetd',`
+	#	tunable_policy(`run_ssh_inetd',`
+	#		allow $1_t self:process signal;
+	#		files_list_pids($1_t)
+	#	',`
+	#		corenet_tcp_bind_ssh_port($1_t)
+	#		init_use_fds($1_t)
+	#		init_use_script_ptys($1_t)
+	#	')
+	#',`
+		# These rules should match the else block
+		# of the run_ssh_inetd tunable directly above
+		corenet_tcp_bind_ssh_port($1_t)
+		init_use_fds($1_t)
+		init_use_script_ptys($1_t)
+	#')
+
+	optional_policy(`kerberos',`
+		kerberos_use($1_t)
+	')
+
+	optional_policy(`mount',`
+		mount_send_nfs_client_request($1_t)
+	')
+
+	optional_policy(`nscd',`
+		nscd_socket_use($1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the ssh server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_sigchld',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Read a ssh server unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_read_pipes',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:fifo_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	ssh server TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`ssh_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	dontaudit $1 sshd_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Connect to SSH daemons over TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_tcp_connect',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:tcp_socket { connectto recvfrom };
+	allow sshd_t $1:tcp_socket { acceptfrom recvfrom };
+	kernel_tcp_recvfrom($1)
+')
+
+########################################
+## <summary>
+##	Read ssh server keys
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_dontaudit_read_server_keys',`
+	gen_require(`
+		type sshd_key_t;
+	')
+
+	dontaudit $1 sshd_key_t:file { getattr read };
+')

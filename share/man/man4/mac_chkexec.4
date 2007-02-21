@@ -1,0 +1,145 @@
+.\"- Copyright (c) 2005 Tom Rhodes
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd May 21, 2005
+.Os
+.Dt MAC_CHKEXEC 4
+.Sh NAME
+.Nm mac_chkexec
+.Nd "file system trusted executable policy"
+.Sh SYNOPSIS
+To compile the trusted exec policy into your kernel,
+place the following lines in your kernel configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Cd "options MAC_CHKEXEC"
+.Ed
+.Pp
+Alternately, to load the trusted exec policy module at boot time,
+place the following line in your kernel configuration file:
+.Bd -ragged -offset indent
+.Cd "options MAC"
+.Ed
+.Pp
+and in
+.Xr loader.conf 5 :
+.Bd -literal -offset indent
+mac_chkexec_load="YES"
+.Ed
+.Sh DESCRIPTION
+The
+.Nm
+security policy module provides the system administrator with a
+mechanism similar to host based intrusion detection systems.
+A checksum is created for each system object and stored
+in the extended attributes area of the file system.
+System objects which fail checksum matching will have their
+execution blocked.
+Additionally, system objects may require the hash of
+another object to pass inspection before execution.
+This is considered the dependency chain.
+.Pp
+By default, all generated hashes are
+.Tn SHA1
+based.
+This may change in the future.
+To get or set hash information, an administrator would use
+the
+.Xr getfhash 8
+and
+.Xr setfhash 8
+utilities.
+.Sh IMPLEMENTATION NOTES
+The
+.Nm
+policy works similar to host based intrusion detection
+mechanisms with the added bonus of blocking execution
+of system objects.
+.Pp
+.Ss Sysctls
+The following sysctls may be used to tweak the behavior of
+.Nm :
+.Bl -tag -width indent
+.It Va security.mac.chkexec.enable
+Set to zero or one to toggle the policy off or on.
+.It Va security.mac.chkexec.enforce
+Toggle the enforcement of the security policy.
+While the policy is loaded but
+not enforced, the system is in learning mode.
+This means that each time an object is executed,
+the system calculates and stores the checksums for that object.
+This allows system administrators to create their
+.Dq baseline database
+of trusted binaries simply by letting the system run in regular operation.
+.It Va security.mac.chkexec.cache.objmax
+Adjust the cache size.
+This should be increased as more system objects
+are added to the system.
+Note that this value should be similar to
+.Dq 1024
+during the
+.Fx
+buildworld process.
+.It Va security.mac.chkexec.algo
+Specify which hashing algorithm to use.
+Currently MD5 and SHA1 are supported.
+By default SHA1 is used.
+.It Va security.mac.chkexec.cache.enable
+Enable or disable the use of the object cache.
+Disabling the cache results
+in system execution and run-time linking performance being degraded.
+.It Va security.mac.chkexec.ignore_untagged
+Specify whether or not un-registered binaries should be exempt.
+This allows users to execute newly created binaries.
+It is highly recommended that this option
+.Em not
+be enabled.
+.El
+.Sh SEE ALSO
+.Xr mac 4 ,
+.Xr mac_biba 4 ,
+.Xr mac_bsdextended 4 ,
+.Xr mac_ifoff 4 ,
+.Xr mac_lomac 4 ,
+.Xr mac_mls 4 ,
+.Xr mac_none 4 ,
+.Xr mac_partition 4 ,
+.Xr mac_portacl 4 ,
+.Xr mac_seeotheruids 4 ,
+.Xr mac_test 4 ,
+.Xr getfhash 8 ,
+.Xr setfhash 8
+.Sh AUTHORS
+The
+.Nm
+security policy was written by
+.An Christian S.J. Peron Aq csjp@FreeBSD.org .
+This manual page was written by
+.An Tom Rhodes Aq trhodes@FreeBSD.org .
+.Sh BUGS
+Currently the
+.Nm
+module will not break circular dependencies for executable objects.

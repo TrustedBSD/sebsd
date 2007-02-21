@@ -1,0 +1,305 @@
+## <summary>Miscelaneous files.</summary>
+
+########################################
+## <summary>
+##	Read system SSL certificates.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_certs',`
+	gen_require(`
+		type cert_t;
+	')
+
+	allow $1 cert_t:dir r_dir_perms;
+	allow $1 cert_t:file r_file_perms;
+	allow $1 cert_t:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Read fonts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_fonts',`
+	gen_require(`
+		type fonts_t;
+	')
+
+	# cjp: fonts can be in either of these dirs
+	files_search_usr($1)
+	libs_search_lib($1)
+
+	allow $1 fonts_t:dir r_dir_perms;
+	allow $1 fonts_t:file r_file_perms;
+	allow $1 fonts_t:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete fonts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_manage_fonts',`
+	gen_require(`
+		type fonts_t;
+	')
+
+	# cjp: fonts can be in either of these dirs
+	files_search_usr($1)
+	libs_search_lib($1)
+
+	allow $1 fonts_t:dir create_dir_perms;
+	allow $1 fonts_t:file create_file_perms;
+	allow $1 fonts_t:lnk_file create_lnk_perms;
+')
+
+########################################
+## <summary>
+##	Read hardware identification data.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_hwdata',`
+	gen_require(`
+		type hwdata_t;
+	')
+
+	allow $1 hwdata_t:dir r_dir_perms;
+	allow $1 hwdata_t:file r_file_perms;
+	allow $1 hwdata_t:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Allow process to read localization info
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_localization',`
+	gen_require(`
+		type locale_t;
+	')
+
+	files_search_etc($1)
+	# FIXME: $1 read etc_t:lnk_file here
+	files_search_usr($1)
+	allow $1 locale_t:dir r_dir_perms;
+	allow $1 locale_t:lnk_file r_file_perms;
+	allow $1 locale_t:file r_file_perms;
+
+	# why?
+	libs_read_lib_files($1)
+')
+
+########################################
+## <summary>
+##	Allow process to read legacy time localization info
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_legacy_read_localization',`
+	gen_require(`
+		type locale_t;
+	')
+
+	miscfiles_read_localization($1)
+	allow $1 locale_t:file execute;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search man pages.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_dontaudit_search_man_pages',`
+	gen_require(`
+		type man_t;
+	')
+
+	dontaudit $1 man_t:dir search;
+')
+
+########################################
+## <summary>
+##	Read man pages
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_man_pages',`
+	gen_require(`
+		type man_t;
+	')
+
+	files_search_usr($1)
+	allow $1 man_t:dir r_dir_perms;
+	allow $1 man_t:file r_file_perms;
+	allow $1 man_t:lnk_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete man pages
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+# cjp: added for tmpreaper
+#
+interface(`miscfiles_delete_man_pages',`
+	gen_require(`
+		type man_t;
+	')
+
+	files_search_usr($1)
+	allow $1 man_t:dir { setattr rw_dir_perms rmdir };
+	allow $1 man_t:file { getattr unlink };
+	allow $1 man_t:lnk_file { getattr unlink };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete man pages
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_manage_man_pages',`
+	gen_require(`
+		type man_t;
+	')
+
+	files_search_usr($1)
+	allow $1 man_t:dir create_dir_perms;
+	allow $1 man_t:file create_file_perms;
+	allow $1 man_t:lnk_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Read public files used for file
+##	transfer services.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_public_files',`
+	gen_require(`
+		type public_content_t, public_content_rw_t;
+	')
+
+	allow $1 { public_content_t public_content_rw_t }:dir r_dir_perms;
+	allow $1 { public_content_t public_content_rw_t }:file r_file_perms;
+	allow $1 { public_content_t public_content_rw_t }:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete public files
+##	and directories used for file transfer services.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_manage_public_files',`
+	gen_require(`
+		type public_content_rw_t;
+	')
+
+	allow $1 public_content_rw_t:dir create_dir_perms;
+	allow $1 public_content_rw_t:file create_file_perms;
+	allow $1 public_content_rw_t:lnk_file create_lnk_perms;
+')
+
+########################################
+## <summary>
+##	Read TeX data
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_read_tetex_data',`
+	gen_require(`
+		type tetex_data_t;
+	')
+
+	files_search_var($1)
+	files_search_var_lib($1)
+
+	# cjp: TeX data can be in either of the above dirs
+	allow $1 tetex_data_t:dir r_dir_perms;
+	allow $1 tetex_data_t:file r_file_perms;
+	allow $1 tetex_data_t:lnk_file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute TeX data programs in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`miscfiles_exec_tetex_data',`
+	gen_require(`
+		type fonts_t;
+	')
+
+	files_search_var($1)
+	files_search_var_lib($1)
+
+	# cjp: TeX data can be in either of the above dirs
+	allow $1 tetex_data_t:dir r_dir_perms;
+	can_exec($1,tetex_data_t)
+')

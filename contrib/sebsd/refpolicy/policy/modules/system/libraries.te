@@ -1,0 +1,98 @@
+
+policy_module(libraries,1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+#
+# ld_so_cache_t is the type of /etc/ld.so.cache.
+#
+type ld_so_cache_t;
+files_type(ld_so_cache_t)
+
+#
+# ld_so_t is the type of the system dynamic loaders.
+#
+type ld_so_t;
+files_type(ld_so_t)
+
+#
+# lib_t is the type of files in the system lib directories.
+#
+type lib_t;
+files_type(lib_t)
+
+#
+# shlib_t is the type of shared objects in the system lib
+# directories.
+#
+ifdef(`targeted_policy',`
+	typealias lib_t alias shlib_t;
+',`
+	type shlib_t;
+	files_type(shlib_t)
+')
+
+#
+# textrel_shlib_t is the type of shared objects in the system lib
+# directories, which require text relocation.
+#
+type textrel_shlib_t alias texrel_shlib_t;
+files_type(textrel_shlib_t)
+
+########################################
+#
+# ldconfig local policy
+#
+type ldconfig_t;
+type ldconfig_exec_t;
+init_system_domain(ldconfig_t,ldconfig_exec_t)
+role system_r types ldconfig_t;
+
+allow ldconfig_t ld_so_cache_t:file create_file_perms;
+files_etc_filetrans(ldconfig_t,ld_so_cache_t,file)
+
+allow ldconfig_t lib_t:dir rw_dir_perms;
+allow ldconfig_t lib_t:lnk_file { getattr create read unlink };
+allow ldconfig_t ld_so_t:lnk_file r_file_perms;
+allow ldconfig_t ld_so_t:file rx_file_perms;
+allow ldconfig_t ld_so_cache_t:file r_file_perms;
+allow ldconfig_t { shlib_t textrel_shlib_t }:lnk_file r_file_perms;
+allow ldconfig_t { shlib_t textrel_shlib_t }:file rx_file_perms;
+
+kernel_read_system_state(ldconfig_t)
+
+fs_getattr_xattr_fs(ldconfig_t)
+
+domain_use_interactive_fds(ldconfig_t)
+
+files_search_var_lib(ldconfig_t)
+files_read_etc_files(ldconfig_t)
+files_search_tmp(ldconfig_t)
+files_search_usr(ldconfig_t)
+# for when /etc/ld.so.cache is mislabeled:
+files_delete_etc_files(ldconfig_t)
+
+init_use_script_ptys(ldconfig_t)
+
+logging_send_syslog_msg(ldconfig_t)
+
+userdom_use_all_users_fds(ldconfig_t)
+
+ifdef(`hide_broken_symptoms',`
+	optional_policy(`unconfined',`
+		unconfined_dontaudit_rw_tcp_sockets(ldconfig_t)
+	')
+')
+
+ifdef(`targeted_policy',`
+	allow ldconfig_t lib_t:file r_file_perms;
+	unconfined_domain(ldconfig_t) 
+')
+
+optional_policy(`apache',`
+	# dontaudit access to /usr/lib/apache, normal programs cannot read these libs anyway
+	apache_dontaudit_search_modules(ldconfig_t)
+')

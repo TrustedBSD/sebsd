@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# restorecond:		Daemo used to maintain path file context
+#
+# chkconfig:	2345 10 90
+# description:	restorecond uses inotify to look for creation of new files \
+# listed in the /etc/selinux/restorecond.conf file, and restores the \
+# correct security context.
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+[ -x /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled || exit 0
+
+start() 
+{
+        echo -n $"Starting restorecond: "
+        daemon /usr/sbin/restorecond 
+
+	touch /var/lock/subsys/restorecond
+        echo
+}
+
+stop() 
+{
+        echo -n $"Shutting down restorecond: "
+	killproc restorecond
+
+	rm -f  /var/lock/subsys/restorecond
+        echo
+}
+restart() 
+{
+    stop
+    start
+}
+
+[ -f /usr/sbin/restorecond ] || exit 0
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+        ;;
+  stop)
+	stop
+        ;;
+  status)
+	status restorecond
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	[ -e /var/lock/subsys/restorecond ] && restart || :
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|reload|condrestart}"
+        exit 1
+esac
+
+exit 0

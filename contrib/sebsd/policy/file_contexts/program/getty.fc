@@ -1,0 +1,4 @@
+# getty
+/sbin/.*getty			system_u:object_r:getty_exec_t
+/etc/mgetty(/.*)?		system_u:object_r:etc_getty_t
+/usr/libexec/getty		system_u:object_r:getty_exec_t

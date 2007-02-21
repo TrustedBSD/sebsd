@@ -1,0 +1,35 @@
+#DESC Bluetooth 
+#
+# Authors:  Dan Walsh
+# RH-Packages: Bluetooth
+#
+
+#################################
+#
+# Rules for the bluetooth_t domain.
+#
+daemon_domain(bluetooth, `, dbus_client_domain')
+
+file_type_auto_trans(bluetooth_t, var_run_t, bluetooth_var_run_t, sock_file)
+
+tmp_domain(bluetooth)
+
+# Use capabilities.
+allow bluetooth_t self:capability { net_raw sys_tty_config net_admin };
+
+rw_dir_create_file(bluetooth_t, var_lock_t)
+
+# Use the network.
+can_network(bluetooth_t)
+allow bluetooth_t self:socket { create setopt ioctl bind listen };
+allow bluetooth_t self:unix_dgram_socket create_socket_perms;
+allow bluetooth_t self:unix_stream_socket create_stream_socket_perms;
+
+dontaudit bluetooth_t sysadm_devpts_t:chr_file { read write };
+
+# bluetooth_conf_t is the type of the /etc/bluetooth dir.
+type bluetooth_conf_t, file_type, sysadmfile;
+
+# Read /etc/bluetooth
+allow bluetooth_t bluetooth_conf_t:dir search;
+allow bluetooth_t bluetooth_conf_t:file { getattr read ioctl };

@@ -1,0 +1,125 @@
+## <summary>RPC port mapping service.</summary>
+
+########################################
+## <summary>
+##	Execute portmap_helper in the helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portmap_domtrans_helper',`
+	gen_require(`
+		type portmap_helper_t, portmap_helper_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domain_auto_trans($1,portmap_helper_exec_t,portmap_helper_t)
+
+	allow $1 portmap_helper_t:fd use;
+	allow portmap_helper_t $1:fd use;
+	allow portmap_helper_t $1:fifo_file rw_file_perms;
+	allow portmap_helper_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute portmap helper in the helper domain, and
+##	allow the specified role the helper domain.
+##	Communicate with portmap.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the portmap domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the portmap domain to use.
+##	</summary>
+## </param>
+#
+interface(`portmap_run_helper',`
+	gen_require(`
+		type portmap_t, portmap_helper_t;
+	')
+
+	portmap_domtrans_helper($1)
+	role $2 types portmap_helper_t;
+	allow portmap_helper_t $3:chr_file { getattr read write ioctl };
+
+	# send to portmap
+	allow $1 portmap_t:udp_socket sendto;
+	allow portmap_t $1:udp_socket recvfrom;
+
+	# receive from portmap
+	allow portmap_t $1:udp_socket sendto;
+	allow $1 portmap_t:udp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic to portmap.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`portmap_udp_send',`
+	gen_require(`
+		type portmap_t;
+	')
+
+	allow $1 portmap_t:udp_socket sendto;
+	allow portmap_t $1:udp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic from portmap.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portmap_udp_chat',`
+	gen_require(`
+		type portmap_t;
+	')
+
+	allow $1 portmap_t:udp_socket sendto;
+	allow portmap_t $1:udp_socket recvfrom;
+	allow portmap_t $1:udp_socket sendto;
+	allow $1 portmap_t:udp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Connect to portmap over a TCP socket
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`portmap_tcp_connect',`
+	gen_require(`
+		type portmap_t;
+	')
+
+	allow $1 portmap_t:tcp_socket { connectto recvfrom };
+	allow portmap_t $1:tcp_socket { acceptfrom recvfrom };
+	kernel_tcp_recvfrom($1)
+')

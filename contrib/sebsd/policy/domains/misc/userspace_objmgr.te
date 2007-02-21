@@ -1,0 +1,9 @@
+#DESC Userspace Object Managers
+#
+#################################
+
+can_getsecurity(userspace_objmgr)
+# For determining SELinux policy type
+allow userspace_objmgr selinux_config_t:file { getattr read };
+# For notifications of policy reloads
+allow userspace_objmgr self:netlink_selinux_socket { create bind read };

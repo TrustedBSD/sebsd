@@ -1,0 +1,391 @@
+## <summary>
+##	SMB and CIFS client/server programs for UNIX and
+##	name  Service  Switch  daemon for resolving names
+##	from Windows NT servers.
+## </summary>
+
+#######################################
+## <summary>
+##	The per user domain template for the samba module.
+## </summary>
+## <desc>
+##	<p>
+##	This template allows smbd to manage files in
+##	a user home directory, creating files with the
+##	correct type.
+##	</p>
+##	<p>
+##	This template is invoked automatically for each user, and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+#
+template(`samba_per_userdomain_template',`
+	gen_require(`
+		type smbd_t;
+	')
+
+	tunable_policy(`samba_enable_home_dirs',`
+		userdom_manage_user_home_content_files($1,smbd_t)
+		userdom_manage_user_home_content_symlinks($1,smbd_t)
+		userdom_manage_user_home_content_sockets($1,smbd_t)
+		userdom_manage_user_home_content_pipes($1,smbd_t)
+		userdom_user_home_dir_filetrans_user_home_content($1,smbd_t,{ dir file lnk_file sock_file fifo_file })
+	')
+')
+
+########################################
+## <summary>
+##	Execute samba net in the samba_net domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`samba_domtrans_net',`
+	gen_require(`
+		type samba_net_t, samba_net_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domain_auto_trans($1,samba_net_exec_t,samba_net_t)
+
+	allow $1 samba_net_t:fd use;
+	allow samba_net_t $1:fd use;
+	allow samba_net_t $1:fifo_file rw_file_perms;
+	allow samba_net_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute samba net in the samba_net domain, and
+##	allow the specified role the samba_net domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the samba_net domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the samba_net domain to use.
+##	</summary>
+## </param>
+#
+interface(`samba_run_net',`
+	gen_require(`
+		type samba_net_t;
+	')
+
+	samba_domtrans_net($1)
+	role $2 types samba_net_t;
+	allow samba_net_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Execute smbmount in the smbmount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`samba_domtrans_smbmount',`
+	gen_require(`
+		type smbmount_t, smbmount_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domain_auto_trans($1,smbmount_exec_t,smbmount_t)
+
+	allow $1 smbmount_t:fd use;
+	allow smbmount_t $1:fd use;
+	allow smbmount_t $1:fifo_file rw_file_perms;
+	allow smbmount_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	samba configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_read_config',`
+	gen_require(`
+		type samba_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 samba_etc_t:file { read getattr lock };
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	and write samba configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_rw_config',`
+	gen_require(`
+		type samba_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 samba_etc_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read samba's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_read_log',`
+	gen_require(`
+		type samba_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 samba_log_t:dir r_dir_perms;
+	allow $1 samba_log_t:file { read getattr lock };
+')
+
+########################################
+## <summary>
+##	Execute samba log in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`samba_exec_log',`
+	gen_require(`
+		type samba_log_t;
+	')
+
+	logging_search_logs($1)
+	can_exec($1,samba_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read samba's secrets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_read_secrets',`
+	gen_require(`
+		type samba_secrets_t;
+	')
+
+	files_search_etc($1)
+	allow $1 samba_secrets_t:file { read getattr lock };
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to search
+##	samba /var directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_search_var',`
+	gen_require(`
+		type samba_var_t;
+	')
+
+	files_search_var($1)
+	allow $1 samba_var_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to
+##	read and write samba /var files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_rw_var_files',`
+	gen_require(`
+		type samba_var_t;
+	')
+
+	files_search_var($1)
+	allow $1 samba_var_t:dir search_dir_perms;
+	allow $1 samba_var_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to write to smbmount tcp sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_write_smbmount_tcp_sockets',`
+	gen_require(`
+		type smbmount_t;
+	')
+
+	allow $1 smbmount_t:tcp_socket write;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read and write to smbmount tcp sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_rw_smbmount_tcp_sockets',`
+	gen_require(`
+		type smbmount_t;
+	')
+
+	allow $1 smbmount_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Execute winbind_helper in the winbind_helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`samba_domtrans_winbind_helper',`
+	gen_require(`
+		type winbind_helper_t, winbind_helper_exec_t;
+	')
+
+	domain_auto_trans($1,winbind_helper_exec_t,winbind_helper_t)
+
+	allow $1 winbind_helper_t:fd use;
+	allow winbind_helper_t $1:fd use;
+	allow winbind_helper_t $1:fifo_file rw_file_perms;
+	allow winbind_helper_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute winbind_helper in the winbind_helper domain, and
+##	allow the specified role the winbind_helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the winbind_helper domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the winbind_helper domain to use.
+##	</summary>
+## </param>
+#
+interface(`samba_run_winbind_helper',`
+	gen_require(`
+		type winbind_helper_t;
+	')
+
+	samba_domtrans_winbind_helper($1)
+	role $2 types winbind_helper_t;
+	allow winbind_helper_t $3:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read the winbind pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_read_winbind_pid',`
+	gen_require(`
+		type winbind_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 winbind_var_run_t:file r_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect to winbind.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_stream_connect_winbind',`
+	gen_require(`
+		type samba_var_t, winbind_t, winbind_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 samba_var_t:dir search_dir_perms;
+	allow $1 winbind_var_run_t:dir search_dir_perms;
+	allow $1 winbind_var_run_t:sock_file { getattr read write };
+	allow $1 winbind_t:unix_stream_socket connectto;
+')

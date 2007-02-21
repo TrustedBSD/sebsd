@@ -1,0 +1,24 @@
+## Wed Mar 27 11:29:44 EST 2002 ## cvance@nailabs.com
+This version of SEBSD consists of little more than an initial port of
+the SELinux access vector cache (AVC) and security server (SS).
+Adding the "SEBSD" option to kernel build will result in a kernel that
+attempts to initialize the SS upon boot.  The initialization procedure
+requires a compiled (binary format) policy file to be present on the
+boot partition, called 'ss_policy'.  If this file is not present, the
+kernel will panic upon boot.
+
+The tools to generate and compile the policy have not been ported to
+FreeBSD yet, so the policy must be generated on an SELinux machine and
+copied over.  Even so, it is more of an experiment, as the policy will
+likely have no bearing on the FreeBSD system and nothing is currently
+enforced by the SEBSD module.  Upon initializing, a message similar to
+the following will be displayed at boot time:
+
+security:  starting up (compiled Mar 26 2002)
+security:  loading policy configuration from /ss_policy
+security:  15 users, 5 roles, 476 types
+security:  29 classes, 54963 rules
+
+This is just a first step in the development of the SEBSD module.  We
+are currently working on providing user-space policy tools as well
+implementing basic process and file labeling.

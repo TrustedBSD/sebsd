@@ -1,0 +1,21 @@
+#
+# Author:  Andrew Reisse <areisse@nailabs.com>
+#
+
+#################################
+#
+# Rules for the devd_t domain.
+#
+
+daemon_domain(devd)
+
+allow devd_t self:fd { create use };
+allow devd_t device_t:chr_file { read getattr ioctl poll };
+allow devd_t device_t:lnk_file { read };
+allow devd_t etc_t:file r_file_perms;
+
+# /var/run/devd.pipe
+type devd_sock_t, file_type, sysadmfile;
+file_type_auto_trans(devd_t, var_run_t, devd_sock_t, sock_file)
+
+can_exec_any(devd_t)

@@ -1,0 +1,9 @@
+# This is SEBSD's /etc/security/default_contexts configuration file.
+#
+# The transitions available from the partial contexts in the first
+# column are resorted by moving any possible domains on the right
+# to the top of the list, to get the most proper implicit transition.
+#
+# Programs this is most applicable to are login, crond, atrun etc.
+
+system_r:crond_t	system_r:system_crond_t user_r:user_crond_t sysadm_r:sysadm_t

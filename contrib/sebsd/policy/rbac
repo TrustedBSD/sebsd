@@ -1,0 +1,34 @@
+################################################
+#
+# Role-based access control (RBAC) configuration.
+#
+
+dnl This file formerly contained a set of centralized role declarations.
+dnl These role declarations have been partitioned up among the various
+dnl .te files.
+
+dnl Role transition rules are deprecated.  Role transitions should be
+dnl explicit, e.g. via login and newrole.  Use domain transitions within a 
+dnl role for automatic changes of permissions upon program execution.
+
+dnl This file is now merely for role allow rules, as described below.
+
+########################################
+#
+# Role allow rules.
+#
+# A role allow rule specifies the allowable
+# transitions between roles on an execve.
+# If no rule is specified, then the change in
+# roles will not be permitted.  Additional
+# controls over role transitions based on the
+# type of the process may be specified through
+# the constraints file.
+#
+# The syntax of a role allow rule is:
+# 	allow current_role new_role ;
+# 
+# Allow the admin role to transition to the system
+# role for run_init.
+#
+allow sysadm_r system_r;

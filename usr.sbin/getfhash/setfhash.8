@@ -1,0 +1,88 @@
+.\"- Copyright (c) 2005 Tom Rhodes
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd May 21, 2005
+.Os
+.Dt SETFHASH 8
+.Sh NAME
+.Nm setfhash
+.Nd "set checksum hash on system objects"
+.Sh SYNOPSIS
+.Nm
+.Op Fl r
+.Op Fl m
+.Op dependency
+.Ar file
+.Sh DESCRIPTION
+The
+.Nm
+utility sets hash information on system objects in
+the file system.
+When invoked on an object,
+.Nm
+will calculate, store, and set a hash on the object
+listed in
+.Ar file .
+.Pp
+.Bl -tag -width indent
+.It Fl m
+Set a hash dependency.
+If the checksum fails for the dependency,
+the object's invocation will fail.
+When setting dependencies, they must be listed previous to the
+system object which requires them.
+Multiple dependencies may exist and must be separated by a
+colon when entered.
+It should be noted that dependency pathnames
+will be looked up relative to the calling process's root.
+.It Fl r
+Remove any dependencies associated with a file system object.
+.El
+.Sh EXAMPLES
+To set the hash on
+.Pa /bin/ls
+one would issue:
+.Dl Nm Pa /bin/ls
+.Pp
+To require
+.Pa /etc/rc.firewall
+to pass a checksum match before invoking
+.Xr ipfw 8 :
+.Dl Nm Fl m Pa /etc/rc.firewall Pa /bin/ipfw
+.Sh SEE ALSO
+.Xr mac 4 ,
+.Xr mac_chkexec 4 ,
+.Xr getfhash 8 ,
+.Xr ipfw 8
+.Sh AUTHORS
+The
+.Xr mac_chkexec 4
+and
+.Nm
+utility was written by
+.An Christian S.J. Peron Aq csjp@FreeBSD.org .
+This manual page was written by
+.An Tom Rhodes Aq trhodes@FreeBSD.org .

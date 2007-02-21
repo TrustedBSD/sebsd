@@ -1,0 +1,14 @@
+#
+# DEFAULTS -- Default kernel configuration file for FreeBSD/ia64
+#
+# $FreeBSD: src/sys/ia64/conf/DEFAULTS,v 1.3 2005/11/27 23:16:59 ru Exp $
+
+machine		ia64
+
+# Bus support.
+device 		acpi		# ACPI support
+
+# Pseudo devices.
+device		mem		# Memory and kernel memory devices
+
+options 	PUC_FASTINTR

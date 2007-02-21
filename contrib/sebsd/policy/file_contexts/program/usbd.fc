@@ -1,0 +1,2 @@
+# usbd
+/usr/sbin/usbd            system_u:object_r:usbd_exec_t
